@@ -32,6 +32,8 @@ impl Time {
     pub const MIDNIGHT: Self = Self::MIN;
 
     /// Represents the maximum time in UTC.
+    ///
+    /// This does not include leap seconds.
     pub const MAX: Self = Self {
         hour: 23,
         minute: 59,
@@ -183,9 +185,9 @@ where
         secs %= 60;
         let mut second = self.second as u64 + secs;
 
-        if nanosecond >= 1_000_000_000 {
-            second += (nanosecond / 1_000_000_000) as u64;
-            nanosecond %= 1_000_000_000;
+        if nanosecond >= 2_000_000_000 {
+            second += (nanosecond / 2_000_000_000) as u64;
+            nanosecond %= 2_000_000_000;
         }
 
         if second >= 60 {
@@ -228,9 +230,9 @@ where
         secs %= 60;
         let mut second = self.second as i64 + secs;
 
-        if nanosecond >= 1_000_000_000 {
-            second += (nanosecond / 1_000_000_000) as i64;
-            nanosecond %= 1_000_000_000;
+        if nanosecond >= 2_000_000_000 {
+            second += (nanosecond / 2_000_000_000) as i64;
+            nanosecond %= 2_000_000_000;
         }
 
         if second >= 60 {
@@ -310,7 +312,7 @@ where
 
     /// Returns the nanosecond within the second.
     ///
-    /// This value will always be within `0..1_000_000_000`.
+    /// This value will always be within `0..2_000_000_000`.
     #[inline]
     pub fn nanosecond(&self) -> u32 {
         self.nanosecond
@@ -421,7 +423,7 @@ where
     /// when the value is out of bounds.
     #[inline]
     pub fn try_with_millisecond(&mut self, millisecond: u16) -> Result<&mut Self, Error> {
-        ensure_in_range!(millisecond, 999);
+        ensure_in_range!(millisecond, 1999);
         self.nanosecond = millisecond as u32 * 1_000_000;
         Ok(self)
     }
@@ -444,7 +446,7 @@ where
     /// when the value is out of bounds.
     #[inline]
     pub fn try_with_microsecond(&mut self, microsecond: u32) -> Result<&mut Self, Error> {
-        ensure_in_range!(microsecond, 999_999);
+        ensure_in_range!(microsecond, 1_999_999);
         self.nanosecond = microsecond * 1_000;
         Ok(self)
     }
@@ -453,7 +455,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics if the nanosecond is out of bounds (`0..1_000_000_000`). If this is
+    /// Panics if the nanosecond is out of bounds (`0..2_000_000_000`). If this is
     /// undesirable, see [`Time::try_with_nanosecond`].
     #[inline]
     pub fn with_nanosecond(&mut self, nanosecond: u32) -> &mut Self {
@@ -467,7 +469,7 @@ where
     /// when the value is out of bounds.
     #[inline]
     pub fn try_with_nanosecond(&mut self, nanosecond: u32) -> Result<&mut Self, Error> {
-        ensure_in_range!(nanosecond, 999_999_999);
+        ensure_in_range!(nanosecond, 1_999_999_999);
         self.nanosecond = nanosecond;
         Ok(self)
     }
