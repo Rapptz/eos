@@ -48,6 +48,8 @@ impl UtcOffset {
     /// The sign of all three components should match. If they do not, all components will
     /// have their signs flipped to match the `hour` sign.
     ///
+    /// The values must be within the range of ±23:59:59.
+    ///
     /// # Examples
     ///
     /// ```
@@ -91,8 +93,9 @@ impl UtcOffset {
     ///
     /// ```
     /// # use eos::UtcOffset;
-    /// assert_eq!(UtcOffset::from_seconds(23400).unwrap().into_hms(), (6, 30, 0));
-    /// assert_eq!(UtcOffset::from_seconds(23400).unwrap().total_seconds(), 23400);
+    /// assert_eq!(UtcOffset::from_seconds(23400)?.into_hms(), (6, 30, 0));
+    /// assert_eq!(UtcOffset::from_seconds(23400)?.total_seconds(), 23400);
+    /// # Ok::<_, eos::Error>(())
     /// ```
     pub const fn from_seconds(seconds: i32) -> Result<Self, Error> {
         ensure_in_range!(seconds, -86399 => 86399);
@@ -113,7 +116,8 @@ impl UtcOffset {
     ///
     /// ```
     /// # use eos::UtcOffset;
-    /// assert_eq!(UtcOffset::from_hms(6, 30, 0).unwrap().total_seconds(), 23400);
+    /// assert_eq!(UtcOffset::from_hms(6, 30, 0)?.total_seconds(), 23400);
+    /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
     pub const fn total_seconds(&self) -> i32 {
