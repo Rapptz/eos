@@ -168,6 +168,12 @@ impl Interval {
         self.nanoseconds / 1_000_000
     }
 
+    /// Returns the number of microseconds within this interval.
+    #[inline]
+    pub const fn microseconds(&self) -> i64 {
+        self.nanoseconds / 1000
+    }
+
     /// Returns the number of nanoseconds within this interval.
     #[inline]
     pub const fn nanoseconds(&self) -> i64 {
