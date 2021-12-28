@@ -222,6 +222,28 @@ impl Interval {
         self
     }
 
+    /// Returns a new [`Interval`] with the given number of milliseconds.
+    ///
+    /// Note that the internal structure only stores nanoseconds. If the computation
+    /// would end up overflowing then the value is saturated to the upper bounds. If
+    /// nanoseconds are already set then this would remove the previous value.
+    #[inline]
+    pub fn with_milliseconds(mut self, milliseconds: i64) -> Self {
+        self.nanoseconds = milliseconds.saturating_mul(1_000_000);
+        self
+    }
+
+    /// Returns a new [`Interval`] with the given number of microseconds.
+    ///
+    /// Note that the internal structure only stores nanoseconds. If the computation
+    /// would end up overflowing then the value is saturated to the upper bounds. If
+    /// nanoseconds are already set then this would remove the previous value.
+    #[inline]
+    pub fn with_microseconds(mut self, microseconds: i64) -> Self {
+        self.nanoseconds = microseconds.saturating_mul(1_000);
+        self
+    }
+
     /// Returns a new [`Interval`] with the given number of nanoseconds.
     pub fn with_nanoseconds(mut self, nanoseconds: i64) -> Self {
         self.nanoseconds = nanoseconds;
