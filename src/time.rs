@@ -1,4 +1,4 @@
-use crate::{timezone::Utc, utils::ensure_in_range, TimeZone, Error};
+use crate::{timezone::Utc, utils::ensure_in_range, Error, TimeZone};
 
 use core::time::Duration;
 
@@ -339,136 +339,136 @@ where
         ))
     }
 
-    /// Modify the time to point to the given hour.
+    /// Returns a new [`Time`] that points to the given hour.
     ///
     /// # Panics
     ///
     /// Panics if the hour is out of bounds (`0..24`). If this is
     /// undesirable, see [`Time::try_with_hour`].
     #[inline]
-    pub fn with_hour(&mut self, hour: u8) -> &mut Self {
+    pub fn with_hour(self, hour: u8) -> Self {
         self.try_with_hour(hour).expect("hour is out of range")
     }
 
-    /// Modify the time to point to the given hour.
+    /// Returns a new [`Time`] that points to the given hour.
     ///
     /// This is similar to [`Time::with_hour`] except [`None`] is returned
     /// when the value is out of bounds.
     #[inline]
-    pub fn try_with_hour(&mut self, hour: u8) -> Result<&mut Self, Error> {
+    pub fn try_with_hour(mut self, hour: u8) -> Result<Self, Error> {
         ensure_in_range!(hour, 24);
         self.hour = hour;
         Ok(self)
     }
 
-    /// Modify the time to point to the given minute.
+    /// Returns a new [`Time`] that points to the given minute.
     ///
     /// # Panics
     ///
     /// Panics if the minute is out of bounds (`0..60`). If this is
     /// undesirable, see [`Time::try_with_minute`].
     #[inline]
-    pub fn with_minute(&mut self, minute: u8) -> &mut Self {
+    pub fn with_minute(self, minute: u8) -> Self {
         self.try_with_minute(minute).expect("minute is out of range")
     }
 
-    /// Modify the time to point to the given minute.
+    /// Returns a new [`Time`] that points to the given minute.
     ///
     /// This is similar to [`Time::with_minute`] except [`None`] is returned
     /// when the value is out of bounds.
     #[inline]
-    pub fn try_with_minute(&mut self, minute: u8) -> Result<&mut Self, Error> {
+    pub fn try_with_minute(mut self, minute: u8) -> Result<Self, Error> {
         ensure_in_range!(minute, 59);
         self.minute = minute;
         Ok(self)
     }
 
-    /// Modify the time to point to the given second.
+    /// Returns a new [`Time`] that points to the given second.
     ///
     /// # Panics
     ///
     /// Panics if the second is out of bounds (`0..60`). If this is
     /// undesirable, see [`Time::try_with_second`].
     #[inline]
-    pub fn with_second(&mut self, second: u8) -> &mut Self {
+    pub fn with_second(self, second: u8) -> Self {
         self.try_with_second(second).expect("second is out of range")
     }
 
-    /// Modify the time to point to the given second.
+    /// Returns a new [`Time`] that points to the given second.
     ///
     /// This is similar to [`Time::with_second`] except [`None`] is returned
     /// when the value is out of bounds.
     #[inline]
-    pub fn try_with_second(&mut self, second: u8) -> Result<&mut Self, Error> {
+    pub fn try_with_second(mut self, second: u8) -> Result<Self, Error> {
         ensure_in_range!(second, 59);
         self.second = second;
         Ok(self)
     }
 
-    /// Modify the time to point to the given millisecond.
+    /// Returns a new [`Time`] that points to the given millisecond.
     ///
     /// # Panics
     ///
     /// Panics if the millisecond is out of bounds (`0..1000`). If this is
     /// undesirable, see [`Time::try_with_millisecond`].
     #[inline]
-    pub fn with_millisecond(&mut self, millisecond: u16) -> &mut Self {
+    pub fn with_millisecond(self, millisecond: u16) -> Self {
         self.try_with_millisecond(millisecond)
             .expect("millisecond is out of range")
     }
 
-    /// Modify the time to point to the given millisecond.
+    /// Returns a new [`Time`] that points to the given millisecond.
     ///
     /// This is similar to [`Time::with_millisecond`] except [`None`] is returned
     /// when the value is out of bounds.
     #[inline]
-    pub fn try_with_millisecond(&mut self, millisecond: u16) -> Result<&mut Self, Error> {
+    pub fn try_with_millisecond(mut self, millisecond: u16) -> Result<Self, Error> {
         ensure_in_range!(millisecond, 1999);
         self.nanosecond = millisecond as u32 * 1_000_000;
         Ok(self)
     }
 
-    /// Modify the time to point to the given microsecond.
+    /// Returns a new [`Time`] that points to the given microsecond.
     ///
     /// # Panics
     ///
     /// Panics if the microsecond is out of bounds (`0..1_000_000`). If this is
     /// undesirable, see [`Time::try_with_microsecond`].
     #[inline]
-    pub fn with_microsecond(&mut self, microsecond: u32) -> &mut Self {
+    pub fn with_microsecond(self, microsecond: u32) -> Self {
         self.try_with_microsecond(microsecond)
             .expect("microsecond is out of range")
     }
 
-    /// Modify the time to point to the given microsecond.
+    /// Returns a new [`Time`] that points to the given microsecond.
     ///
     /// This is similar to [`Time::with_microsecond`] except [`None`] is returned
     /// when the value is out of bounds.
     #[inline]
-    pub fn try_with_microsecond(&mut self, microsecond: u32) -> Result<&mut Self, Error> {
+    pub fn try_with_microsecond(mut self, microsecond: u32) -> Result<Self, Error> {
         ensure_in_range!(microsecond, 1_999_999);
         self.nanosecond = microsecond * 1_000;
         Ok(self)
     }
 
-    /// Modify the time to point to the given nanosecond.
+    /// Returns a new [`Time`] that points to the given nanosecond.
     ///
     /// # Panics
     ///
     /// Panics if the nanosecond is out of bounds (`0..2_000_000_000`). If this is
     /// undesirable, see [`Time::try_with_nanosecond`].
     #[inline]
-    pub fn with_nanosecond(&mut self, nanosecond: u32) -> &mut Self {
+    pub fn with_nanosecond(self, nanosecond: u32) -> Self {
         self.try_with_nanosecond(nanosecond)
             .expect("nanosecond is out of range")
     }
 
-    /// Modify the time to point to the given nanosecond.
+    /// Returns a new [`Time`] that points to the given nanosecond.
     ///
     /// This is similar to [`Time::with_nanosecond`] except [`None`] is returned
     /// when the value is out of bounds.
     #[inline]
-    pub fn try_with_nanosecond(&mut self, nanosecond: u32) -> Result<&mut Self, Error> {
+    pub fn try_with_nanosecond(mut self, nanosecond: u32) -> Result<Self, Error> {
         ensure_in_range!(nanosecond, 1_999_999_999);
         self.nanosecond = nanosecond;
         Ok(self)

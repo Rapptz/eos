@@ -180,50 +180,50 @@ impl Interval {
         self.nanoseconds
     }
 
-    /// Modifies the number of years within this interval.
-    pub fn with_years(&mut self, years: i16) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of years.
+    pub fn with_years(mut self, years: i16) -> Self {
         self.years = years;
         self
     }
 
-    /// Modifies the number of days within this interval.
-    pub fn with_days(&mut self, days: i32) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of days.
+    pub fn with_days(mut self, days: i32) -> Self {
         self.days = days;
         self
     }
 
-    /// Modifies the number of weeks within this interval.
-    pub fn with_weeks(&mut self, weeks: i32) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of weeks.
+    pub fn with_weeks(mut self, weeks: i32) -> Self {
         self.weeks = weeks;
         self
     }
 
-    /// Modifies the number of months within this interval.
-    pub fn with_months(&mut self, months: i32) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of months.
+    pub fn with_months(mut self, months: i32) -> Self {
         self.months = months;
         self
     }
 
-    /// Modifies the number of hours within this interval.
-    pub fn with_hours(&mut self, hours: i32) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of hours.
+    pub fn with_hours(mut self, hours: i32) -> Self {
         self.hours = hours;
         self
     }
 
-    /// Modifies the number of minutes within this interval.
-    pub fn with_minutes(&mut self, minutes: i64) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of minutes.
+    pub fn with_minutes(mut self, minutes: i64) -> Self {
         self.minutes = minutes;
         self
     }
 
-    /// Modifies the number of seconds within this interval.
-    pub fn with_seconds(&mut self, seconds: i64) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of seconds.
+    pub fn with_seconds(mut self, seconds: i64) -> Self {
         self.seconds = seconds;
         self
     }
 
-    /// Modifies the number of nanoseconds within this interval.
-    pub fn with_nanoseconds(&mut self, nanoseconds: i64) -> &mut Self {
+    /// Returns a new [`Interval`] with the given number of nanoseconds.
+    pub fn with_nanoseconds(mut self, nanoseconds: i64) -> Self {
         self.nanoseconds = nanoseconds;
         self
     }

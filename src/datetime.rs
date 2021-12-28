@@ -228,24 +228,24 @@ where
         self.date.weekday()
     }
 
-    /// Modify the date to point to the given year.
-    pub fn with_year(&mut self, year: i16) -> &mut Self {
-        self.date.with_year(year);
+    /// Returns a new [`DateTime`] with the date pointing to the given year.
+    pub fn with_year(mut self, year: i16) -> Self {
+        self.date = self.date.with_year(year);
         self
     }
 
-    /// Modify the date to point to the given month.
+    /// Returns a new [`DateTime`] with the date pointing to the given month.
     ///
     /// # Panics
     ///
     /// Panics if the month is out of bounds (`1..=12`) or if the month
     /// does not have as many days as is currently specified. If this is
     /// undesirable, see [`DateTime::try_with_month`].
-    pub fn with_month(&mut self, month: u8) -> &mut Self {
+    pub fn with_month(self, month: u8) -> Self {
         self.try_with_month(month).expect("out of range month or day for month")
     }
 
-    /// Modify the date to point to the given month.
+    /// Returns a new [`DateTime`] with the date pointing to the given month.
     ///
     /// This is similar to [`DateTime::with_month`] except [`None`] is returned
     /// when the value is out of bounds.
@@ -258,12 +258,12 @@ where
     /// assert!(DateTime::<Utc>::new(2014, 12, 31).try_with_month(1).is_ok());
     /// assert!(DateTime::<Utc>::new(2019, 4, 28).try_with_month(2).is_ok());
     /// ```
-    pub fn try_with_month(&mut self, month: u8) -> Result<&mut Self, Error> {
-        self.date.try_with_month(month)?;
+    pub fn try_with_month(mut self, month: u8) -> Result<Self, Error> {
+        self.date = self.date.try_with_month(month)?;
         Ok(self)
     }
 
-    /// Modify the date to point to the given day.
+    /// Returns a new [`DateTime`] with the date pointing to the given day.
     ///
     /// # Panics
     ///
@@ -272,16 +272,16 @@ where
     /// a month of February since the maximum day for the given month is `29`.
     ///
     /// If this is undesirable, see [`DateTime::try_with_day`].
-    pub fn with_day(&mut self, day: u8) -> &mut Self {
+    pub fn with_day(self, day: u8) -> Self {
         self.try_with_day(day).expect("out of range day")
     }
 
-    /// Modify the date to point to the given day.
+    /// Returns a new [`DateTime`] with the date pointing to the given day.
     ///
     /// This is similar to [`DateTime::with_day`] except [`None`] is returned
     /// when the value is out of bounds.
-    pub fn try_with_day(&mut self, day: u8) -> Result<&mut Self, Error> {
-        self.date.try_with_day(day)?;
+    pub fn try_with_day(mut self, day: u8) -> Result<Self, Error> {
+        self.date = self.date.try_with_day(day)?;
         Ok(self)
     }
 }
