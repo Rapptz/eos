@@ -146,6 +146,18 @@ macro_rules! ensure_in_range {
 
 pub(crate) use ensure_in_range;
 
+macro_rules! divmod {
+    ($lhs:expr, $rhs:expr) => {
+        {
+            let lhs = $lhs;
+            let rhs = $rhs;
+            (lhs / rhs, lhs % rhs)
+        }
+    };
+}
+
+pub(crate) use divmod;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,5 +212,12 @@ mod tests {
                 assert_eq!(weekday_difference(x, y), TESTS[x as usize][y as usize]);
             }
         }
+    }
+
+    #[test]
+    fn test_divmod() {
+        assert_eq!(divmod!(-23, 12), (-1, -11));
+        assert_eq!(divmod!(27, 12), (2, 3));
+        assert_eq!(divmod!(23, -12), (-1, 11));
     }
 }

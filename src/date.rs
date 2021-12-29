@@ -1,7 +1,12 @@
-use crate::{utils::{
-    date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, ensure_in_range, is_leap,
-    DAYS_BEFORE_MONTH,
-}, Error};
+use crate::{
+    utils::{
+        date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, divmod, ensure_in_range, is_leap,
+        DAYS_BEFORE_MONTH,
+    },
+    Error, Interval,
+};
+
+use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// An enum representing the different weekdays.
 ///
@@ -136,9 +141,26 @@ impl Date {
         Ok(Self { year, month, day })
     }
 
-    pub(crate) fn add_days(self, days: i32) -> Self {
+    pub(crate) fn add_days(&self, days: i32) -> Self {
+        if days == 0 {
+            return *self;
+        }
+
         let days = self.epoch_days() + days;
         let (year, month, day) = date_from_epoch_days(days);
+        Self { year, month, day }
+    }
+
+    pub(crate) fn add_months(&self, months: i32) -> Self {
+        let month = self.month as i32 + months;
+        let (years, mut month) = divmod!(month, 12);
+        if month < 0 {
+            month += 12;
+        }
+        let month = month as u8;
+        let year = (self.year as i32 + years).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+        let days = days_in_month(year, month);
+        let day = days.min(self.day);
         Self { year, month, day }
     }
 
@@ -334,5 +356,34 @@ impl Date {
             month: month as u8,
             day: day as u8,
         })
+    }
+}
+
+impl Add<Interval> for Date {
+    type Output = Self;
+
+    fn add(self, rhs: Interval) -> Self::Output {
+        self.add_months(rhs.total_months()).add_days(rhs.total_days())
+    }
+}
+
+impl Sub<Interval> for Date {
+    type Output = Self;
+
+    fn sub(self, rhs: Interval) -> Self::Output {
+        self.add_months(rhs.total_months().wrapping_neg())
+            .add_days(rhs.total_days().wrapping_neg())
+    }
+}
+
+impl AddAssign<Interval> for Date {
+    fn add_assign(&mut self, rhs: Interval) {
+        *self = *self + rhs;
+    }
+}
+
+impl SubAssign<Interval> for Date {
+    fn sub_assign(&mut self, rhs: Interval) {
+        *self = *self - rhs;
     }
 }

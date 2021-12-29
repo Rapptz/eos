@@ -3,6 +3,8 @@ use core::{
     time::Duration,
 };
 
+use crate::Date;
+
 /// Represents a interval of time such as 2 years, 30 minutes, etc.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Interval {
@@ -249,6 +251,19 @@ impl Interval {
         self.nanoseconds = nanoseconds;
         self
     }
+
+    /* internal helpers */
+
+    #[inline]
+    pub(crate) const fn total_months(&self) -> i32 {
+        // assumes gregorian calendar
+        self.years as i32 * 12 + self.months
+    }
+
+    #[inline]
+    pub(crate) const fn total_days(&self) -> i32 {
+        self.weeks * 7 + self.days
+    }
 }
 
 impl Add for Interval {
@@ -348,5 +363,13 @@ impl SubAssign<Duration> for Interval {
     fn sub_assign(&mut self, rhs: Duration) {
         self.seconds -= rhs.as_secs() as i64;
         self.nanoseconds -= rhs.subsec_nanos() as i64;
+    }
+}
+
+impl Add<Date> for Interval {
+    type Output = Date;
+
+    fn add(self, rhs: Date) -> Self::Output {
+        rhs + self
     }
 }
