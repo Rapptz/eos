@@ -37,9 +37,7 @@ pub(crate) const fn days_before_month(year: i16, month: u8) -> u16 {
 
 #[inline]
 pub(crate) const fn date_to_ordinal(year: i16, month: u8, day: u8) -> u16 {
-    // TODO: requires Rust 1.57
-    // debug_assert!(day >= 1 && day <= days_in_month(year, month), "day is out of range");
-    /* days_before_year(year) + */
+    debug_assert!(day >= 1 && day <= days_in_month(year, month), "day is out of range");
     days_before_month(year, month) + day as u16
 }
 
