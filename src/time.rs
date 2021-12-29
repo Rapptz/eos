@@ -1,37 +1,31 @@
-use crate::{timezone::Utc, utils::ensure_in_range, Error, TimeZone};
+use crate::{utils::ensure_in_range, Error};
 
 use core::time::Duration;
 
-/// Represents a moment in time.
+/// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
 ///
-/// This type has nanosecond precision. Comparisons assume they're on the same calendar date and
-/// are done on UTC time.
-#[derive(Debug, Clone, Copy)]
-pub struct Time<Tz = Utc>
-where
-    Tz: TimeZone,
-{
+/// This type has nanosecond precision. Comparisons assume they're on the same calendar date.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Time {
     hour: u8,
     minute: u8,
     second: u8,
     nanosecond: u32,
-    timezone: Tz,
 }
 
 impl Time {
-    /// Represets the minimum time in UTC.
+    /// Represets the minimum time.
     pub const MIN: Self = Self {
         hour: 0,
         minute: 0,
         second: 0,
         nanosecond: 0,
-        timezone: Utc,
     };
 
-    /// Represents the time at midnight UTC.
+    /// Represents the time at midnight.
     pub const MIDNIGHT: Self = Self::MIN;
 
-    /// Represents the maximum time in UTC.
+    /// Represents the maximum time.
     ///
     /// This does not include leap seconds.
     pub const MAX: Self = Self {
@@ -39,58 +33,9 @@ impl Time {
         minute: 59,
         second: 59,
         nanosecond: 999_999_999,
-        timezone: Utc,
     };
 
-    /// Creates a new [`Time`] from the specified hour, minute, and second at UTC.
-    ///
-    /// The `hour` value must be between `0..24` and the `minute` and `second` values must
-    /// be between `0..60`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the values are out of range. If this is undesirable, consider
-    /// using [`Time::from_utc`].
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use eos::Time;
-    /// let time = Time::utc(23, 10, 0);
-    ///
-    /// assert_eq!(time.hour(), 23);
-    /// assert_eq!(time.minute(), 10);
-    /// assert_eq!(time.second(), 0);
-    /// ```
-    pub fn utc(hour: u8, minute: u8, second: u8) -> Self {
-        Self::from_utc(hour, minute, second).expect("input of out range")
-    }
-
-    /// Creates a new [`Time`] from the specified hour, minute, and second at UTC.
-    ///
-    /// This functions similar to [`Time::utc`] except if the values are out of bounds
-    /// then [`None`] is returned instead.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use eos::Time;
-    /// assert!(Time::from_utc(10, 0, 0).is_ok());
-    /// assert!(Time::from_utc(24, 0, 0).is_err());
-    /// assert!(Time::from_utc(23, 60, 0).is_err());
-    /// assert!(Time::from_utc(23, 59, 60).is_err());
-    /// ```
-    pub fn from_utc(hour: u8, minute: u8, second: u8) -> Result<Self, Error> {
-        Self::try_new(hour, minute, second)
-    }
-}
-
-impl<Tz> Time<Tz>
-where
-    Tz: TimeZone + Default,
-{
-    /// Creates a new [`Time`] from the specified hour, minute, and second. The
-    /// timezone is created using the [`Default`] trait.
+    /// Creates a new [`Time`] from the specified hour, minute, and second.
     ///
     /// The `hour` value must be between `0..24` and the `minute` and `second` values must
     /// be between `0..60`.
@@ -103,8 +48,8 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use eos::{Time, Utc};
-    /// let time = Time::<Utc>::new(23, 10, 0);
+    /// # use eos::Time;
+    /// let time = Time::new(23, 10, 0);
     ///
     /// assert_eq!(time.hour(), 23);
     /// assert_eq!(time.minute(), 10);
@@ -114,31 +59,7 @@ where
         Self::try_new(hour, minute, second).expect("input of out range")
     }
 
-    /// Creates a new [`Time`] at midnight with a timezone created using the [`Default`]
-    /// trait.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use eos::{Time, Utc};
-    /// let midnight = Time::<Utc>::midnight(); // alt: Time::MIDNIGHT
-    /// assert_eq!(midnight.hour(), 0);
-    /// assert_eq!(midnight.minute(), 0);
-    /// assert_eq!(midnight.second(), 0);
-    /// assert_eq!(midnight.nanosecond(), 0);
-    /// ```
-    pub fn midnight() -> Self {
-        Self {
-            hour: 0,
-            minute: 0,
-            second: 0,
-            nanosecond: 0,
-            timezone: Tz::default(),
-        }
-    }
-
-    /// Creates a new [`Time`] from the specified hour, minute, and second. The
-    /// timezone is created using the [`Default`] trait.
+    /// Creates a new [`Time`] from the specified hour, minute, and second.
     ///
     /// This functions similar to [`Time::new`] except if the values are out of bounds
     /// then [`None`] is returned instead.
@@ -146,11 +67,11 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use eos::{Time, Utc};
-    /// assert!(Time::<Utc>::try_new(10, 0, 0).is_ok());
-    /// assert!(Time::<Utc>::try_new(24, 0, 0).is_err());
-    /// assert!(Time::<Utc>::try_new(23, 60, 0).is_err());
-    /// assert!(Time::<Utc>::try_new(23, 59, 60).is_err());
+    /// # use eos::Time;
+    /// assert!(Time::try_new(10, 0, 0).is_ok());
+    /// assert!(Time::try_new(24, 0, 0).is_err());
+    /// assert!(Time::try_new(23, 60, 0).is_err());
+    /// assert!(Time::try_new(23, 59, 60).is_err());
     /// ```
     pub fn try_new(hour: u8, minute: u8, second: u8) -> Result<Self, Error> {
         ensure_in_range!(hour, 23);
@@ -161,15 +82,9 @@ where
             hour,
             minute,
             second,
-            timezone: Tz::default(),
         })
     }
-}
 
-impl<Tz> Time<Tz>
-where
-    Tz: TimeZone,
-{
     #[inline]
     pub(crate) fn total_seconds(&self) -> i32 {
         self.hour as i32 * 3600 + self.minute as i32 * 60 + self.second as i32
@@ -215,7 +130,6 @@ where
                 minute: minute as u8,
                 second: second as u8,
                 nanosecond,
-                timezone: self.timezone,
             },
         )
     }
@@ -260,7 +174,6 @@ where
                 minute: minute as u8,
                 second: second as u8,
                 nanosecond: nanosecond as u32,
-                timezone: self.timezone,
             },
         )
     }
@@ -316,27 +229,6 @@ where
     #[inline]
     pub fn nanosecond(&self) -> u32 {
         self.nanosecond
-    }
-
-    /// Compares two [`Time`] objects without considering their timezone information.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use eos::{UtcOffset, Time};
-    ///
-    /// ```
-    #[inline]
-    pub fn cmp_without_tz<OtherTz>(&self, other: &Time<OtherTz>) -> core::cmp::Ordering
-    where
-        OtherTz: TimeZone,
-    {
-        (self.hour, self.minute, self.second, self.nanosecond).cmp(&(
-            other.hour,
-            other.minute,
-            other.second,
-            other.nanosecond,
-        ))
     }
 
     /// Returns a new [`Time`] that points to the given hour.
@@ -472,74 +364,5 @@ where
         ensure_in_range!(nanosecond, 1_999_999_999);
         self.nanosecond = nanosecond;
         Ok(self)
-    }
-}
-
-fn compare_times<Tz, OtherTz>(lhs: &Time<Tz>, rhs: &Time<OtherTz>) -> core::cmp::Ordering
-where
-    Tz: TimeZone,
-    OtherTz: TimeZone,
-{
-    let offset = lhs.timezone.offset::<Tz>(None);
-    let rhs_offset = rhs.timezone.offset::<OtherTz>(None);
-    if offset == rhs_offset {
-        (lhs.hour, lhs.minute, lhs.second, lhs.nanosecond).cmp(&(rhs.hour, rhs.minute, rhs.second, rhs.nanosecond))
-    } else {
-        let hms = lhs.total_seconds() - offset.total_seconds();
-        let rhs_hms = rhs.total_seconds() - rhs_offset.total_seconds();
-        (hms, lhs.nanosecond).cmp(&(rhs_hms, rhs.nanosecond))
-    }
-}
-
-impl<Tz, OtherTz> PartialEq<Time<OtherTz>> for Time<Tz>
-where
-    Tz: TimeZone,
-    OtherTz: TimeZone,
-{
-    fn eq(&self, other: &Time<OtherTz>) -> bool {
-        compare_times(&self, &other) == core::cmp::Ordering::Equal
-    }
-}
-
-// Rust does not support Eq<Rhs> for some reason
-impl<Tz> Eq for Time<Tz> where Tz: TimeZone {}
-
-impl<Tz, OtherTz> PartialOrd<Time<OtherTz>> for Time<Tz>
-where
-    Tz: TimeZone,
-    OtherTz: TimeZone,
-{
-    fn partial_cmp(&self, other: &Time<OtherTz>) -> Option<std::cmp::Ordering> {
-        Some(compare_times(&self, &other))
-    }
-}
-
-// Rust does not allow Ord<Rhs> for some reason
-// see: https://github.com/rust-lang/rfcs/issues/2511
-impl<Tz> Ord for Time<Tz>
-where
-    Tz: TimeZone,
-{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        compare_times(&self, &other)
-    }
-}
-
-impl<Tz> core::hash::Hash for Time<Tz>
-where
-    Tz: TimeZone,
-{
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        let offset = self.timezone.offset::<Tz>(None);
-        if offset.is_utc() {
-            self.hour.hash(state);
-            self.minute.hash(state);
-            self.second.hash(state);
-            self.nanosecond.hash(state);
-        } else {
-            let seconds = self.total_seconds() - offset.total_seconds();
-            seconds.hash(state);
-            self.nanosecond.hash(state);
-        }
     }
 }

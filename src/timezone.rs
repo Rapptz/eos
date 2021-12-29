@@ -154,20 +154,14 @@ impl core::fmt::Display for UtcOffset {
 /// A trait that defines timezone behaviour.
 pub trait TimeZone {
     /// Returns the name of the timezone at an optional datetime.
-    ///
-    /// If [`None`] is passed for the `datetime` parameter then
-    /// the request is coming from a [`Time`] instance.
-    fn name<Tz: TimeZone>(&self, _datetime: Option<&DateTime<Tz>>) -> Option<&str> {
+    fn name<Tz: TimeZone>(&self, _datetime: &DateTime<Tz>) -> Option<&str> {
         None
     }
 
     /// Returns the UTC offset of the timezone at an optional datetime.
     ///
     /// If DST is being observed then the offset must take that into account.
-    ///
-    /// If [`None`] is passed for the `datetime` parameter then the request
-    /// is coming from a [`Time`] instance.
-    fn offset<Tz: TimeZone>(&self, datetime: Option<&DateTime<Tz>>) -> UtcOffset;
+    fn offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset;
 
     /// Returns the DST offset if it's being observed.
     ///
@@ -176,22 +170,20 @@ pub trait TimeZone {
     /// timezone movement calculations.
     ///
     /// If DST is not being observed for this TimeZone at the given date
-    /// then [`None`] should be returned. Similar to [`TimeZone::offset`] if
-    /// the request is coming from a [`Time`] instance then [`None`] is passed
-    /// for the `datetime` parameter.
-    fn dst_offset<Tz: TimeZone>(&self, datetime: Option<&DateTime<Tz>>) -> Option<UtcOffset>;
+    /// then [`None`] should be returned.
+    fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> Option<UtcOffset>;
 }
 
 impl TimeZone for UtcOffset {
-    fn name<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> Option<&str> {
+    fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<&str> {
         None
     }
 
-    fn offset<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> UtcOffset {
+    fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
         *self
     }
 
-    fn dst_offset<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> Option<UtcOffset> {
+    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<UtcOffset> {
         None
     }
 }
@@ -201,15 +193,15 @@ impl TimeZone for UtcOffset {
 pub struct Utc;
 
 impl TimeZone for Utc {
-    fn name<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> Option<&str> {
+    fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<&str> {
         Some("UTC")
     }
 
-    fn offset<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> UtcOffset {
+    fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
         UtcOffset::UTC
     }
 
-    fn dst_offset<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> Option<UtcOffset> {
+    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<UtcOffset> {
         None
     }
 }
@@ -229,15 +221,15 @@ mod tests {
 
     pub struct EST;
     impl TimeZone for EST {
-        fn name<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> Option<&str> {
+        fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<&str> {
             Some("EST")
         }
 
-        fn offset<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> UtcOffset {
+        fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
             UtcOffset::from_hms(-5, 0, 0).unwrap()
         }
 
-        fn dst_offset<Tz: TimeZone>(&self, _: Option<&DateTime<Tz>>) -> Option<UtcOffset> {
+        fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<UtcOffset> {
             None
         }
     }

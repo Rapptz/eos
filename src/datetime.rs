@@ -8,9 +8,9 @@ use std::time::SystemTime;
 
 /// An ISO 8601 combined date and time component.
 ///
-/// [`DateTime`] tend to have a timezone associated with them. For convenience,
-/// the methods of [`Time`] and [`Date`] are flattened and inherent methods of
-/// the struct. This means that methods such as [`second`] or [`month`] work as expected.
+/// Unlike their individual components, [`DateTime`] have a timezone associated with them.
+/// For convenience, the methods of [`Time`] and [`Date`] are flattened and inherent methods
+/// of the struct. This means that methods such as [`second`] or [`month`] work as expected.
 ///
 /// [`second`]: DateTime::second
 /// [`month`]: DateTime::month
@@ -20,7 +20,8 @@ where
     Tz: TimeZone,
 {
     date: Date,
-    time: Time<Tz>,
+    time: Time,
+    timezone: Tz,
 }
 
 impl DateTime<Utc> {
@@ -28,6 +29,7 @@ impl DateTime<Utc> {
     pub const UNIX_EPOCH: Self = Self {
         date: Date::UNIX_EPOCH,
         time: Time::MIDNIGHT,
+        timezone: Utc,
     };
 
     /// Returns the current date and time in UTC.
@@ -57,6 +59,7 @@ impl DateTime<Utc> {
         Ok(Self {
             date,
             time: Time::MIDNIGHT,
+            timezone: Utc,
         })
     }
 }
@@ -107,7 +110,8 @@ where
     pub fn try_new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
         Ok(Self {
             date: Date::try_new(year, month, day)?,
-            time: Time::<Tz>::midnight(),
+            time: Time::MIDNIGHT,
+            timezone: Tz::default(),
         })
     }
 }
@@ -117,12 +121,12 @@ where
     Tz: TimeZone,
 {
     /// Returns a reference to the time component.
-    pub fn time(&self) -> &Time<Tz> {
+    pub fn time(&self) -> &Time {
         &self.time
     }
 
     /// Returns a mutable reference to the time component.
-    pub fn time_mut(&mut self) -> &mut Time<Tz> {
+    pub fn time_mut(&mut self) -> &mut Time {
         &mut self.time
     }
 
@@ -134,11 +138,6 @@ where
     /// Returns a mutable reference to the date component.
     pub fn date_mut(&mut self) -> &mut Date {
         &mut self.date
-    }
-
-    /// Unwraps this datetime into its separate [`Date`] and [`Time`] components.
-    pub fn into_inner(self) -> (Date, Time<Tz>) {
-        (self.date, self.time)
     }
 
     // The "common" functions begin here.
@@ -292,7 +291,11 @@ impl Add<Duration> for DateTime {
     fn add(self, rhs: Duration) -> Self::Output {
         let (days, time) = self.time.add_with_duration(rhs);
         let date = self.date.add_days(days);
-        Self { date, time }
+        Self {
+            date,
+            time,
+            timezone: self.timezone,
+        }
     }
 }
 
@@ -302,7 +305,11 @@ impl Sub<Duration> for DateTime {
     fn sub(self, rhs: Duration) -> Self::Output {
         let (days, time) = self.time.sub_with_duration(rhs);
         let date = self.date.add_days(days);
-        Self { date, time }
+        Self {
+            date,
+            time,
+            timezone: self.timezone,
+        }
     }
 }
 
