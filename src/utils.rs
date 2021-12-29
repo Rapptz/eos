@@ -156,7 +156,17 @@ macro_rules! divmod {
     };
 }
 
+macro_rules! divrem {
+    ($lhs:expr, $rhs:expr) => {
+        {
+            let (lhs, rhs) = ($lhs, $rhs);
+            (lhs.div_euclid(rhs), lhs.rem_euclid(rhs))
+        }
+    };
+}
+
 pub(crate) use divmod;
+pub(crate) use divrem;
 
 #[cfg(test)]
 mod tests {

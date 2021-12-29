@@ -1,6 +1,12 @@
-use crate::{utils::ensure_in_range, Error};
+use crate::{
+    utils::{divmod, ensure_in_range, divrem},
+    Error, Interval,
+};
 
-use core::time::Duration;
+use core::{
+    ops::{Add, Sub},
+    time::Duration,
+};
 
 /// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
 ///
@@ -12,6 +18,11 @@ pub struct Time {
     second: u8,
     nanosecond: u32,
 }
+
+const NANOS_PER_SEC: u64 = 1_000_000_000;
+const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
+const NANOS_PER_HOUR: u64 = 60 * NANOS_PER_MIN;
+const MAXIMUM_SECONDS_FROM_DURATION: u64 = i32::MAX as u64 * 24 * 60 * 60;
 
 impl Time {
     /// Represets the minimum time.
@@ -90,92 +101,62 @@ impl Time {
         self.hour as i32 * 3600 + self.minute as i32 * 60 + self.second as i32
     }
 
-    /// Adds the time with the given duration and returns the number of days that have passed.
-    pub(crate) fn add_with_duration(self, duration: Duration) -> (i32, Self) {
-        let mut nanosecond = self.nanosecond + duration.subsec_nanos();
-        let mut secs = duration.as_secs();
-        let mut hour = self.hour as u64 + secs / 3600;
-        secs %= 3600;
-        let mut minute = self.minute as u64 + secs / 60;
-        secs %= 60;
-        let mut second = self.second as u64 + secs;
+    /// Total number of nanoseconds represented by this time.
+    ///
+    /// The valid range for this type is [0, 86,401,000,000,000]
+    pub(crate) fn total_nanos(&self) -> u64 {
+        self.hour as u64 * NANOS_PER_HOUR
+            + self.minute as u64 * NANOS_PER_MIN
+            + self.second as u64 * NANOS_PER_SEC
+            + self.nanosecond as u64
+    }
 
-        if nanosecond >= 2_000_000_000 {
-            second += (nanosecond / 2_000_000_000) as u64;
-            nanosecond %= 2_000_000_000;
-        }
-
-        if second >= 60 {
-            minute += second / 60;
-            minute %= 60;
-        }
-
-        if minute >= 60 {
-            hour += minute / 60;
-            minute %= 60;
-        }
-
-        let days = if hour >= 24 {
-            let d = hour / 24;
-            hour %= 24;
-            d as i32
-        } else {
-            0
-        };
+    /// Converts nanoseconds into a date representation and returns the left-over days.
+    pub(crate) fn adjust_from_nanos(nanos: i64) -> (i32, Self) {
+        // Arithmetic can be done entirely using nanoseconds
+        // Duration is comprised of a u64 seconds + u32 nanosecond.
+        // The u32 nanosecond doesn't go over NANOS_PER_SEC which means that
+        // Duration can only represent 2^64 seconds which is around 213.5 trillion
+        // days, a bit over the limit of an i32. There's a constant that allows us
+        // to set the maximum number of seconds we can represent in a duration.
+        //
+        // With that maximum in place, the highest a nanosecond value will be
+        // boils down to 3.6 trillion, which fits perfectly fine in a 64-bit number.
+        // When it goes through the reduction steps it'll cap at around 1 billion.
+        let (hour, nanos) = divrem!(nanos, NANOS_PER_HOUR as i64);
+        let (minute, nanos) = divrem!(nanos, NANOS_PER_MIN as i64);
+        let (second, nanos) = divrem!(nanos, NANOS_PER_SEC as i64);
+        let (days, hour) = divrem!(hour, 24);
 
         (
-            days,
+            days as i32,
             Self {
                 hour: hour as u8,
                 minute: minute as u8,
                 second: second as u8,
-                nanosecond,
+                nanosecond: nanos as u32,
             },
         )
     }
 
+    /// Adds the time with the given duration and returns the number of days that have passed.
+    pub(crate) fn add_with_duration(self, duration: Duration) -> (i32, Self) {
+        if duration.as_secs() > MAXIMUM_SECONDS_FROM_DURATION {
+            (i32::MAX, self)
+        } else {
+            let diff = self.total_nanos() as i64 + duration.as_nanos() as i64;
+            Self::adjust_from_nanos(diff)
+        }
+    }
+
     /// Subtracts the time with the given duration and returns the number of days that have passed.
     pub(crate) fn sub_with_duration(self, duration: Duration) -> (i32, Self) {
-        let mut nanosecond = self.nanosecond as i32 - duration.subsec_nanos() as i32;
-        let mut secs = duration.as_secs() as i64;
-        let mut hour = self.hour as i64 + secs / 3600;
-        secs %= 3600;
-        let mut minute = self.minute as i64 + secs / 60;
-        secs %= 60;
-        let mut second = self.second as i64 + secs;
-
-        if nanosecond >= 2_000_000_000 {
-            second += (nanosecond / 2_000_000_000) as i64;
-            nanosecond %= 2_000_000_000;
-        }
-
-        if second >= 60 {
-            minute += second / 60;
-            minute %= 60;
-        }
-
-        if minute >= 60 {
-            hour += minute / 60;
-            minute %= 60;
-        }
-
-        let days = if hour >= 24 {
-            let d = hour / 24;
-            hour %= 24;
-            d as i32
+        if duration.as_secs() > MAXIMUM_SECONDS_FROM_DURATION {
+            (i32::MIN + 1, self)
         } else {
-            0
-        };
-
-        (
-            days,
-            Self {
-                hour: hour as u8,
-                minute: minute as u8,
-                second: second as u8,
-                nanosecond: nanosecond as u32,
-            },
-        )
+            let diff = self.total_nanos() as i64 - duration.as_nanos() as i64;
+            Self::adjust_from_nanos(diff)
+        }
     }
 
     // The "common" functions begin here.
@@ -364,5 +345,33 @@ impl Time {
         ensure_in_range!(nanosecond, 1_999_999_999);
         self.nanosecond = nanosecond;
         Ok(self)
+    }
+}
+
+impl Add<Interval> for Time {
+    type Output = Time;
+
+    fn add(self, rhs: Interval) -> Self::Output {
+        let (sub, duration) = rhs.into_time_duration();
+        let (_, ret) = if sub {
+            self.sub_with_duration(duration)
+        } else {
+            self.add_with_duration(duration)
+        };
+        ret
+    }
+}
+
+impl Sub<Interval> for Time {
+    type Output = Time;
+
+    fn sub(self, rhs: Interval) -> Self::Output {
+        let (sub, duration) = rhs.into_time_duration();
+        let (_, ret) = if sub {
+            self.add_with_duration(duration)
+        } else {
+            self.sub_with_duration(duration)
+        };
+        ret
     }
 }

@@ -3,7 +3,7 @@ use core::{
     time::Duration,
 };
 
-use crate::Date;
+use crate::{utils::divmod, Date};
 
 /// Represents a interval of time such as 2 years, 30 minutes, etc.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -263,6 +263,27 @@ impl Interval {
     #[inline]
     pub(crate) const fn total_days(&self) -> i32 {
         self.weeks * 7 + self.days
+    }
+
+    /// Returns a duration representing the time components of this interval.
+    ///
+    /// The first boolean argument is whether the time ended up being negative.
+    pub(crate) fn into_time_duration(self) -> (bool, Duration) {
+        let mut total_seconds = self.hours as i64 * 3600 + self.minutes as i64 * 60 + self.seconds;
+        let (seconds, nanos) = divmod!(self.nanoseconds, 1_000_000_000);
+        total_seconds += seconds;
+        match (total_seconds.is_positive(), nanos.is_positive()) {
+            (true, true) => (false, Duration::new(total_seconds as u64, nanos as u32)),
+            (false, false) => (true, Duration::new(-total_seconds as u64, -nanos as u32)),
+            (true, false) => (
+                false,
+                Duration::from_secs(total_seconds as u64) - Duration::from_nanos(-nanos as u64),
+            ),
+            (false, true) => (
+                true,
+                Duration::from_secs(-total_seconds as u64) - Duration::from_nanos(nanos as u64),
+            ),
+        }
     }
 }
 
