@@ -1,5 +1,5 @@
 use crate::{
-    utils::{divmod, ensure_in_range, divrem},
+    utils::{divmod, divrem, ensure_in_range},
     Error, Interval,
 };
 
@@ -373,5 +373,21 @@ impl Sub<Interval> for Time {
             self.sub_with_duration(duration)
         };
         ret
+    }
+}
+
+impl Add<Duration> for Time {
+    type Output = Self;
+
+    fn add(self, rhs: Duration) -> Self::Output {
+        self.add_with_duration(rhs).1
+    }
+}
+
+impl Sub<Duration> for Time {
+    type Output = Self;
+
+    fn sub(self, rhs: Duration) -> Self::Output {
+        self.sub_with_duration(rhs).1
     }
 }
