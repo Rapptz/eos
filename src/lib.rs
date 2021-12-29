@@ -9,6 +9,7 @@ extern crate alloc;
 mod date;
 mod datetime;
 mod error;
+pub mod ext;
 mod interval;
 mod time;
 mod timezone;
