@@ -152,16 +152,46 @@ impl Date {
     }
 
     pub(crate) fn add_months(&self, months: i32) -> Self {
-        let month = self.month as i32 + months;
-        let (years, mut month) = divmod!(month, 12);
-        if month < 0 {
-            month += 12;
+        if months == 0 {
+            return *self;
         }
+
+        let m = self.month as i32 - 1 + months;
+        let (year, month) = if m >= 0 {
+            let (r, q) = divmod!(m, 12);
+            (r, q + 1)
+        } else {
+            let y = (m / 12) - 1;
+            let mut rem = m.abs() % 12;
+            if rem == 0 {
+                rem = 12;
+            }
+            let m = 12 - rem + 1;
+            if m == 1 {
+                (y + 1, m)
+            } else {
+                (y, m)
+            }
+        };
         let month = month as u8;
-        let year = (self.year as i32 + years).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+        let year = (self.year as i32 + year).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
         let days = days_in_month(year, month);
         let day = days.min(self.day);
         Self { year, month, day }
+    }
+
+    pub(crate) fn add_years(&self, years: i16) -> Self {
+        if years == 0 {
+            return *self;
+        }
+
+        let year = self.year + years;
+        let days = days_in_month(year, self.month);
+        Self {
+            year,
+            month: self.month,
+            day: days.min(self.day),
+        }
     }
 
     // The "common" functions begin here.
@@ -363,7 +393,9 @@ impl Add<Interval> for Date {
     type Output = Self;
 
     fn add(self, rhs: Interval) -> Self::Output {
-        self.add_months(rhs.total_months()).add_days(rhs.total_days())
+        self.add_years(rhs.years())
+            .add_months(rhs.months())
+            .add_days(rhs.total_days())
     }
 }
 
@@ -371,7 +403,8 @@ impl Sub<Interval> for Date {
     type Output = Self;
 
     fn sub(self, rhs: Interval) -> Self::Output {
-        self.add_months(rhs.total_months().wrapping_neg())
+        self.add_years(rhs.years().wrapping_neg())
+            .add_months(rhs.months().wrapping_neg())
             .add_days(rhs.total_days().wrapping_neg())
     }
 }

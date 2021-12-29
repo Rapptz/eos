@@ -255,12 +255,6 @@ impl Interval {
     /* internal helpers */
 
     #[inline]
-    pub(crate) const fn total_months(&self) -> i32 {
-        // assumes gregorian calendar
-        self.years as i32 * 12 + self.months
-    }
-
-    #[inline]
     pub(crate) const fn total_days(&self) -> i32 {
         self.weeks * 7 + self.days
     }
