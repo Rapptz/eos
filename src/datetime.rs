@@ -49,10 +49,11 @@ impl DateTime<Utc> {
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
-    /// assert_eq!(DateTime::from_ordinal(1992, 62), Ok(DateTime::<Utc>::new(1992, 3, 2))); // leap year
+    /// assert_eq!(DateTime::from_ordinal(1992, 62), Ok(DateTime::<Utc>::new(1992, 3, 2)?)); // leap year
     /// assert!(DateTime::from_ordinal(2013, 366).is_err()); // not a leap year
-    /// assert_eq!(DateTime::from_ordinal(2012, 366), Ok(DateTime::<Utc>::new(2012, 12, 31)));
-    /// assert_eq!(DateTime::from_ordinal(2001, 246), Ok(DateTime::<Utc>::new(2001, 9, 3)));
+    /// assert_eq!(DateTime::from_ordinal(2012, 366), Ok(DateTime::<Utc>::new(2012, 12, 31)?));
+    /// assert_eq!(DateTime::from_ordinal(2001, 246), Ok(DateTime::<Utc>::new(2001, 9, 3)?));
+    /// # Ok::<_, eos::Error>(())
     /// ```
     pub fn from_ordinal(year: i16, ordinal: u16) -> Result<Self, Error> {
         let date = Date::from_ordinal(year, ordinal)?;
@@ -75,41 +76,24 @@ where
     /// Note that the day has to be valid for the specified month, i.e. February
     /// must be either 28 or 29 days depending on the year.
     ///
+    /// Returns [`Error`] if the date is out of range. See [`Date::new`] for more info.
+    ///
     /// # Examples
     ///
     /// ```
     /// use eos::{DateTime, Time, Utc};
     ///
-    /// let dt = DateTime::<Utc>::new(2003, 4, 19); // creates a DateTime at UTC
+    /// let dt = DateTime::<Utc>::new(2003, 4, 19)?; // creates a DateTime at UTC
     /// assert_eq!(dt.year(), 2003);
     /// assert_eq!(dt.month(), 4);
     /// assert_eq!(dt.day(), 19);
     /// assert_eq!(dt.time(), &Time::MIDNIGHT);
+    /// assert!(DateTime::<Utc>::new(2013, 2, 29).is_err()); // 2013 was not a leap year
+    /// # Ok::<_, eos::Error>(())
     /// ```
-    ///
-    /// # Panics
-    ///
-    /// Panics if the date is out of range. If this is undesirable, consider
-    /// using [`Date::try_new`].
-    pub fn new(year: i16, month: u8, day: u8) -> Self {
-        Self::try_new(year, month, day).expect("invalid or out-of-range date")
-    }
-
-    /// Creates a new [`DateTime`] from a given year, month, and day.
-    /// The timezone is created using the [`Default`] trait.
-    ///
-    /// This functions similar to [`DateTime::<Utc>::new`] except if the values are out of bounds
-    /// then [`None`] is returned instead.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use eos::{DateTime, Utc};
-    /// assert!(DateTime::<Utc>::try_new(2013, 2, 29).is_err()); // 2013 was not a leap year
-    /// ```
-    pub fn try_new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
+    pub fn new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
         Ok(Self {
-            date: Date::try_new(year, month, day)?,
+            date: Date::new(year, month, day)?,
             time: Time::MIDNIGHT,
             timezone: Tz::default(),
         })
@@ -154,8 +138,9 @@ where
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
-    /// let date = DateTime::<Utc>::new(2012, 1, 15);
+    /// let date = DateTime::<Utc>::new(2012, 1, 15)?;
     /// assert_eq!(date.year(), 2012);
+    /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
     pub fn year(&self) -> i16 {
@@ -170,8 +155,9 @@ where
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
-    /// let date = DateTime::<Utc>::new(2012, 1, 15);
+    /// let date = DateTime::<Utc>::new(2012, 1, 15)?;
     /// assert_eq!(date.month(), 1);
+    /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
     pub fn month(&self) -> u8 {
@@ -186,8 +172,9 @@ where
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
-    /// let date = DateTime::<Utc>::new(2012, 1, 15);
+    /// let date = DateTime::<Utc>::new(2012, 1, 15)?;
     /// assert_eq!(date.day(), 15);
+    /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
     pub fn day(&self) -> u8 {
@@ -202,11 +189,12 @@ where
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
-    /// let date = DateTime::<Utc>::new(2013, 3, 17);
-    /// let leap = DateTime::<Utc>::new(2012, 3, 17);
+    /// let date = DateTime::<Utc>::new(2013, 3, 17)?;
+    /// let leap = DateTime::<Utc>::new(2012, 3, 17)?;
     ///
     /// assert_eq!(date.ordinal(), 76);
     /// assert_eq!(leap.ordinal(), 77); // 2012 was a leap year
+    /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
     pub fn ordinal(&self) -> u16 {
@@ -220,8 +208,9 @@ where
     /// ```
     /// # use eos::{DateTime, Utc};
     /// # use eos::Weekday;
-    /// assert_eq!(DateTime::<Utc>::new(2021, 12, 25).weekday(), Weekday::Saturday);
-    /// assert_eq!(DateTime::<Utc>::new(2012, 2, 29).weekday(), Weekday::Wednesday);
+    /// assert_eq!(DateTime::<Utc>::new(2021, 12, 25)?.weekday(), Weekday::Saturday);
+    /// assert_eq!(DateTime::<Utc>::new(2012, 2, 29)?.weekday(), Weekday::Wednesday);
+    /// # Ok::<_, eos::Error>(())
     /// ```
     pub fn weekday(&self) -> Weekday {
         self.date.weekday()
@@ -233,54 +222,34 @@ where
         self
     }
 
-    /// Returns a new [`DateTime`] with the date pointing to the given month.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the month is out of bounds (`1..=12`) or if the month
-    /// does not have as many days as is currently specified. If this is
-    /// undesirable, see [`DateTime::try_with_month`].
-    pub fn with_month(self, month: u8) -> Self {
-        self.try_with_month(month).expect("out of range month or day for month")
-    }
-
-    /// Returns a new [`DateTime`] with the date pointing to the given month.
-    ///
-    /// This is similar to [`DateTime::with_month`] except [`None`] is returned
-    /// when the value is out of bounds.
+    /// Returns a new [`DateTime`] that points to the given month.
+    /// If the month is out of bounds (`1..=12`) or if the month
+    /// does not have as many days as is currently specified then
+    /// an [`Error`] is returned.
     ///
     /// # Examples
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
-    /// assert!(DateTime::<Utc>::new(2012, 3, 30).try_with_month(2).is_err());
-    /// assert!(DateTime::<Utc>::new(2014, 12, 31).try_with_month(1).is_ok());
-    /// assert!(DateTime::<Utc>::new(2019, 4, 28).try_with_month(2).is_ok());
+    /// assert!(DateTime::<Utc>::new(2012, 3, 30)?.with_month(2).is_err());
+    /// assert!(DateTime::<Utc>::new(2014, 12, 31)?.with_month(1).is_ok());
+    /// assert!(DateTime::<Utc>::new(2019, 4, 28)?.with_month(2).is_ok());
+    /// # Ok::<_, eos::Error>(())
     /// ```
-    pub fn try_with_month(mut self, month: u8) -> Result<Self, Error> {
-        self.date = self.date.try_with_month(month)?;
+    pub fn with_month(mut self, month: u8) -> Result<Self, Error> {
+        self.date = self.date.with_month(month)?;
         Ok(self)
     }
 
-    /// Returns a new [`DateTime`] with the date pointing to the given day.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the day is out of bounds (`1..=31`). Note that the actual maximum
-    /// day depends on the specified month. For example, `30` is always invalid with
-    /// a month of February since the maximum day for the given month is `29`.
-    ///
-    /// If this is undesirable, see [`DateTime::try_with_day`].
-    pub fn with_day(self, day: u8) -> Self {
-        self.try_with_day(day).expect("out of range day")
-    }
 
-    /// Returns a new [`DateTime`] with the date pointing to the given day.
+    /// Returns a new [`Date`] that points to the given day.
+    /// If the day is out of bounds (`1..=31`) then an [`Error`] is returned.
     ///
-    /// This is similar to [`DateTime::with_day`] except [`None`] is returned
-    /// when the value is out of bounds.
-    pub fn try_with_day(mut self, day: u8) -> Result<Self, Error> {
-        self.date = self.date.try_with_day(day)?;
+    /// Note that the actual maximum day depends on the specified month.
+    /// For example, `30` is always invalid with a month of February since
+    /// the maximum day for the given month is `29`.
+    pub fn with_day(mut self, day: u8) -> Result<Self, Error> {
+        self.date = self.date.with_day(day)?;
         Ok(self)
     }
 }
