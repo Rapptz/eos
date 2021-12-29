@@ -262,7 +262,7 @@ impl Interval {
     /// Returns a duration representing the time components of this interval.
     ///
     /// The first boolean argument is whether the time ended up being negative.
-    pub(crate) fn into_time_duration(self) -> (bool, Duration) {
+    pub(crate) fn to_time_duration(&self) -> (bool, Duration) {
         let mut total_seconds = self.hours as i64 * 3600 + self.minutes as i64 * 60 + self.seconds;
         let (seconds, nanos) = divmod!(self.nanoseconds, 1_000_000_000);
         total_seconds += seconds;
