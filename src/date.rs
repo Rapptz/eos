@@ -195,8 +195,10 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// # use eos::Date;
-    /// let date = Date::new(2012, 1, 15)?;
+    /// # use eos::date;
+    /// let date = date!(2012-01-15);
+    /// // or:
+    /// // let date = Date::new(2012, 1, 15)?;
     /// assert_eq!(date.year(), 2012);
     /// # Ok::<_, eos::Error>(())
     /// ```
@@ -212,8 +214,10 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// # use eos::Date;
-    /// let date = Date::new(2012, 1, 15)?;
+    /// # use eos::date;
+    /// let date = date!(2012-01-15);
+    /// // or:
+    /// // let date = Date::new(2012, 1, 15)?;
     /// assert_eq!(date.month(), 1);
     /// # Ok::<_, eos::Error>(())
     /// ```
@@ -229,8 +233,10 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// # use eos::Date;
-    /// let date = Date::new(2012, 1, 15)?;
+    /// # use eos::date;
+    /// let date = date!(2012-01-15);
+    /// // or:
+    /// // let date = Date::new(2012, 1, 15)?;
     /// assert_eq!(date.day(), 15);
     /// # Ok::<_, eos::Error>(())
     /// ```
@@ -246,9 +252,9 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// # use eos::Date;
-    /// let date = Date::new(2013, 3, 17)?;
-    /// let leap = Date::new(2012, 3, 17)?;
+    /// # use eos::date;
+    /// let date = date!(2013-03-17);
+    /// let leap = date!(2012-03-17);
     ///
     /// assert_eq!(date.ordinal(), 76);
     /// assert_eq!(leap.ordinal(), 77); // 2012 was a leap year
@@ -268,10 +274,10 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// # use eos::Date;
+    /// # use eos::date;
     /// # use eos::Weekday;
-    /// assert_eq!(Date::new(2021, 12, 25)?.weekday(), Weekday::Saturday);
-    /// assert_eq!(Date::new(2012, 2, 29)?.weekday(), Weekday::Wednesday);
+    /// assert_eq!(date!(2021-12-25).weekday(), Weekday::Saturday);
+    /// assert_eq!(date!(2012-2-29).weekday(), Weekday::Wednesday);
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub fn weekday(&self) -> Weekday {
@@ -305,10 +311,10 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// # use eos::Date;
-    /// assert!(Date::new(2012, 3, 30)?.with_month(2).is_err());
-    /// assert!(Date::new(2014, 12, 31)?.with_month(1).is_ok());
-    /// assert!(Date::new(2019, 4, 28)?.with_month(2).is_ok());
+    /// # use eos::date;
+    /// assert!(date!(2012-3-30).with_month(2).is_err());
+    /// assert!(date!(2014-12-31).with_month(1).is_ok());
+    /// assert!(date!(2019-4-28).with_month(2).is_ok());
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub fn with_month(mut self, month: u8) -> Result<Self, Error> {
@@ -338,11 +344,11 @@ impl Date {
     /// # Examples
     ///
     /// ```
-    /// # use eos::Date;
-    /// assert_eq!(Date::from_ordinal(1992, 62), Ok(Date::new(1992, 3, 2)?)); // leap year
+    /// # use eos::{Date, date};
+    /// assert_eq!(Date::from_ordinal(1992, 62), Ok(date!(1992-3-2))); // leap year
     /// assert!(Date::from_ordinal(2013, 366).is_err()); // not a leap year
-    /// assert_eq!(Date::from_ordinal(2012, 366), Ok(Date::new(2012, 12, 31)?));
-    /// assert_eq!(Date::from_ordinal(2001, 246), Ok(Date::new(2001, 9, 3)?));
+    /// assert_eq!(Date::from_ordinal(2012, 366), Ok(date!(2012-12-31)));
+    /// assert_eq!(Date::from_ordinal(2001, 246), Ok(date!(2001-9-3)));
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub fn from_ordinal(year: i16, ordinal: u16) -> Result<Self, Error> {

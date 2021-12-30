@@ -182,8 +182,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use eos::{DateTime, Utc};
-    /// let date = DateTime::<Utc>::new(2012, 1, 15)?;
+    /// # use eos::datetime;
+    /// let date = datetime!(2012-01-15 00:00);
     /// assert_eq!(date.year(), 2012);
     /// # Ok::<_, eos::Error>(())
     /// ```
@@ -199,8 +199,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use eos::{DateTime, Utc};
-    /// let date = DateTime::<Utc>::new(2012, 1, 15)?;
+    /// # use eos::datetime;
+    /// let date = datetime!(2012-01-15 00:00);
     /// assert_eq!(date.month(), 1);
     /// # Ok::<_, eos::Error>(())
     /// ```
@@ -216,8 +216,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use eos::{DateTime, Utc};
-    /// let date = DateTime::<Utc>::new(2012, 1, 15)?;
+    /// # use eos::datetime;
+    /// let date = datetime!(2012-01-15 00:00);
     /// assert_eq!(date.day(), 15);
     /// # Ok::<_, eos::Error>(())
     /// ```
