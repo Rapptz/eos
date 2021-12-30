@@ -252,6 +252,114 @@ where
         self.date = self.date.with_day(day)?;
         Ok(self)
     }
+
+    /// Returns the hour.
+    ///
+    /// This value will always be within `0..24`.
+    #[inline]
+    pub fn hour(&self) -> u8 {
+        self.time.hour()
+    }
+
+    /// Returns the minute within the hour.
+    ///
+    /// This value will always be within `0..60`.
+    #[inline]
+    pub fn minute(&self) -> u8 {
+        self.time.minute()
+    }
+
+    /// Returns the second within the minute.
+    ///
+    /// This value will always be within `0..60`.
+    #[inline]
+    pub fn second(&self) -> u8 {
+        self.time.second()
+    }
+
+    /// Returns the millisecond within the second.
+    ///
+    /// This value will always be within `0..1000`.
+    #[inline]
+    pub fn millisecond(&self) -> u16 {
+        self.time.millisecond()
+    }
+
+    /// Returns the microsecond within the second.
+    ///
+    /// This value will always be within `0..1_000_000`.
+    #[inline]
+    pub fn microsecond(&self) -> u32 {
+        self.time.microsecond()
+    }
+
+    /// Returns the nanosecond within the second.
+    ///
+    /// This value will always be within `0..2_000_000_000`.
+    #[inline]
+    pub fn nanosecond(&self) -> u32 {
+        self.time.nanosecond()
+    }
+
+    /// Returns a new [`DateTime`] that points to the given hour.
+    /// If the hour is out of bounds (`0..24`) then [`Error`] is returned.
+    ///
+    /// This does not do timezone conversion.
+    #[inline]
+    pub fn with_hour(mut self, hour: u8) -> Result<Self, Error> {
+        self.time = self.time.with_hour(hour)?;
+        Ok(self)
+    }
+
+    /// Returns a new [`DateTime`] that points to the given minute.
+    /// If the minute is out of bounds (`0..60`) then [`Error`] is returned.
+    ///
+    /// This does not do timezone conversion.
+    #[inline]
+    pub fn with_minute(mut self, minute: u8) -> Result<Self, Error> {
+        self.time = self.time.with_minute(minute)?;
+        Ok(self)
+    }
+
+    /// Returns a new [`DateTime`] that points to the given second.
+    /// If the second is out of bounds (`0..60`) then [`Error`] is returned.
+    ///
+    /// This does not do timezone conversion.
+    #[inline]
+    pub fn with_second(mut self, second: u8) -> Result<Self, Error> {
+        self.time = self.time.with_second(second)?;
+        Ok(self)
+    }
+
+    /// Returns a new [`DateTime`] that points to the given millisecond.
+    /// If the millisecond is out of bounds (`0..1000`) then [`Error`] is returned.
+    ///
+    /// This does not do timezone conversion.
+    #[inline]
+    pub fn with_millisecond(mut self, millisecond: u16) -> Result<Self, Error> {
+        self.time = self.time.with_millisecond(millisecond)?;
+        Ok(self)
+    }
+
+    /// Returns a new [`DateTime`] that points to the given microsecond.
+    /// If the microsecond is out of bounds (`0..1_000_000`) then [`Error`] is returned.
+    ///
+    /// This does not do timezone conversion.
+    #[inline]
+    pub fn with_microsecond(mut self, microsecond: u32) -> Result<Self, Error> {
+        self.time = self.time.with_microsecond(microsecond)?;
+        Ok(self)
+    }
+
+    /// Returns a new [`DateTime`] that points to the given nanosecond.
+    /// If the nanosecond is out of bounds (`0..2_000_000_000`) then [`Error`] is returned.
+    ///
+    /// This does not do timezone conversion.
+    #[inline]
+    pub fn with_nanosecond(mut self, nanosecond: u32) -> Result<Self, Error> {
+        self.time = self.time.with_nanosecond(nanosecond)?;
+        Ok(self)
+    }
 }
 
 impl Add<Duration> for DateTime {
