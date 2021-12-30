@@ -1,7 +1,7 @@
 use crate::{
     utils::{
-        date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, divmod, ensure_in_range, is_leap,
-        DAYS_BEFORE_MONTH,
+        date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, divmod, ensure_in_range,
+        is_leap_year, DAYS_BEFORE_MONTH,
     },
     Error, Interval,
 };
@@ -340,12 +340,12 @@ impl Date {
     /// ```
     pub fn from_ordinal(year: i16, ordinal: u16) -> Result<Self, Error> {
         ensure_in_range!(ordinal, 1 => 366);
-        if ordinal == 366 && !is_leap(year) {
+        if ordinal == 366 && !is_leap_year(year) {
             return Err(Error::OutOfRange);
         }
 
         let month = DAYS_BEFORE_MONTH.iter().position(|p| *p > ordinal).unwrap_or(13) - 1;
-        let offset = month > 2 && is_leap(year);
+        let offset = month > 2 && is_leap_year(year);
         let day = ordinal - DAYS_BEFORE_MONTH[month] - offset as u16;
         Ok(Self {
             year,

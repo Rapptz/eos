@@ -13,7 +13,7 @@ pub mod ext;
 mod interval;
 mod time;
 mod timezone;
-pub(crate) mod utils;
+pub mod utils;
 
 pub use date::{Date, Weekday};
 pub use datetime::DateTime;

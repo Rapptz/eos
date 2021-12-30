@@ -14,14 +14,14 @@ pub(crate) const DAYS_BEFORE_MONTH: [u16; 13] = [0, 0, 31, 59, 90, 120, 151, 181
 
 /// Returns `true` if the year is a leap year or not.
 #[inline]
-pub(crate) const fn is_leap(year: i16) -> bool {
+pub const fn is_leap_year(year: i16) -> bool {
     year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
 }
 
 /// Returns the number of days in that given month and year.
 #[inline]
-pub(crate) const fn days_in_month(year: i16, month: u8) -> u8 {
-    if month == 2 && is_leap(year) {
+pub const fn days_in_month(year: i16, month: u8) -> u8 {
+    if month == 2 && is_leap_year(year) {
         29
     } else {
         DAYS_IN_MONTH[month as usize]
@@ -31,7 +31,7 @@ pub(crate) const fn days_in_month(year: i16, month: u8) -> u8 {
 /// Returns how many days preceed the first day of the given month in the year.
 #[inline]
 pub(crate) const fn days_before_month(year: i16, month: u8) -> u16 {
-    let offset = month > 2 && is_leap(year);
+    let offset = month > 2 && is_leap_year(year);
     DAYS_BEFORE_MONTH[month as usize] + offset as u16
 }
 
