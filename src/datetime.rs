@@ -1,5 +1,8 @@
 use crate::Error;
-use crate::{timezone::{Utc, UtcOffset}, Date, Time, TimeZone, Weekday};
+use crate::{
+    timezone::{Utc, UtcOffset},
+    Date, Time, TimeZone, Weekday,
+};
 
 use core::ops::{Add, Sub};
 use core::time::Duration;
@@ -28,11 +31,7 @@ where
 #[cfg(feature = "macros")]
 #[inline]
 pub const fn __create_offset_datetime_from_macro(date: Date, time: Time, timezone: UtcOffset) -> DateTime<UtcOffset> {
-    DateTime {
-        date,
-        time,
-        timezone,
-    }
+    DateTime { date, time, timezone }
 }
 
 impl DateTime<Utc> {
@@ -286,7 +285,6 @@ where
         self.date = self.date.with_month(month)?;
         Ok(self)
     }
-
 
     /// Returns a new [`Date`] that points to the given day.
     /// If the day is out of bounds (`1..=31`) then an [`Error`] is returned.

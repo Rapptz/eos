@@ -145,22 +145,18 @@ macro_rules! ensure_in_range {
 pub(crate) use ensure_in_range;
 
 macro_rules! divmod {
-    ($lhs:expr, $rhs:expr) => {
-        {
-            let lhs = $lhs;
-            let rhs = $rhs;
-            (lhs / rhs, lhs % rhs)
-        }
-    };
+    ($lhs:expr, $rhs:expr) => {{
+        let lhs = $lhs;
+        let rhs = $rhs;
+        (lhs / rhs, lhs % rhs)
+    }};
 }
 
 macro_rules! divrem {
-    ($lhs:expr, $rhs:expr) => {
-        {
-            let (lhs, rhs) = ($lhs, $rhs);
-            (lhs.div_euclid(rhs), lhs.rem_euclid(rhs))
-        }
-    };
+    ($lhs:expr, $rhs:expr) => {{
+        let (lhs, rhs) = ($lhs, $rhs);
+        (lhs.div_euclid(rhs), lhs.rem_euclid(rhs))
+    }};
 }
 
 pub(crate) use divmod;
