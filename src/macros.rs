@@ -1,8 +1,8 @@
 #[doc(hidden)]
 #[macro_export]
-macro_rules! static_assert {
+macro_rules! const_assert {
     ($cond:expr) => {
-        $crate::static_assert!($cond, concat!("static assertion failed: ", stringify!($cond)));
+        $crate::const_assert!($cond, concat!("compile time assertion failed: ", stringify!($cond)));
     };
     ($cond:expr, $($t:tt)+) => {
         #[forbid(const_err)]
@@ -15,7 +15,7 @@ macro_rules! static_assert {
 }
 
 #[doc(hidden)]
-pub use static_assert;
+pub use const_assert;
 
 #[doc(hidden)]
 #[macro_export]
@@ -82,9 +82,9 @@ macro_rules! time {
         const HOURS: u8 = $hours;
         const MINUTES: u8 = $minutes;
         const SECONDS: u8 = $crate::macros::__expand_or_zero!($($seconds)?);
-        $crate::macros::static_assert!(HOURS <= 23, "hours must be less than 24");
-        $crate::macros::static_assert!(MINUTES <= 59, "minutes must be less than 60");
-        $crate::macros::static_assert!(SECONDS <= 59, "seconds must be less than 60");
+        $crate::macros::const_assert!(HOURS <= 23, "hours must be less than 24");
+        $crate::macros::const_assert!(MINUTES <= 59, "minutes must be less than 60");
+        $crate::macros::const_assert!(SECONDS <= 59, "seconds must be less than 60");
         $crate::Time::__new_unchecked_from_macro(HOURS, MINUTES, SECONDS)
     }};
 
@@ -92,9 +92,9 @@ macro_rules! time {
         const HOURS: u8 = $hours;
         const MINUTES: u8 = $minutes;
         const SECONDS: u8 = $crate::macros::__expand_or_zero!($($seconds)?);
-        $crate::macros::static_assert!(HOURS <= 12, "hours must be less than 13");
-        $crate::macros::static_assert!(MINUTES <= 59, "minutes must be less than 60");
-        $crate::macros::static_assert!(SECONDS <= 59, "seconds must be less than 60");
+        $crate::macros::const_assert!(HOURS <= 12, "hours must be less than 13");
+        $crate::macros::const_assert!(MINUTES <= 59, "minutes must be less than 60");
+        $crate::macros::const_assert!(SECONDS <= 59, "seconds must be less than 60");
 
         if $crate::macros::__meridian_parser!($meridian) {
             $crate::Time::__new_unchecked_from_macro(if HOURS == 12 { 0 } else { HOURS }, MINUTES, SECONDS)
@@ -129,10 +129,10 @@ macro_rules! date {
         const YEAR: i16 = $year;
         const MONTH: u8 = $month;
         const DAY: u8 = $day;
-        $crate::macros::static_assert!(MONTH >= 1 && MONTH <= 12, "months must be between [1, 12]");
+        $crate::macros::const_assert!(MONTH >= 1 && MONTH <= 12, "months must be between [1, 12]");
 
         const MAX_DAYS: u8 = $crate::utils::days_in_month(YEAR, MONTH);
-        $crate::macros::static_assert!(
+        $crate::macros::const_assert!(
             DAY >= 1 && DAY <= MAX_DAYS,
             "day must be positive and within range of the month"
         );
@@ -172,9 +172,9 @@ macro_rules! utc_offset {
         const MINUTES: i8 = $crate::macros::__expand_or_zero!($($minutes)?);
         const SECONDS: i8 = $crate::macros::__expand_or_zero!($($($seconds)?)?);
 
-        $crate::macros::static_assert!(HOURS <= 23 && HOURS >= -23, "hours must be between [-23, 23]");
-        $crate::macros::static_assert!(MINUTES <= 59 && MINUTES >= 0, "minutes must be between [0, 59]");
-        $crate::macros::static_assert!(SECONDS <= 59 && SECONDS >= 0, "seconds must be between [0, 59]");
+        $crate::macros::const_assert!(HOURS <= 23 && HOURS >= -23, "hours must be between [-23, 23]");
+        $crate::macros::const_assert!(MINUTES <= 59 && MINUTES >= 0, "minutes must be between [0, 59]");
+        $crate::macros::const_assert!(SECONDS <= 59 && SECONDS >= 0, "seconds must be between [0, 59]");
 
         if HOURS >= 0 {
             $crate::UtcOffset::__new_unchecked_from_macro(HOURS, MINUTES, SECONDS)
