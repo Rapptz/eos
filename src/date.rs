@@ -100,6 +100,13 @@ impl Date {
         day: 1,
     };
 
+    #[doc(hidden)]
+    #[cfg(feature = "macros")]
+    #[inline]
+    pub const fn __new_unchecked_from_macro(year: i16, month: u8, day: u8) -> Self {
+        Self { year, month, day }
+    }
+
     /// Creates a new [`Date`] from a given year, month, and day.
     ///
     /// The month must be between `1..=12` and the day must be between `1..=31`.

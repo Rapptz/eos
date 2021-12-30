@@ -1,5 +1,5 @@
 use crate::Error;
-use crate::{timezone::Utc, Date, Time, TimeZone, Weekday};
+use crate::{timezone::{Utc, UtcOffset}, Date, Time, TimeZone, Weekday};
 
 use core::ops::{Add, Sub};
 use core::time::Duration;
@@ -24,6 +24,17 @@ where
     timezone: Tz,
 }
 
+#[doc(hidden)]
+#[cfg(feature = "macros")]
+#[inline]
+pub const fn __create_offset_datetime_from_macro(date: Date, time: Time, timezone: UtcOffset) -> DateTime<UtcOffset> {
+    DateTime {
+        date,
+        time,
+        timezone,
+    }
+}
+
 impl DateTime<Utc> {
     /// Represents a [`DateTime`] at the unix epoch (January 1st, 1970 00:00:00 UTC).
     pub const UNIX_EPOCH: Self = Self {
@@ -37,6 +48,17 @@ impl DateTime<Utc> {
     #[cfg(feature = "std")]
     pub fn utc_now() -> Self {
         SystemTime::now().into()
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "macros")]
+    #[inline]
+    pub const fn __new_utc_unchecked_from_macro(date: Date, time: Time) -> Self {
+        Self {
+            date,
+            time,
+            timezone: Utc,
+        }
     }
 
     /// Creates a [`DateTime`] from the given year and ordinal date. The time is set to

@@ -14,8 +14,9 @@ categories = ["date-and-time"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["alloc", "std"]
+default = ["alloc", "std", "macros"]
 std = ["alloc"]
 alloc = []
+macros = []
 
 [dependencies]

@@ -43,6 +43,17 @@ impl UtcOffset {
         seconds: 0,
     };
 
+    #[doc(hidden)]
+    #[cfg(feature = "macros")]
+    #[inline]
+    pub const fn __new_unchecked_from_macro(hours: i8, minutes: i8, seconds: i8) -> Self {
+        Self {
+            hours,
+            minutes,
+            seconds,
+        }
+    }
+
     /// Creates a new [`UtcOffset`] from the given number of hours, minutes, and seconds.
     ///
     /// The sign of all three components should match. If they do not, all components will

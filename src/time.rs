@@ -46,6 +46,18 @@ impl Time {
         nanosecond: 999_999_999,
     };
 
+    #[doc(hidden)]
+    #[cfg(feature = "macros")]
+    #[inline]
+    pub const fn __new_unchecked_from_macro(hour: u8, minute: u8, second: u8) -> Self {
+        Self {
+            hour,
+            minute,
+            second,
+            nanosecond: 0,
+        }
+    }
+
     /// Creates a new [`Time`] from the specified hour, minute, and second.
     ///
     /// The `hour` value must be between `0..24` and the `minute` and `second` values must
