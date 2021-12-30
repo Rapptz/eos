@@ -138,6 +138,16 @@ where
         self
     }
 
+    /// Returns a reference to the [`TimeZone`] associated with this datetime.
+    pub fn timezone(&self) -> &Tz {
+        &self.timezone
+    }
+
+    /// Returns a mutable reference to the [`TimeZone`] associated with this datetime.
+    pub fn timezone_mut(&mut self) -> &mut Tz {
+        &mut self.timezone
+    }
+
     // The "common" functions begin here.
     // I want to "unroll" the trait and make them inherent methods since their discoverability
     // is better in the documentation, and the trait usability is mostly subpar.
