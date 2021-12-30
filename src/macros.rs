@@ -95,8 +95,8 @@ macro_rules! time {
         $crate::macros::const_assert!(HOURS <= 12, "hours must be less than 13");
         $crate::macros::const_assert!(MINUTES <= 59, "minutes must be less than 60");
         $crate::macros::const_assert!(SECONDS <= 59, "seconds must be less than 60");
-
-        if $crate::macros::__meridian_parser!($meridian) {
+        const MERIDIAN: bool = $crate::macros::__meridian_parser!($meridian);
+        if MERIDIAN {
             $crate::Time::__new_unchecked_from_macro(if HOURS == 12 { 0 } else { HOURS }, MINUTES, SECONDS)
         } else {
             $crate::Time::__new_unchecked_from_macro(if HOURS == 12 { 12 } else { HOURS + 12 }, MINUTES, SECONDS)
