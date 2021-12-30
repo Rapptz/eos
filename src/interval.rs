@@ -300,6 +300,7 @@ impl Interval {
         // normalisation happens or not.
         // Since the library is assuming a Gregorian calendar, it makes sense to normalise
         // months and years even if other years do not always have 12 months in other calendars
+        // Note that this normalisation is done via the total_months method, not this one
 
         if self.months.abs() >= 12 {
             self.years += self.months.div_euclid(12) as i16;
@@ -312,6 +313,11 @@ impl Interval {
     #[inline]
     pub(crate) const fn total_days(&self) -> i32 {
         self.weeks * 7 + self.days
+    }
+
+    #[inline]
+    pub(crate) const fn total_months(&self) -> i32 {
+        self.months + self.years as i32 * 12
     }
 
     /// Returns a duration representing the time components of this interval.
