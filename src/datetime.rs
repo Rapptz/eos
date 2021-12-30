@@ -1,8 +1,8 @@
-use crate::Error;
 use crate::{
     timezone::{Utc, UtcOffset},
     Date, Time, TimeZone, Weekday,
 };
+use crate::{Error, Interval};
 
 use core::ops::{Add, Sub};
 use core::time::Duration;
@@ -484,5 +484,59 @@ where
             ord => return ord,
         }
         self.time.cmp(&other.time)
+    }
+}
+
+impl<Tz> Add<Interval> for DateTime<Tz>
+where
+    Tz: TimeZone,
+{
+    type Output = Self;
+
+    fn add(self, rhs: Interval) -> Self::Output {
+        let (sub, duration) = rhs.to_time_duration();
+        let (days, time) = if sub {
+            self.time.sub_with_duration(duration)
+        } else {
+            self.time.add_with_duration(duration)
+        };
+
+        let date = self
+            .date
+            .add_months(rhs.total_months())
+            .add_days(rhs.total_days() + days);
+
+        Self {
+            date,
+            time,
+            timezone: self.timezone,
+        }
+    }
+}
+
+impl<Tz> Sub<Interval> for DateTime<Tz>
+where
+    Tz: TimeZone,
+{
+    type Output = Self;
+
+    fn sub(self, rhs: Interval) -> Self::Output {
+        let (sub, duration) = rhs.to_time_duration();
+        let (days, time) = if sub {
+            self.time.add_with_duration(duration)
+        } else {
+            self.time.sub_with_duration(duration)
+        };
+
+        let date = self
+            .date
+            .add_months(rhs.total_months().wrapping_neg())
+            .add_days(rhs.total_days().wrapping_neg() + days);
+
+        Self {
+            date,
+            time,
+            timezone: self.timezone,
+        }
     }
 }

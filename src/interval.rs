@@ -3,7 +3,7 @@ use core::{
     time::Duration,
 };
 
-use crate::{utils::divmod, Date, Time};
+use crate::{utils::divmod, Date, DateTime, Time};
 
 /// Represents a interval of time such as 2 years, 30 minutes, etc.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -454,6 +454,14 @@ impl Add<Time> for Interval {
     type Output = Time;
 
     fn add(self, rhs: Time) -> Self::Output {
+        rhs + self
+    }
+}
+
+impl Add<DateTime> for Interval {
+    type Output = DateTime;
+
+    fn add(self, rhs: DateTime) -> Self::Output {
         rhs + self
     }
 }

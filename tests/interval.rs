@@ -1,5 +1,5 @@
 use core::time::Duration;
-use eos::{date, ext::IntervalLiteral, time, Interval};
+use eos::{date, datetime, ext::IntervalLiteral, time, Interval};
 
 #[test]
 fn zero() {
@@ -199,4 +199,128 @@ fn random_double_units_to_times() {
     assert_eq!(time!(8:23:54) + ((-63).seconds() + 56.hours()), time!(16:22:51));
     assert_eq!(time!(20:26:47) + ((-50).seconds() + 53.hours()), time!(1:25:57));
     assert_eq!(time!(11:50:19) - (36.hours() + (-30).minutes()), time!(0:20:19));
+}
+
+#[test]
+fn add_to_datetime() {
+    assert_eq!(datetime!(2012-02-29 00:00) + 1.days(), datetime!(2012-03-1 00:00));
+    assert_eq!(datetime!(2012-02-29 00:00) + 1.years(), datetime!(2013-02-28 00:00));
+    assert_eq!(datetime!(2012-01-31 00:00) + 1.months(), datetime!(2012-02-29 00:00));
+    assert_eq!(datetime!(2001-01-31 00:00) + 1.months(), datetime!(2001-02-28 00:00));
+    assert_eq!(datetime!(2001-01-31 00:00) + 92.minutes(), datetime!(2001-01-31 1:32));
+    assert_eq!(datetime!(2001-01-31 00:00) - 2.minutes(), datetime!(2001-01-30 23:58));
+}
+
+#[test]
+fn random_single_units_to_datetimes() {
+    assert_eq!(datetime!(1572-2-29 2:28:40) - 67.days(), datetime!(1571-12-24 2:28:40));
+    assert_eq!(
+        datetime!(1288-4-30 3:24:10) + (-71).days(),
+        datetime!(1288-2-19 3:24:10)
+    );
+    assert_eq!(datetime!(1391-7-31 1:1:41) + (-58).weeks(), datetime!(1390-6-20 1:1:41));
+    assert_eq!(datetime!(1950-8-31 6:46:36) - 53.years(), datetime!(1897-8-31 6:46:36));
+    assert_eq!(datetime!(779-7-31 7:6:16) + (-58).days(), datetime!(779-6-3 7:6:16));
+    assert_eq!(
+        datetime!(1148-11-30 18:52:18) - 2.days(),
+        datetime!(1148-11-28 18:52:18)
+    );
+    assert_eq!(
+        datetime!(317-12-31 20:12:28) + 28.months(),
+        datetime!(320-4-30 20:12:28)
+    );
+    assert_eq!(datetime!(639-11-30 3:2:35) - (-82).days(), datetime!(640-2-20 3:2:35));
+    assert_eq!(
+        datetime!(1561-4-30 0:47:47) - (-77).years(),
+        datetime!(1638-4-30 0:47:47)
+    );
+    assert_eq!(datetime!(98-9-30 5:6:37) + 4.weeks(), datetime!(98-10-28 5:6:37));
+    assert_eq!(datetime!(1453-9-30 6:12:17) - 29.months(), datetime!(1451-4-30 6:12:17));
+    assert_eq!(datetime!(402-4-30 15:55:5) - 98.weeks(), datetime!(400-6-13 15:55:5));
+    assert_eq!(datetime!(652-4-30 0:31:20) - 64.days(), datetime!(652-2-26 0:31:20));
+    assert_eq!(datetime!(1626-1-31 3:19:54) - 61.days(), datetime!(1625-12-1 3:19:54));
+    assert_eq!(datetime!(1991-8-31 4:52:25) - 58.days(), datetime!(1991-7-4 4:52:25));
+    assert_eq!(datetime!(416-4-30 0:15:7) - (-97).months(), datetime!(424-5-30 0:15:7));
+    assert_eq!(datetime!(1379-3-31 21:24:18) - 34.weeks(), datetime!(1378-8-5 21:24:18));
+    assert_eq!(
+        datetime!(900-9-30 11:42:14) - (-88).years(),
+        datetime!(988-9-30 11:42:14)
+    );
+    assert_eq!(datetime!(1835-2-28 4:42:11) + 75.months(), datetime!(1841-5-28 4:42:11));
+    assert_eq!(datetime!(921-8-31 23:9:17) - 4.days(), datetime!(921-8-27 23:9:17));
+}
+
+#[test]
+fn random_double_units_to_datetimes() {
+    assert_eq!(
+        datetime!(832-4-30 12:41:58) - ((-26).months() + (-88).weeks()),
+        datetime!(836-3-7 12:41:58)
+    );
+    assert_eq!(
+        datetime!(1558-2-28 22:45:39) - ((-94).weeks() + 71.months()),
+        datetime!(1554-1-15 22:45:39)
+    );
+    assert_eq!(
+        datetime!(70-8-31 22:37:9) + ((-80).weeks() + 90.days()),
+        datetime!(69-5-18 22:37:9)
+    );
+    assert_eq!(
+        datetime!(1279-5-31 14:52:35) - 50.weeks(),
+        datetime!(1278-6-15 14:52:35)
+    );
+    assert_eq!(
+        datetime!(1829-3-31 11:27:57) - (62.weeks() + (-80).days()),
+        datetime!(1828-4-11 11:27:57)
+    );
+    assert_eq!(
+        datetime!(1682-12-31 13:31:15) - (-39).days(),
+        datetime!(1683-2-8 13:31:15)
+    );
+    assert_eq!(
+        datetime!(405-1-31 4:33:44) - (22.months() + 1.years()),
+        datetime!(402-3-31 4:33:44)
+    );
+    assert_eq!(
+        datetime!(1436-2-29 22:59:42) - (77.years() + (-97).months()),
+        datetime!(1367-3-29 22:59:42)
+    );
+    assert_eq!(datetime!(1014-7-31 6:30:12) - 58.weeks(), datetime!(1013-6-20 6:30:12));
+    assert_eq!(
+        datetime!(803-5-31 8:54:49) - ((-85).years() + (-92).weeks()),
+        datetime!(890-3-6 8:54:49)
+    );
+    assert_eq!(datetime!(1147-12-31 2:0:13) - 40.years(), datetime!(1107-12-31 2:0:13));
+    assert_eq!(
+        datetime!(633-12-31 2:19:19) + (59.years() + (-26).weeks()),
+        datetime!(692-7-2 2:19:19)
+    );
+    assert_eq!(
+        datetime!(1841-1-31 0:53:36) + ((-23).days() + 14.months()),
+        datetime!(1842-3-8 0:53:36)
+    );
+    assert_eq!(
+        datetime!(1834-11-30 4:45:6) - (30.weeks() + (-73).years()),
+        datetime!(1907-5-4 4:45:6)
+    );
+    assert_eq!(
+        datetime!(1495-6-30 8:8:35) + ((-59).weeks() + 20.days()),
+        datetime!(1494-6-2 8:8:35)
+    );
+    assert_eq!(
+        datetime!(313-9-30 20:54:41) + (74.weeks() + 30.months()),
+        datetime!(317-8-30 20:54:41)
+    );
+    assert_eq!(
+        datetime!(1588-3-31 20:44:4) - ((-99).weeks() + 3.months()),
+        datetime!(1589-11-23 20:44:4)
+    );
+    assert_eq!(
+        datetime!(1642-3-31 5:34:21) + ((-26).days() + (-7).years()),
+        datetime!(1635-3-5 5:34:21)
+    );
+    assert_eq!(datetime!(588-7-31 14:5:45) - (-53).years(), datetime!(641-7-31 14:5:45));
+    assert_eq!(
+        datetime!(1154-4-30 20:13:54) + 11.weeks(),
+        datetime!(1154-7-16 20:13:54)
+    );
 }
