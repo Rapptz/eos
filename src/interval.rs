@@ -252,6 +252,61 @@ impl Interval {
         self
     }
 
+    /// Normalize the interval so that large units are combined to their larger unit.
+    /// For example, this turns 90 minutes into 1 hour and 30 minutes or 9 days into
+    /// 1 week and 2 days.
+    ///
+    /// ```rust
+    /// use eos::{Interval, ext::IntervalLiteral};
+    /// let mut interval: Interval = 90.minutes() + 9.days() + 13.months() + 1.years();
+    /// interval.normalize();
+    /// assert_eq!(interval.years(), 2);
+    /// assert_eq!(interval.months(), 1);
+    /// assert_eq!(interval.weeks(), 1);
+    /// assert_eq!(interval.days(), 2);
+    /// assert_eq!(interval.hours(), 1);
+    /// assert_eq!(interval.minutes(), 30);
+    /// ```
+    pub fn normalize(&mut self) {
+        if self.nanoseconds.abs() >= 1_000_000_000 {
+            self.seconds += self.nanoseconds.div_euclid(1_000_000_000);
+            self.nanoseconds = self.nanoseconds.rem_euclid(1_000_000_000);
+        }
+
+        if self.seconds.abs() >= 60 {
+            self.minutes += self.seconds.div_euclid(60);
+            self.seconds = self.seconds.rem_euclid(60);
+        }
+
+        if self.minutes.abs() >= 60 {
+            self.hours += self.minutes.div_euclid(60) as i32;
+            self.minutes = self.minutes.rem_euclid(60);
+        }
+
+        if self.hours.abs() >= 24 {
+            self.days += self.hours.div_euclid(24);
+            self.hours = self.hours.rem_euclid(24);
+        }
+
+        if self.days.abs() >= 7 {
+            self.weeks += self.days.div_euclid(7);
+            self.days = self.days.rem_euclid(7);
+        }
+
+        // Weeks cannot be reduced further... but months can in the gregorian calendar
+        // Some edge cases arrive from this reduction such as
+        // 1436-2-29 - (77.years() + (-97).months())
+        // The formulation can either be 1367-3-28 or 1367-3-29 depending on whether
+        // normalisation happens or not.
+        // Since the library is assuming a Gregorian calendar, it makes sense to normalise
+        // months and years even if other years do not always have 12 months in other calendars
+
+        if self.months.abs() >= 12 {
+            self.years += self.months.div_euclid(12) as i16;
+            self.months = self.months.rem_euclid(12);
+        }
+    }
+
     /* internal helpers */
 
     #[inline]

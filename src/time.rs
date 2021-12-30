@@ -1,5 +1,5 @@
 use crate::{
-    utils::{divmod, divrem, ensure_in_range},
+    utils::{divrem, ensure_in_range},
     Error, Interval,
 };
 
