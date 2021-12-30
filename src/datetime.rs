@@ -124,6 +124,20 @@ where
         &mut self.date
     }
 
+    /// Returns a new [`DateTime`] with the newly specified [`Time`].
+    ///
+    /// This does not do timezone conversion.
+    pub fn with_time(mut self, time: Time) -> Self {
+        self.time = time;
+        self
+    }
+
+    /// Returns a new [`DateTime`] with the newly specified [`Date`].
+    pub fn with_date(mut self, date: Date) -> Self {
+        self.date = date;
+        self
+    }
+
     // The "common" functions begin here.
     // I want to "unroll" the trait and make them inherent methods since their discoverability
     // is better in the documentation, and the trait usability is mostly subpar.
