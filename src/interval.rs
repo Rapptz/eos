@@ -1,12 +1,9 @@
 use core::{
-    ops::{Add, AddAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Neg, Sub, SubAssign},
     time::Duration,
 };
 
-use crate::{
-    utils::{divmod, divrem},
-    Date, DateTime, Time, UtcOffset,
-};
+use crate::{utils::divmod, Date, DateTime, Time, UtcOffset};
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
@@ -470,6 +467,23 @@ impl From<UtcOffset> for Interval {
             minutes: m as _,
             seconds: s as _,
             ..Self::ZERO
+        }
+    }
+}
+
+impl Neg for Interval {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            years: -self.years,
+            days: -self.days,
+            weeks: -self.weeks,
+            months: -self.months,
+            hours: -self.hours,
+            minutes: -self.minutes,
+            seconds: -self.seconds,
+            nanoseconds: -self.nanoseconds,
         }
     }
 }

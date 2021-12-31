@@ -199,6 +199,18 @@ impl core::fmt::Display for UtcOffset {
     }
 }
 
+impl core::ops::Neg for UtcOffset {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            hours: -self.hours,
+            minutes: -self.minutes,
+            seconds: -self.seconds,
+        }
+    }
+}
+
 /// A trait that defines timezone behaviour.
 pub trait TimeZone {
     /// Returns the name of the timezone at an optional datetime.
