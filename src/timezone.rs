@@ -110,15 +110,19 @@ impl UtcOffset {
     /// ```
     pub const fn from_seconds(seconds: i32) -> Result<Self, Error> {
         ensure_in_range!(seconds, -86399 => 86399);
+        Ok(Self::from_seconds_unchecked(seconds))
+    }
+
+    pub(crate) const fn from_seconds_unchecked(seconds: i32) -> Self {
         let hours = seconds / 3600;
         let seconds = seconds % 3600;
         let minutes = seconds / 60;
         let seconds = seconds % 60;
-        Ok(Self {
+        Self {
             hours: hours as i8,
             minutes: minutes as i8,
             seconds: seconds as i8,
-        })
+        }
     }
 
     /// Returns the total number of seconds this offset represents.
@@ -182,6 +186,55 @@ impl UtcOffset {
     pub const fn checked_add(self, other: Self) -> Result<Self, Error> {
         let seconds = self.total_seconds() + other.total_seconds();
         Self::from_seconds(seconds)
+    }
+
+    /// Subtracts two offsets, saturating at the bounds if out of bounds.
+    ///
+    /// ```rust
+    /// # use eos::utc_offset;
+    /// let east = utc_offset!(-5:00);
+    /// let west = utc_offset!(-8:00);
+    /// let far  = utc_offset!(18:00);
+    ///
+    /// assert_eq!(far.saturating_sub(west), utc_offset!(23:59:59)); // 18 - -8 => 26
+    /// assert_eq!(west.saturating_sub(east), utc_offset!(-3:00));
+    /// ```
+    #[inline]
+    pub const fn saturating_sub(self, other: Self) -> Self {
+        let seconds = self.total_seconds() - other.total_seconds();
+        if seconds <= -86399 {
+            Self::MIN
+        } else if seconds >= 86399 {
+            Self::MAX
+        } else {
+            Self::from_seconds_unchecked(seconds)
+        }
+    }
+
+    /// Adds two offsets, saturating at the bounds if out of bounds.
+    ///
+    /// ```rust
+    /// # use eos::utc_offset;
+    /// let east  = utc_offset!(-5:00);
+    /// let west  = utc_offset!(-8:00);
+    /// let far   = utc_offset!(18:00);
+    /// let other = utc_offset!(-18:00);
+    ///
+    /// assert_eq!(far.saturating_add(west), utc_offset!(10:00));
+    /// assert_eq!(west.saturating_add(east), utc_offset!(-13:00));
+    /// assert_eq!(other.saturating_add(west), utc_offset!(-23:59:59));
+    /// assert_eq!(other.saturating_add(east), utc_offset!(-23:00));
+    /// ```
+    #[inline]
+    pub const fn saturating_add(self, other: Self) -> Self {
+        let seconds = self.total_seconds() + other.total_seconds();
+        if seconds <= -86399 {
+            Self::MIN
+        } else if seconds >= 86399 {
+            Self::MAX
+        } else {
+            Self::from_seconds_unchecked(seconds)
+        }
     }
 }
 
