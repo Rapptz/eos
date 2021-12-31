@@ -1,4 +1,5 @@
 use crate::{
+    interval::{NANOS_PER_HOUR, NANOS_PER_MIN, NANOS_PER_SEC},
     utils::{divrem, ensure_in_range},
     Error, Interval,
 };
@@ -19,9 +20,6 @@ pub struct Time {
     nanosecond: u32,
 }
 
-const NANOS_PER_SEC: u64 = 1_000_000_000;
-const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
-const NANOS_PER_HOUR: u64 = 60 * NANOS_PER_MIN;
 const MAXIMUM_SECONDS_FROM_DURATION: u64 = i32::MAX as u64 * 24 * 60 * 60;
 
 impl Time {
@@ -302,5 +300,13 @@ impl Sub<Duration> for Time {
 
     fn sub(self, rhs: Duration) -> Self::Output {
         self.sub_with_duration(rhs).1
+    }
+}
+
+impl Sub for Time {
+    type Output = Interval;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Interval::between_times(&rhs, &self)
     }
 }

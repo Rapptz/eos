@@ -501,3 +501,164 @@ fn diff_between_dates() {
         Interval::default().with_years(833).with_months(4).with_days(1)
     );
 }
+
+#[test]
+fn diff_between_times() {
+    assert_eq!(
+        time!(18:56:51) - time!(15:16:55),
+        Interval::default().with_hours(3).with_minutes(39).with_seconds(56)
+    );
+    assert_eq!(
+        time!(10:20:14) - time!(22:35:34),
+        Interval::default().with_hours(-12).with_minutes(-15).with_seconds(-20)
+    );
+    assert_eq!(
+        time!(18:21:9) - time!(9:22:45),
+        Interval::default().with_hours(8).with_minutes(58).with_seconds(24)
+    );
+    assert_eq!(
+        time!(8:1:56) - time!(8:56:45),
+        Interval::default().with_minutes(-54).with_seconds(-49)
+    );
+    assert_eq!(
+        time!(3:25:57) - time!(14:29:4),
+        Interval::default().with_hours(-11).with_minutes(-3).with_seconds(-7)
+    );
+    assert_eq!(time!(12:15:18) - time!(12:56:18), Interval::default().with_minutes(-41));
+    assert_eq!(
+        time!(20:46:27) - time!(7:33:18),
+        Interval::default().with_hours(13).with_minutes(13).with_seconds(9)
+    );
+    assert_eq!(
+        time!(0:40:9) - time!(17:23:27),
+        Interval::default().with_hours(-16).with_minutes(-43).with_seconds(-18)
+    );
+    assert_eq!(
+        time!(10:12:13) - time!(17:28:11),
+        Interval::default().with_hours(-7).with_minutes(-15).with_seconds(-58)
+    );
+    assert_eq!(
+        time!(3:54:15) - time!(13:32:5),
+        Interval::default().with_hours(-9).with_minutes(-37).with_seconds(-50)
+    );
+    assert_eq!(
+        time!(7:18:32) - time!(1:28:51),
+        Interval::default().with_hours(5).with_minutes(49).with_seconds(41)
+    );
+    assert_eq!(
+        time!(5:42:46) - time!(23:25:18),
+        Interval::default().with_hours(-17).with_minutes(-42).with_seconds(-32)
+    );
+    assert_eq!(
+        time!(20:12:46) - time!(10:12:45),
+        Interval::default().with_hours(10).with_seconds(1)
+    );
+    assert_eq!(
+        time!(2:48:24) - time!(22:47:37),
+        Interval::default().with_hours(-19).with_minutes(-59).with_seconds(-13)
+    );
+    assert_eq!(
+        time!(9:50:11) - time!(13:40:3),
+        Interval::default().with_hours(-3).with_minutes(-49).with_seconds(-52)
+    );
+    assert_eq!(
+        time!(22:14:21) - time!(1:17:59),
+        Interval::default().with_hours(20).with_minutes(56).with_seconds(22)
+    );
+    assert_eq!(
+        time!(23:30:37) - time!(21:50:13),
+        Interval::default().with_hours(1).with_minutes(40).with_seconds(24)
+    );
+    assert_eq!(
+        time!(5:6:54) - time!(16:6:27),
+        Interval::default().with_hours(-10).with_minutes(-59).with_seconds(-33)
+    );
+    assert_eq!(
+        time!(16:15:53) - time!(19:45:50),
+        Interval::default().with_hours(-3).with_minutes(-29).with_seconds(-57)
+    );
+    assert_eq!(
+        time!(14:6:15) - time!(4:59:21),
+        Interval::default().with_hours(9).with_minutes(6).with_seconds(54)
+    );
+    assert_eq!(
+        time!(6:54:44) - time!(12:36:43),
+        Interval::default().with_hours(-5).with_minutes(-41).with_seconds(-59)
+    );
+    assert_eq!(
+        time!(3:13:54) - time!(23:6:2),
+        Interval::default().with_hours(-19).with_minutes(-52).with_seconds(-8)
+    );
+    assert_eq!(
+        time!(0:52:35) - time!(6:52:41),
+        Interval::default().with_hours(-6).with_seconds(-6)
+    );
+    assert_eq!(
+        time!(4:36:7) - time!(7:17:17),
+        Interval::default().with_hours(-2).with_minutes(-41).with_seconds(-10)
+    );
+    assert_eq!(
+        time!(16:49:17) - time!(8:45:25),
+        Interval::default().with_hours(8).with_minutes(3).with_seconds(52)
+    );
+    assert_eq!(
+        time!(18:33:56) - time!(12:41:43),
+        Interval::default().with_hours(5).with_minutes(52).with_seconds(13)
+    );
+    assert_eq!(
+        time!(15:55:59) - time!(20:38:14),
+        Interval::default().with_hours(-4).with_minutes(-42).with_seconds(-15)
+    );
+    assert_eq!(
+        time!(4:35:9) - time!(1:11:15),
+        Interval::default().with_hours(3).with_minutes(23).with_seconds(54)
+    );
+    assert_eq!(
+        time!(11:42:55) - time!(9:2:58),
+        Interval::default().with_hours(2).with_minutes(39).with_seconds(57)
+    );
+    assert_eq!(
+        time!(1:27:3) - time!(14:34:17),
+        Interval::default().with_hours(-13).with_minutes(-7).with_seconds(-14)
+    );
+    assert_eq!(
+        time!(16:8:54) - time!(6:30:51),
+        Interval::default().with_hours(9).with_minutes(38).with_seconds(3)
+    );
+    assert_eq!(
+        time!(20:58:7) - time!(3:6:19),
+        Interval::default().with_hours(17).with_minutes(51).with_seconds(48)
+    );
+    assert_eq!(
+        time!(3:10:20) - time!(22:12:17),
+        Interval::default().with_hours(-19).with_minutes(-1).with_seconds(-57)
+    );
+    assert_eq!(
+        time!(10:29:21) - time!(0:45:26),
+        Interval::default().with_hours(9).with_minutes(43).with_seconds(55)
+    );
+    assert_eq!(
+        time!(18:53:42) - time!(21:32:33),
+        Interval::default().with_hours(-2).with_minutes(-38).with_seconds(-51)
+    );
+    assert_eq!(
+        time!(17:22:25) - time!(3:36:17),
+        Interval::default().with_hours(13).with_minutes(46).with_seconds(8)
+    );
+    assert_eq!(
+        time!(18:17:37) - time!(20:41:24),
+        Interval::default().with_hours(-2).with_minutes(-23).with_seconds(-47)
+    );
+    assert_eq!(
+        time!(22:14:39) - time!(19:53:36),
+        Interval::default().with_hours(2).with_minutes(21).with_seconds(3)
+    );
+    assert_eq!(
+        time!(22:21:31) - time!(11:30:57),
+        Interval::default().with_hours(10).with_minutes(50).with_seconds(34)
+    );
+    assert_eq!(
+        time!(1:30:29) - time!(23:27:35),
+        Interval::default().with_hours(-21).with_minutes(-57).with_seconds(-6)
+    );
+}

@@ -3,7 +3,14 @@ use core::{
     time::Duration,
 };
 
-use crate::{utils::divmod, Date, DateTime, Time};
+use crate::{
+    utils::{divmod, divrem},
+    Date, DateTime, Time,
+};
+
+pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
+pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
+pub(crate) const NANOS_PER_HOUR: u64 = 60 * NANOS_PER_MIN;
 
 /// Represents a interval of time such as 2 years, 30 minutes, etc.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -338,6 +345,36 @@ impl Interval {
             years,
             days,
             months,
+            ..Self::ZERO
+        }
+    }
+
+    /// Constructs an [`Interval`] between two times.
+    ///
+    /// If `end` is before `start` then each property will be negative.
+    ///
+    /// Note that the [`Sub`] implementation is more ergonomic and idiomatic than this API.
+    /// Only use this if you need to use references rather than copying.
+    ///
+    /// ```rust
+    /// use eos::{time, Interval};
+    ///
+    /// let interval = Interval::between_times(&time!(10:00:30), &time!(23:30:15));
+    /// assert_eq!(interval.hours(), 13);
+    /// assert_eq!(interval.minutes(), 29);
+    /// assert_eq!(interval.seconds(), 45);
+    /// ```
+    pub fn between_times(start: &Time, end: &Time) -> Self {
+        // Times are conceptually simple since they're bounded to at most 24 hours
+        let nanos = end.total_nanos() as i64 - start.total_nanos() as i64;
+        let (hour, nanos) = divmod!(nanos, NANOS_PER_HOUR as i64);
+        let (minutes, nanos) = divmod!(nanos, NANOS_PER_MIN as i64);
+        let (seconds, nanos) = divmod!(nanos, NANOS_PER_SEC as i64);
+        Self {
+            hours: hour as i32,
+            minutes,
+            seconds,
+            nanoseconds: nanos,
             ..Self::ZERO
         }
     }
