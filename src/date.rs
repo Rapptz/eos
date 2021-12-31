@@ -355,6 +355,44 @@ impl Date {
         }
     }
 
+    /// Returns a [`Date`] moved to the next date where the given [`Weekday`] falls.
+    ///
+    /// ```rust
+    /// use eos::{date, Weekday};
+    ///
+    /// // March 17th 2021 was a Wednesday
+    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Monday), date!(2021-3-22));
+    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Tuesday), date!(2021-3-23));
+    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Wednesday), date!(2021-3-24));
+    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Thursday), date!(2021-3-18));
+    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Friday), date!(2021-3-19));
+    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Saturday), date!(2021-3-20));
+    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Sunday), date!(2021-3-21));
+    /// ```
+    pub fn next_weekday(self, weekday: Weekday) -> Self {
+        let diff = weekday as i8 - self.weekday() as i8;
+        self.add_days(if diff <= 0 { diff + 7 } else { diff } as i32)
+    }
+
+    /// Returns a [`Date`] moved to the previous date where the given [`Weekday`] fell.
+    ///
+    /// ```rust
+    /// use eos::{date, Weekday};
+    ///
+    /// // March 17th 2021 was a Wednesday
+    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Monday), date!(2021-3-15));
+    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Tuesday), date!(2021-3-16));
+    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Wednesday), date!(2021-3-10));
+    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Thursday), date!(2021-3-11));
+    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Friday), date!(2021-3-12));
+    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Saturday), date!(2021-3-13));
+    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Sunday), date!(2021-3-14));
+    /// ```
+    pub fn prev_weekday(self, weekday: Weekday) -> Self {
+        let diff = weekday as i8 - self.weekday() as i8;
+        self.add_days(if diff >= 0 { diff - 7 } else { diff } as i32)
+    }
+
     /// Returns a new [`Date] that points to the given year.
     pub fn with_year(mut self, year: i16) -> Self {
         // TODO: needs to error out when switching from e.g. 2012-02-29 -> 2013-02-29

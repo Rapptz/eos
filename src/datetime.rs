@@ -261,6 +261,44 @@ where
         self.date.weekday()
     }
 
+    /// Returns a [`DateTime`] moved to the next date where the given [`Weekday`] falls.
+    ///
+    /// ```rust
+    /// use eos::{datetime, Weekday};
+    ///
+    /// // March 17th 2021 was a Wednesday
+    /// assert_eq!(datetime!(2021-3-17 00:00).next_weekday(Weekday::Monday), datetime!(2021-3-22 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).next_weekday(Weekday::Tuesday), datetime!(2021-3-23 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).next_weekday(Weekday::Wednesday), datetime!(2021-3-24 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).next_weekday(Weekday::Thursday), datetime!(2021-3-18 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).next_weekday(Weekday::Friday), datetime!(2021-3-19 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).next_weekday(Weekday::Saturday), datetime!(2021-3-20 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).next_weekday(Weekday::Sunday), datetime!(2021-3-21 00:00));
+    /// ```
+    pub fn next_weekday(mut self, weekday: Weekday) -> Self {
+        self.date = self.date.next_weekday(weekday);
+        self
+    }
+
+    /// Returns a [`DateTime`] moved to the previous date where the given [`Weekday`] fell.
+    ///
+    /// ```rust
+    /// use eos::{datetime, Weekday};
+    ///
+    /// // March 17th 2021 was a Wednesday
+    /// assert_eq!(datetime!(2021-3-17 00:00).prev_weekday(Weekday::Monday), datetime!(2021-3-15 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).prev_weekday(Weekday::Tuesday), datetime!(2021-3-16 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).prev_weekday(Weekday::Wednesday), datetime!(2021-3-10 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).prev_weekday(Weekday::Thursday), datetime!(2021-3-11 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).prev_weekday(Weekday::Friday), datetime!(2021-3-12 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).prev_weekday(Weekday::Saturday), datetime!(2021-3-13 00:00));
+    /// assert_eq!(datetime!(2021-3-17 00:00).prev_weekday(Weekday::Sunday), datetime!(2021-3-14 00:00));
+    /// ```
+    pub fn prev_weekday(mut self, weekday: Weekday) -> Self {
+        self.date = self.date.prev_weekday(weekday);
+        self
+    }
+
     /// Returns a new [`DateTime`] with the date pointing to the given year.
     pub fn with_year(mut self, year: i16) -> Self {
         self.date = self.date.with_year(year);
