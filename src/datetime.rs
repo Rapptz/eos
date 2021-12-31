@@ -4,8 +4,11 @@ use crate::{
 };
 use crate::{Error, Interval};
 
-use core::ops::{Add, Sub};
 use core::time::Duration;
+use core::{
+    cmp::Ordering,
+    ops::{Add, Sub},
+};
 #[cfg(feature = "std")]
 use std::time::SystemTime;
 
@@ -167,6 +170,76 @@ where
     /// Returns a mutable reference to the [`TimeZone`] associated with this datetime.
     pub fn timezone_mut(&mut self) -> &mut Tz {
         &mut self.timezone
+    }
+
+    /// Compares two datetime instances that do not share a timezone.
+    ///
+    /// Due to [a limitation][bad-ord] with the Rust [`Ord`] trait, this cannot be implemented
+    /// using the standard trait. Therefore, `cmp` is only implemented on same-type
+    /// [`TimeZone`] datetimes.
+    ///
+    /// [bad-ord]: https://github.com/rust-lang/rfcs/issues/2511
+    pub fn cmp_cross_timezone<OtherTz>(&self, other: &DateTime<OtherTz>) -> Ordering
+    where
+        OtherTz: TimeZone,
+    {
+        let my_offset = self.timezone.offset(&self);
+        let other_offset = other.timezone.offset(&other);
+
+        if my_offset == other_offset {
+            return (self.date, self.time).cmp(&(other.date, other.time));
+        }
+
+        // Get how many days the two dates differ by and also whether
+        // they are the same "moment" after accounting for their UTC offsets
+        let (days, same) = {
+            // Initially this is just a difference in days via epoch
+            // If the UTC offsets at that date resolve to the same one, then they're on the same
+            // date and the calculation is correct
+            let days = self.date().epoch_days() - other.date().epoch_days();
+            if my_offset == other_offset {
+                (days, true)
+            } else {
+                // If they're not, then we need to take into consideration the time component.
+                // A time component is essentially constrained to 24 hours
+                // So the difference in seconds between two of them won't go too much over
+                // 24 hours, we can use this to our advantage because by the same virtue
+                // offsets are also only within 24 hour bounds, making this a rather simple
+                // second-wise addition
+                let delta_offsets = other_offset.total_seconds() - my_offset.total_seconds();
+                let seconds = self.time.total_seconds() - other.time.total_seconds() + delta_offsets;
+
+                let d = seconds.div_euclid(86_400);
+                (
+                    days + d,
+                    seconds == 0 && self.time().nanosecond() == other.time().nanosecond(),
+                )
+            }
+        };
+
+        // If the number of days we differ by is negative then lhs is less than rhs by virtue
+
+        if days < 0 {
+            Ordering::Less
+        } else if same {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
+        }
+    }
+
+    /// Compares two datetime instances without caring about their timezone information.
+    ///
+    /// This essentially just compares their individual [`Date`] and [`Time`] components.
+    pub fn cmp_without_tz<OtherTz>(&self, other: &DateTime<OtherTz>) -> Ordering
+    where
+        OtherTz: TimeZone,
+    {
+        match self.date.cmp(&other.date) {
+            Ordering::Equal => {}
+            ord => return ord,
+        }
+        self.time.cmp(&other.time)
     }
 
     // The "common" functions begin here.
@@ -489,7 +562,7 @@ where
     OtherTz: TimeZone,
 {
     fn eq(&self, other: &DateTime<OtherTz>) -> bool {
-        self.date.eq(&other.date) && self.time.eq(&other.time)
+        self.cmp_cross_timezone(other) == Ordering::Equal
     }
 }
 
@@ -501,12 +574,8 @@ where
     Tz: TimeZone,
     OtherTz: TimeZone,
 {
-    fn partial_cmp(&self, other: &DateTime<OtherTz>) -> Option<std::cmp::Ordering> {
-        match self.date.partial_cmp(&other.date) {
-            Some(core::cmp::Ordering::Equal) => {}
-            ord => return ord,
-        }
-        self.time.partial_cmp(&other.time)
+    fn partial_cmp(&self, other: &DateTime<OtherTz>) -> Option<Ordering> {
+        Some(self.cmp_cross_timezone(other))
     }
 }
 
@@ -516,12 +585,8 @@ impl<Tz> Ord for DateTime<Tz>
 where
     Tz: TimeZone,
 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self.date.cmp(&other.date) {
-            std::cmp::Ordering::Equal => {}
-            ord => return ord,
-        }
-        self.time.cmp(&other.time)
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.cmp_cross_timezone(other)
     }
 }
 
@@ -576,5 +641,53 @@ where
             time,
             timezone: self.timezone,
         }
+    }
+}
+
+// Some basic tests to ensure comparisons work
+// TODO: move to a separate file
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::datetime;
+
+    #[test]
+    fn test_regular_comparisons() {
+        let dt = datetime!(2012-01-12 00:00);
+        assert_eq!(dt, dt);
+        assert_ne!(dt, datetime!(2012-02-13 00:00));
+        let tomorrow = datetime!(2012-01-13 00:00);
+        assert!(dt < tomorrow);
+        assert!(tomorrow > dt);
+        assert!(dt <= tomorrow);
+        assert!(dt != tomorrow);
+        assert!(tomorrow >= dt);
+    }
+
+    #[test]
+    fn test_mixed_timezone_comparisons() {
+        let dt = datetime!(2000-01-02 03:04:05 +3:00);
+        let utc = datetime!(2000-01-02 00:04:05);
+        let off = utc.with_hour(3).unwrap();
+
+        assert!(dt == dt);
+        assert!(dt == utc);
+        assert!(dt != off);
+        assert!(off != utc);
+        assert!(off == off);
+        assert!(off > dt);
+        assert!(dt < off);
+        assert!(off >= dt);
+        assert!(off >= utc);
+        assert!(off > utc);
+        assert!(utc < off);
+
+        assert_eq!(dt.cmp_without_tz(&off), Ordering::Equal);
+        assert_eq!(off.cmp_without_tz(&dt), Ordering::Equal);
+        assert_eq!(dt.cmp_without_tz(&utc), Ordering::Greater);
+        assert_eq!(utc.cmp_without_tz(&dt), Ordering::Less);
+        assert_eq!(off.cmp_without_tz(&utc), Ordering::Greater);
+        assert_eq!(utc.cmp_without_tz(&off), Ordering::Less);
     }
 }
