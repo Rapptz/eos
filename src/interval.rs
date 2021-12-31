@@ -5,7 +5,7 @@ use core::{
 
 use crate::{
     utils::{divmod, divrem},
-    Date, DateTime, Time,
+    Date, DateTime, Time, UtcOffset,
 };
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
@@ -458,6 +458,18 @@ fn months_between(start: &Date, end: &Date) -> i32 {
             diff
         } else {
             diff + 1
+        }
+    }
+}
+
+impl From<UtcOffset> for Interval {
+    fn from(offset: UtcOffset) -> Self {
+        let (h, m, s) = offset.into_hms();
+        Self {
+            hours: h as _,
+            minutes: m as _,
+            seconds: s as _,
+            ..Self::ZERO
         }
     }
 }
