@@ -230,8 +230,8 @@ pub trait TimeZone {
     /// timezone movement calculations.
     ///
     /// If DST is not being observed for this TimeZone at the given date
-    /// then [`None`] should be returned.
-    fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> Option<UtcOffset>;
+    /// then [`UtcOffset::UTC`] should be returned.
+    fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset;
 }
 
 impl TimeZone for UtcOffset {
@@ -243,8 +243,8 @@ impl TimeZone for UtcOffset {
         *self
     }
 
-    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<UtcOffset> {
-        None
+    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+        UtcOffset::UTC
     }
 }
 
@@ -261,8 +261,8 @@ impl TimeZone for Utc {
         UtcOffset::UTC
     }
 
-    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<UtcOffset> {
-        None
+    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+        UtcOffset::UTC
     }
 }
 
@@ -289,8 +289,8 @@ mod tests {
             UtcOffset::from_hms(-5, 0, 0).unwrap()
         }
 
-        fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<UtcOffset> {
-            None
+        fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+            UtcOffset::UTC
         }
     }
 
