@@ -168,6 +168,20 @@ impl Date {
         Self { year, month, day }
     }
 
+    pub(crate) fn add_years(&self, years: i16) -> Self {
+        if years == 0 {
+            return *self;
+        }
+
+        let year = self.year + years;
+        let days = days_in_month(year, self.month);
+        Self {
+            year,
+            month: self.month,
+            day: days.min(self.day),
+        }
+    }
+
     // The "common" functions begin here.
     // I want to "unroll" the trait and make them inherent methods since their discoverability
     // is better in the documentation, and the trait usability is mostly subpar.
@@ -380,5 +394,13 @@ impl AddAssign<Interval> for Date {
 impl SubAssign<Interval> for Date {
     fn sub_assign(&mut self, rhs: Interval) {
         *self = *self - rhs;
+    }
+}
+
+impl Sub for Date {
+    type Output = Interval;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Interval::between_dates(&rhs, &self)
     }
 }

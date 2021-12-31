@@ -324,3 +324,180 @@ fn random_double_units_to_datetimes() {
         datetime!(1154-7-16 20:13:54)
     );
 }
+
+#[test]
+fn diff_between_dates() {
+    assert_eq!(
+        date!(1064 - 7 - 31) - date!(325 - 2 - 28),
+        Interval::default().with_years(739).with_months(5).with_days(3)
+    );
+    assert_eq!(
+        date!(325 - 2 - 28) - date!(1064 - 7 - 31),
+        Interval::default().with_years(-739).with_months(-5)
+    );
+
+    assert_eq!(
+        date!(113 - 6 - 30) - date!(550 - 2 - 28),
+        Interval::default().with_years(-436).with_months(-7).with_days(-28)
+    );
+    assert_eq!(
+        date!(1948 - 9 - 30) - date!(309 - 9 - 30),
+        Interval::default().with_years(1639)
+    );
+    assert_eq!(
+        date!(1292 - 9 - 30) - date!(199 - 4 - 30),
+        Interval::default().with_years(1093).with_months(5)
+    );
+    assert_eq!(
+        date!(1915 - 3 - 31) - date!(1765 - 1 - 31),
+        Interval::default().with_years(150).with_months(2)
+    );
+    assert_eq!(
+        date!(476 - 10 - 31) - date!(731 - 5 - 31),
+        Interval::default().with_years(-254).with_months(-7)
+    );
+    assert_eq!(
+        date!(41 - 4 - 30) - date!(1235 - 8 - 31),
+        Interval::default().with_years(-1194).with_months(-4)
+    );
+    assert_eq!(
+        date!(9 - 7 - 31) - date!(1390 - 4 - 30),
+        Interval::default().with_years(-1380).with_months(-8).with_days(-30)
+    );
+    assert_eq!(
+        date!(1479 - 8 - 31) - date!(2048 - 5 - 31),
+        Interval::default().with_years(-568).with_months(-9)
+    );
+    assert_eq!(
+        date!(1965 - 1 - 31) - date!(1515 - 7 - 31),
+        Interval::default().with_years(449).with_months(6)
+    );
+    assert_eq!(
+        date!(538 - 7 - 31) - date!(1760 - 1 - 31),
+        Interval::default().with_years(-1221).with_months(-6)
+    );
+    assert_eq!(
+        date!(1904 - 7 - 31) - date!(1127 - 2 - 28),
+        Interval::default().with_years(777).with_months(5).with_days(3)
+    );
+    assert_eq!(
+        date!(631 - 6 - 30) - date!(529 - 9 - 30),
+        Interval::default().with_years(101).with_months(9)
+    );
+    assert_eq!(
+        date!(2021 - 11 - 30) - date!(1351 - 10 - 31),
+        Interval::default().with_years(670).with_months(1)
+    );
+    assert_eq!(
+        date!(1600 - 8 - 31) - date!(1345 - 4 - 30),
+        Interval::default().with_years(255).with_months(4).with_days(1)
+    );
+    assert_eq!(
+        date!(87 - 8 - 31) - date!(205 - 9 - 30),
+        Interval::default().with_years(-118).with_days(-30)
+    );
+    assert_eq!(
+        date!(816 - 10 - 31) - date!(1496 - 10 - 31),
+        Interval::default().with_years(-680)
+    );
+    assert_eq!(
+        date!(260 - 5 - 31) - date!(1733 - 2 - 28),
+        Interval::default().with_years(-1472).with_months(-8).with_days(-28)
+    );
+    assert_eq!(
+        date!(100 - 3 - 31) - date!(1213 - 5 - 31),
+        Interval::default().with_years(-1113).with_months(-2)
+    );
+    assert_eq!(
+        date!(1170 - 6 - 30) - date!(1980 - 7 - 31),
+        Interval::default().with_years(-810).with_months(-1)
+    );
+    assert_eq!(
+        date!(337 - 10 - 31) - date!(40 - 11 - 30),
+        Interval::default().with_years(296).with_months(11).with_days(1)
+    );
+    assert_eq!(
+        date!(1102 - 12 - 31) - date!(687 - 11 - 30),
+        Interval::default().with_years(415).with_months(1).with_days(1)
+    );
+    assert_eq!(
+        date!(1820 - 5 - 31) - date!(1737 - 3 - 31),
+        Interval::default().with_years(83).with_months(2)
+    );
+    assert_eq!(
+        date!(1046 - 11 - 30) - date!(1382 - 5 - 31),
+        Interval::default().with_years(-335).with_months(-6)
+    );
+    assert_eq!(
+        date!(1138 - 2 - 28) - date!(408 - 3 - 31),
+        Interval::default().with_years(729).with_months(11)
+    );
+    assert_eq!(
+        date!(1187 - 1 - 31) - date!(430 - 7 - 31),
+        Interval::default().with_years(756).with_months(6)
+    );
+    assert_eq!(
+        date!(1422 - 11 - 30) - date!(1357 - 3 - 31),
+        Interval::default().with_years(65).with_months(8)
+    );
+    assert_eq!(
+        date!(1259 - 2 - 28) - date!(430 - 3 - 31),
+        Interval::default().with_years(828).with_months(11)
+    );
+    assert_eq!(
+        date!(880 - 12 - 31) - date!(982 - 8 - 31),
+        Interval::default().with_years(-101).with_months(-8)
+    );
+    assert_eq!(
+        date!(400 - 6 - 30) - date!(750 - 9 - 30),
+        Interval::default().with_years(-350).with_months(-3)
+    );
+    assert_eq!(
+        date!(1930 - 12 - 31) - date!(1506 - 3 - 31),
+        Interval::default().with_years(424).with_months(9)
+    );
+    assert_eq!(
+        date!(4 - 1 - 31) - date!(1408 - 7 - 31),
+        Interval::default().with_years(-1404).with_months(-6)
+    );
+    assert_eq!(
+        date!(1555 - 4 - 30) - date!(2027 - 3 - 31),
+        Interval::default().with_years(-471).with_months(-11)
+    );
+    assert_eq!(
+        date!(252 - 9 - 30) - date!(1680 - 1 - 31),
+        Interval::default().with_years(-1427).with_months(-4)
+    );
+    assert_eq!(
+        date!(419 - 8 - 31) - date!(516 - 6 - 30),
+        Interval::default().with_years(-96).with_months(-9).with_days(-30)
+    );
+    assert_eq!(
+        date!(1311 - 8 - 31) - date!(1013 - 11 - 30),
+        Interval::default().with_years(297).with_months(9).with_days(1)
+    );
+    assert_eq!(
+        date!(1395 - 6 - 30) - date!(76 - 8 - 31),
+        Interval::default().with_years(1318).with_months(10)
+    );
+    assert_eq!(
+        date!(930 - 3 - 31) - date!(1829 - 3 - 31),
+        Interval::default().with_years(-899)
+    );
+    assert_eq!(
+        date!(1560 - 3 - 31) - date!(1683 - 6 - 30),
+        Interval::default().with_years(-123).with_months(-2).with_days(-30)
+    );
+    assert_eq!(
+        date!(31 - 3 - 31) - date!(1984 - 12 - 31),
+        Interval::default().with_years(-1953).with_months(-9)
+    );
+    assert_eq!(
+        date!(685 - 9 - 30) - date!(1706 - 11 - 30),
+        Interval::default().with_years(-1021).with_months(-2)
+    );
+    assert_eq!(
+        date!(877 - 1 - 31) - date!(43 - 9 - 30),
+        Interval::default().with_years(833).with_months(4).with_days(1)
+    );
+}

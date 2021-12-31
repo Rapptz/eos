@@ -308,6 +308,40 @@ impl Interval {
         }
     }
 
+    /// Constructs an [`Interval`] between two dates.
+    ///
+    /// If `end` is before `start` then each property will be negative.
+    ///
+    /// Note that the [`Sub`] implementation is more ergonomic and idiomatic than this API.
+    /// Only use this if you need to use references rather than copying.
+    ///
+    /// ```rust
+    /// use eos::{date, Interval};
+    ///
+    /// let interval = Interval::between_dates(&date!(2012-03-29), &date!(2012-04-30));
+    /// assert_eq!(interval.months(), 1);
+    /// assert_eq!(interval.days(), 1);
+    /// ```
+    pub fn between_dates(start: &Date, end: &Date) -> Self {
+        // Trivial case
+        if start == end {
+            return Self::ZERO;
+        }
+
+        let mut result = *start;
+        let years = years_between(&result, end);
+        result = result.add_years(years);
+        let months = months_between(&result, end);
+        result = result.add_months(months);
+        let days = end.epoch_days() - result.epoch_days();
+        Self {
+            years,
+            days,
+            months,
+            ..Self::ZERO
+        }
+    }
+
     /* internal helpers */
 
     #[inline]
@@ -338,6 +372,55 @@ impl Interval {
                 true,
                 Duration::from_secs(-total_seconds as u64) - Duration::from_nanos(nanos as u64),
             ),
+        }
+    }
+}
+
+// Lower level algorithms to compute intervals
+fn years_between(start: &Date, end: &Date) -> i16 {
+    // Assume we're starting from 2019-01-30 and ending at 2021-02-14
+    // First get the raw difference in years (in this example, 2)
+    let diff = end.year() - start.year();
+    // Check the start date at the ending year... (in this example, 2021-01-30)
+    let location = start.add_years(diff);
+
+    // If our start time is earlier then we've moved forward in time
+    if start <= end {
+        // In this case we need to check whether we actually landed at date
+        // If we haven't overshot our date then we really are N years away
+        // Otherwise we're in "year and N months" territory.
+        if &location <= end {
+            diff
+        } else {
+            diff - 1
+        }
+    } else {
+        // This operates the same way except in the opposite direction
+        if &location >= end {
+            diff
+        } else {
+            diff + 1
+        }
+    }
+}
+
+fn months_between(start: &Date, end: &Date) -> i32 {
+    // see years_between for an explanation
+    // this is the same except we also subtract years and they're 12 months each
+    let diff = (end.year() as i32 - start.year() as i32) * 12 + end.month() as i32 - start.month() as i32;
+    let location = start.add_months(diff);
+
+    if start <= end {
+        if &location <= end {
+            diff
+        } else {
+            diff - 1
+        }
+    } else {
+        if &location >= end {
+            diff
+        } else {
+            diff + 1
         }
     }
 }
