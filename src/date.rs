@@ -13,6 +13,7 @@ use core::ops::{Add, AddAssign, Sub, SubAssign};
 /// Due to different orderings of weekdays, this type does not implement `PartialOrd` or `Ord`. Some
 /// cultures place either Friday, Saturday, Sunday, or Monday as the first day.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum Weekday {
     Monday = 1,
     Tuesday = 2,
@@ -30,6 +31,7 @@ impl Weekday {
     /// --------|-----------|-------------|-------------|------------|------------|------------|---------
     /// Next    | `Tuesday` | `Wednesday` | `Thursday`  | `Friday`   | `Saturday` | `Sunday`   | `Monday`
     ///
+    #[inline]
     pub const fn next(self) -> Self {
         match self {
             Self::Monday => Self::Tuesday,
@@ -48,7 +50,8 @@ impl Weekday {
     /// ---------|----------|-----------|-------------|-------------|------------|------------|-----------
     /// Previous | `Sunday` | `Monday`  | `Tuesday`   | `Wednesday` | `Thursday` | `Friday`   | `Saturday`
     ///
-    pub const fn prev(&self) -> Self {
+    #[inline]
+    pub const fn prev(self) -> Self {
         match self {
             Self::Monday => Self::Sunday,
             Self::Tuesday => Self::Monday,
@@ -57,6 +60,74 @@ impl Weekday {
             Self::Friday => Self::Thursday,
             Self::Saturday => Self::Friday,
             Self::Sunday => Self::Saturday,
+        }
+    }
+
+    /// Returns the day of the week number starting from Monday. This is also known as the ISO weekday.
+    ///
+    /// Current | `Monday` | `Tuesday` | `Wednesday` | `Thursday` | `Friday` | `Saturday` | `Sunday`
+    /// --------|----------|-----------|-------------|------------|----------|------------|---------
+    /// Number  | 1        | 2         | 3           | 4          | 5        | 6          | 7
+    ///
+    #[inline]
+    pub const fn number_from_monday(self) -> u8 {
+        self as u8
+    }
+
+    /// Returns the day of the week number starting from Sunday.
+    ///
+    /// Current | `Sunday`| `Monday` | `Tuesday` | `Wednesday` | `Thursday` | `Friday` | `Saturday`
+    /// --------|---------|----------|-----------|-------------|------------|----------|------------
+    /// Number  | 1       | 2        | 3         | 4           | 5          | 6        | 7
+    ///
+    #[inline]
+    pub const fn number_from_sunday(self) -> u8 {
+        match self {
+            Self::Monday => 2,
+            Self::Tuesday => 3,
+            Self::Wednesday => 4,
+            Self::Thursday => 5,
+            Self::Friday => 6,
+            Self::Saturday => 7,
+            Self::Sunday => 1,
+        }
+    }
+
+    /// Returns the number of days from Monday.
+    ///
+    /// Current | `Monday` | `Tuesday` | `Wednesday` | `Thursday` | `Friday` | `Saturday` | `Sunday`
+    /// --------|----------|-----------|-------------|------------|----------|------------|---------
+    /// Number  | 0        | 1         | 2           | 3          | 4        | 5          | 6
+    ///
+    #[inline]
+    pub const fn days_from_monday(self) -> u8 {
+        match self {
+            Self::Monday => 0,
+            Self::Tuesday => 1,
+            Self::Wednesday => 2,
+            Self::Thursday => 3,
+            Self::Friday => 4,
+            Self::Saturday => 5,
+            Self::Sunday => 6,
+        }
+    }
+
+    /// Returns the number of days from Sunday.
+    ///
+    /// Current | `Sunday`| `Monday` | `Tuesday` | `Wednesday` | `Thursday` | `Friday` | `Saturday`
+    /// --------|---------|----------|-----------|-------------|------------|----------|------------
+    /// Number  | 0       | 1        | 2         | 3           | 4          | 5        | 6
+    ///
+    #[inline]
+    pub const fn days_from_sunday(self) -> u8 {
+        match self {
+            Self::Monday => 1,
+            Self::Tuesday => 2,
+            Self::Wednesday => 3,
+            Self::Thursday => 4,
+            Self::Friday => 5,
+            Self::Saturday => 6,
+            Self::Sunday => 0,
         }
     }
 }
