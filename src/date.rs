@@ -26,15 +26,9 @@ pub enum Weekday {
 impl Weekday {
     /// Returns the next weekday.
     ///
-    /// |        Current         |          Next          |
-    /// |:----------------------:|:----------------------:|
-    /// |  [`Weekday::Monday`]   |  [`Weekday::Tuesday`]  |
-    /// |  [`Weekday::Tuesday`]  | [`Weekday::Wednesday`] |
-    /// | [`Weekday::Wednesday`] | [`Weekday::Thursday`]  |
-    /// | [`Weekday::Thursday`]  |  [`Weekday::Friday`]   |
-    /// |  [`Weekday::Friday`]   | [`Weekday::Saturday`]  |
-    /// | [`Weekday::Saturday`]  |  [`Weekday::Sunday`]   |
-    /// |  [`Weekday::Sunday`]   |  [`Weekday::Monday`]   |
+    /// Current | `Monday`  | `Tuesday`   | `Wednesday` | `Thursday` | `Friday`   | `Saturday` | `Sunday`
+    /// --------|-----------|-------------|-------------|------------|------------|------------|---------
+    /// Next    | `Tuesday` | `Wednesday` | `Thursday`  | `Friday`   | `Saturday` | `Sunday`   | `Monday`
     ///
     pub const fn next(self) -> Self {
         match self {
@@ -50,15 +44,9 @@ impl Weekday {
 
     /// Return the previous weekday.
     ///
-    /// |        Current         |        Previous        |
-    /// |:----------------------:|:----------------------:|
-    /// |  [`Weekday::Monday`]   |  [`Weekday::Sunday`]   |
-    /// |  [`Weekday::Tuesday`]  |  [`Weekday::Monday`]   |
-    /// | [`Weekday::Wednesday`] |  [`Weekday::Tuesday`]  |
-    /// | [`Weekday::Thursday`]  | [`Weekday::Wednesday`] |
-    /// |  [`Weekday::Friday`]   | [`Weekday::Thursday`]  |
-    /// | [`Weekday::Saturday`]  |  [`Weekday::Friday`]   |
-    /// |  [`Weekday::Sunday`]   | [`Weekday::Saturday`]  |
+    /// Current  | `Monday` | `Tuesday` | `Wednesday` | `Thursday`  | `Friday`   | `Saturday` | `Sunday`
+    /// ---------|----------|-----------|-------------|-------------|------------|------------|-----------
+    /// Previous | `Sunday` | `Monday`  | `Tuesday`   | `Wednesday` | `Thursday` | `Friday`   | `Saturday`
     ///
     pub const fn prev(&self) -> Self {
         match self {
