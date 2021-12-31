@@ -146,6 +146,43 @@ impl UtcOffset {
     pub const fn is_utc(&self) -> bool {
         self.hours == 0 && self.minutes == 0 && self.seconds == 0
     }
+
+    /// Subtracts two offsets, returning [`Error`] if the result would be out of bounds.
+    ///
+    /// ```rust
+    /// # use eos::utc_offset;
+    /// let east = utc_offset!(-5:00);
+    /// let west = utc_offset!(-8:00);
+    /// let far  = utc_offset!(18:00);
+    ///
+    /// assert!(far.checked_sub(west).is_err()); // 18 - -8 => 26
+    /// assert_eq!(west.checked_sub(east), Ok(utc_offset!(-3:00)));
+    /// ```
+    #[inline]
+    pub const fn checked_sub(self, other: Self) -> Result<Self, Error> {
+        let seconds = self.total_seconds() - other.total_seconds();
+        Self::from_seconds(seconds)
+    }
+
+    /// Adds two offsets, returning [`Error`] if the result would be out of bounds.
+    ///
+    /// ```rust
+    /// # use eos::utc_offset;
+    /// let east  = utc_offset!(-5:00);
+    /// let west  = utc_offset!(-8:00);
+    /// let far   = utc_offset!(18:00);
+    /// let other = utc_offset!(-18:00);
+    ///
+    /// assert_eq!(far.checked_add(west), Ok(utc_offset!(10:00)));
+    /// assert_eq!(west.checked_add(east), Ok(utc_offset!(-13:00)));
+    /// assert!(other.checked_add(west).is_err());
+    /// assert_eq!(other.checked_add(east), Ok(utc_offset!(-23:00)));
+    /// ```
+    #[inline]
+    pub const fn checked_add(self, other: Self) -> Result<Self, Error> {
+        let seconds = self.total_seconds() + other.total_seconds();
+        Self::from_seconds(seconds)
+    }
 }
 
 impl core::fmt::Display for UtcOffset {
