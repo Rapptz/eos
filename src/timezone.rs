@@ -265,7 +265,7 @@ impl core::ops::Neg for UtcOffset {
 }
 
 /// A trait that defines timezone behaviour.
-pub trait TimeZone {
+pub trait TimeZone: Clone {
     /// Returns the name of the timezone at an optional datetime.
     fn name<Tz: TimeZone>(&self, _datetime: &DateTime<Tz>) -> Option<&str> {
         None
