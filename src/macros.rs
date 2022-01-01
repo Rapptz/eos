@@ -228,15 +228,18 @@ macro_rules! utc_offset {
 /// let with_offset = datetime!(2001-02-18 20:12 5:00);
 /// assert_eq!(
 ///     with_offset,
-///     DateTime::<Utc>::new(2001, 2, 18)?.with_time(Time::new(20, 12, 0)?)
+///     DateTime::<Utc>::new(2001, 2, 18)?
+///       .with_time(Time::new(20, 12, 0)?)
+///       .with_timezone(UtcOffset::from_hms(5, 0, 0)?)
 /// );
 /// assert_eq!(with_offset.timezone(), &UtcOffset::from_hms(5, 0, 0)?);
 /// let with_neg_offset = datetime!(2001-02-18 20:12 -6:30);
 /// assert_eq!(
 ///     with_neg_offset,
-///     DateTime::<Utc>::new(2001, 2, 18)?.with_time(Time::new(20, 12, 0)?)
+///     DateTime::<Utc>::new(2001, 2, 18)?
+///       .with_time(Time::new(20, 12, 0)?)
+///       .with_timezone(UtcOffset::from_hms(-6, -30, 0)?)
 /// );
-/// assert_eq!(with_neg_offset.timezone(), &UtcOffset::from_hms(-6, -30, 0)?);
 /// # Ok::<_, eos::Error>(())
 /// ```
 ///
