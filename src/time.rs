@@ -1,6 +1,6 @@
 use crate::{
     interval::{NANOS_PER_HOUR, NANOS_PER_MIN, NANOS_PER_SEC},
-    utils::{divrem, ensure_in_range},
+    utils::{divmod, ensure_in_range},
     Error, Interval,
 };
 
@@ -115,10 +115,10 @@ impl Time {
         // With that maximum in place, the highest a nanosecond value will be
         // boils down to 3.6 trillion, which fits perfectly fine in a 64-bit number.
         // When it goes through the reduction steps it'll cap at around 1 billion.
-        let (hour, nanos) = divrem!(nanos, NANOS_PER_HOUR as i64);
-        let (minute, nanos) = divrem!(nanos, NANOS_PER_MIN as i64);
-        let (second, nanos) = divrem!(nanos, NANOS_PER_SEC as i64);
-        let (days, hour) = divrem!(hour, 24);
+        let (hour, nanos) = divmod!(nanos, NANOS_PER_HOUR as i64);
+        let (minute, nanos) = divmod!(nanos, NANOS_PER_MIN as i64);
+        let (second, nanos) = divmod!(nanos, NANOS_PER_SEC as i64);
+        let (days, hour) = divmod!(hour, 24);
 
         (
             days as i32,

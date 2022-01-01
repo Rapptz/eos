@@ -1,6 +1,6 @@
 use crate::{
     utils::{
-        date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, divmod, ensure_in_range,
+        date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, divrem, ensure_in_range,
         is_leap_year, DAYS_BEFORE_MONTH,
     },
     Error, Interval,
@@ -205,7 +205,7 @@ impl Date {
 
         let m = self.month as i32 - 1 + months;
         let (year, month) = if m >= 0 {
-            let (r, q) = divmod!(m, 12);
+            let (r, q) = divrem!(m, 12);
             (r, q + 1)
         } else {
             let y = (m / 12) - 1;

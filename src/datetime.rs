@@ -1,6 +1,6 @@
 use crate::{
     timezone::{Utc, UtcOffset},
-    utils::divrem,
+    utils::divmod,
     Date, Time, TimeZone, Weekday,
 };
 use crate::{Error, Interval};
@@ -228,7 +228,7 @@ where
                 let delta_offsets = other_offset.total_seconds() - my_offset.total_seconds();
                 let seconds = self.time.total_seconds() - other.time.total_seconds() + delta_offsets;
 
-                let (d, s) = divrem!(seconds, 86_400);
+                let (d, s) = divmod!(seconds, 86_400);
                 (
                     days + d,
                     s == 0 && self.time().nanosecond() == other.time().nanosecond(),

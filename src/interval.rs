@@ -3,7 +3,7 @@ use core::{
     time::Duration,
 };
 
-use crate::{utils::divmod, Date, DateTime, Time, UtcOffset};
+use crate::{utils::divrem, Date, DateTime, Time, UtcOffset};
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
@@ -364,9 +364,9 @@ impl Interval {
     pub fn between_times(start: &Time, end: &Time) -> Self {
         // Times are conceptually simple since they're bounded to at most 24 hours
         let nanos = end.total_nanos() as i64 - start.total_nanos() as i64;
-        let (hour, nanos) = divmod!(nanos, NANOS_PER_HOUR as i64);
-        let (minutes, nanos) = divmod!(nanos, NANOS_PER_MIN as i64);
-        let (seconds, nanos) = divmod!(nanos, NANOS_PER_SEC as i64);
+        let (hour, nanos) = divrem!(nanos, NANOS_PER_HOUR as i64);
+        let (minutes, nanos) = divrem!(nanos, NANOS_PER_MIN as i64);
+        let (seconds, nanos) = divrem!(nanos, NANOS_PER_SEC as i64);
         Self {
             hours: hour as i32,
             minutes,
@@ -393,7 +393,7 @@ impl Interval {
     /// The first boolean argument is whether the time ended up being negative.
     pub(crate) fn to_time_duration(&self) -> (bool, Duration) {
         let mut total_seconds = self.hours as i64 * 3600 + self.minutes as i64 * 60 + self.seconds;
-        let (seconds, nanos) = divmod!(self.nanoseconds, 1_000_000_000);
+        let (seconds, nanos) = divrem!(self.nanoseconds, 1_000_000_000);
         total_seconds += seconds;
         match (total_seconds.is_positive(), nanos.is_positive()) {
             (true, true) => (false, Duration::new(total_seconds as u64, nanos as u32)),
