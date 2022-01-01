@@ -131,9 +131,8 @@ macro_rules! date {
         const DAY: u8 = $day;
         $crate::macros::const_assert!(MONTH >= 1 && MONTH <= 12, "months must be between [1, 12]");
 
-        const MAX_DAYS: u8 = $crate::utils::days_in_month(YEAR, MONTH);
         $crate::macros::const_assert!(
-            DAY >= 1 && DAY <= MAX_DAYS,
+            DAY >= 1 && DAY <= $crate::utils::days_in_month(YEAR, MONTH),
             "day must be positive and within range of the month"
         );
 
