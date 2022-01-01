@@ -1,5 +1,6 @@
 use crate::{
     timezone::{Utc, UtcOffset},
+    utils::divrem,
     Date, Time, TimeZone, Weekday,
 };
 use crate::{Error, Interval};
@@ -209,10 +210,10 @@ where
                 let delta_offsets = other_offset.total_seconds() - my_offset.total_seconds();
                 let seconds = self.time.total_seconds() - other.time.total_seconds() + delta_offsets;
 
-                let d = seconds.div_euclid(86_400);
+                let (d, s) = divrem!(seconds, 86_400);
                 (
                     days + d,
-                    seconds == 0 && self.time().nanosecond() == other.time().nanosecond(),
+                    s == 0 && self.time().nanosecond() == other.time().nanosecond(),
                 )
             }
         };
@@ -221,7 +222,7 @@ where
 
         if days < 0 {
             Ordering::Less
-        } else if same {
+        } else if days == 0 && same {
             Ordering::Equal
         } else {
             Ordering::Greater
