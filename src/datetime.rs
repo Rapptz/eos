@@ -88,6 +88,24 @@ impl DateTime<Utc> {
             timezone: Utc,
         })
     }
+
+    /// Shifts the [`DateTime`] by the given [`UtcOffset`].
+    ///
+    /// Since this function does the operation in-place, this does not
+    /// change the timezone. Note that this method is only available on
+    /// datetimes with a [`Utc`] timezone since otherwise it would be
+    /// too lossy.
+    ///
+    /// If a change in timezone is required, check the [`DateTime::with_timezone`]
+    /// and [`DateTime::in_timezone`] methods. If you want to change a datetime
+    /// by an arbitrary interval then check the [`Interval`] class and add the
+    /// datetime to that value.
+    pub fn shift(&mut self, offset: UtcOffset) {
+        let offset_nanos = offset.total_seconds() as i64 * 1_000_000_000;
+        let (days, time) = Time::adjust_from_nanos(self.time.total_nanos() as i64 + offset_nanos);
+        self.date = self.date.add_days(days);
+        self.time = time;
+    }
 }
 
 impl<Tz> DateTime<Tz>
@@ -241,6 +259,42 @@ where
             ord => return ord,
         }
         self.time.cmp(&other.time)
+    }
+
+    #[inline]
+    pub(crate) fn to_utc(self) -> DateTime<Utc> {
+        let offset = self.timezone.offset(&self);
+        let mut utc = self.with_timezone(Utc);
+        utc.shift(-offset);
+        utc
+    }
+
+    /// Returns a new [`DateTime`] with the newly specified [`TimeZone`],
+    /// adjusting the date and time components to point to the same internal UTC
+    /// time but in the given timezone's local time.
+    ///
+    /// If you merely want to change the internal timezone without making adjustments
+    /// for the date and time, then [`DateTime::with_timezone`] should be used instead.
+    pub fn in_timezone<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
+    where
+        OtherTz: TimeZone,
+    {
+        timezone.from_utc(self.to_utc())
+    }
+
+    /// Returns a new [`DateTime`] with the timezone component changed.
+    ///
+    /// This does *not* change the time and date to point to the new
+    /// [`TimeZone`]. See [`DateTime::in_timezone`] for that behaviour.
+    pub fn with_timezone<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
+    where
+        OtherTz: TimeZone,
+    {
+        DateTime {
+            date: self.date,
+            time: self.time,
+            timezone,
+        }
     }
 
     // The "common" functions begin here.
@@ -651,7 +705,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::datetime;
+    use crate::{datetime, utc_offset};
 
     #[test]
     fn test_regular_comparisons() {
@@ -690,5 +744,10 @@ mod tests {
         assert_eq!(utc.cmp_without_tz(&dt), Ordering::Less);
         assert_eq!(off.cmp_without_tz(&utc), Ordering::Greater);
         assert_eq!(utc.cmp_without_tz(&off), Ordering::Less);
+
+        let utc = datetime!(2021-12-31 00:00);
+        let offset = utc_offset!(-5:00);
+        let left = offset.from_utc(utc);
+        assert_eq!(left, utc);
     }
 }

@@ -285,6 +285,24 @@ pub trait TimeZone {
     /// If DST is not being observed for this TimeZone at the given date
     /// then [`UtcOffset::UTC`] should be returned.
     fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset;
+
+    /// Converts from a UTC [`DateTime`] to a datetime in this timezone.
+    fn from_utc(self, mut utc: DateTime<Utc>) -> DateTime<Self>
+    where
+        Self: Sized,
+    {
+        // Algorithm taken from the PSF
+        let offset = self.offset(&utc);
+        let mut dst = self.dst_offset(&utc);
+        if let Ok(delta) = offset.checked_sub(dst) {
+            if !delta.is_utc() {
+                utc.shift(delta);
+                dst = self.dst_offset(&utc);
+            }
+        }
+        utc.shift(dst);
+        utc.with_timezone(self)
+    }
 }
 
 impl TimeZone for UtcOffset {
@@ -331,21 +349,6 @@ impl Utc {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    pub struct EST;
-    impl TimeZone for EST {
-        fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<&str> {
-            Some("EST")
-        }
-
-        fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
-            UtcOffset::from_hms(-5, 0, 0).unwrap()
-        }
-
-        fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
-            UtcOffset::UTC
-        }
-    }
 
     #[test]
     fn test_construction_ranges() {
