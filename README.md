@@ -22,14 +22,29 @@ Timezone naive datetimes are often enough for basic cases but when faced with mo
 
 ### Design
 
+Unlike most datetime libraries, `eos` does not have the concept of a "naive" datetime without a timezone. All datetimes must have a timezone attached to them, a sensible default being UTC or local time. `eos` only supports ISO 8601 dates used throughout the world and is exclusively on the proleptic Gregorian calendar. This makes it not ideal for dates dealing with the past or with alternative Calendar systems. `eos` also assumes that there are 86400 seconds in a day.
+
+### Acknowledgements
+
 The design of this library was inspired by the following:
 
 - [Python's `datetime` module][pydt]
+- [`arrow`][pyarrow]
+- [`dateutil`][dateutil]
 - [Java's `java.time`][javadt]
 - [Joda-Time][joda-time]
 - [Noda-Time][noda-time]
+- [Howard Hinnant's <date>][cpp-date]
 
-Unlike most datetime libraries, `eos` does not have the concept of a "naive" datetime without a timezone. All datetimes must have a timezone attached to them, a sensible default being UTC or local time. `eos` only supports ISO 8601 dates used throughout the world and is exclusively on the proleptic Gregorian calendar. This makes it not ideal for dates dealing with the past or with alternative Calendar systems. `eos` also assumes that there are 86400 seconds in a day.
+Certain algorithms come from one of these libraries above. Likewise, due to the difficult nature of testing datetimes, certain tests were adapted from one of these libraries as well to have better test coverage.
+
+Without these libraries, this one would not be possible. This one stands on the shoulder of giants.
+
+### License
+
+This project is licensed under the [Apache-2 license][apache].
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in `eos` by you, as defined in the Apache-2.0 license, shall be licensed as above, without any additional terms or conditions.
 
 [greg-cal]: https://en.wikipedia.org/wiki/Proleptic_Gregorian_calendar
 [temporal]: https://github.com/tc39/proposal-temporal
@@ -37,3 +52,7 @@ Unlike most datetime libraries, `eos` does not have the concept of a "naive" dat
 [javadt]: https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
 [joda-time]: https://www.joda.org/joda-time/
 [noda-time]: https://nodatime.org
+[cpp-date]: https://github.com/HowardHinnant/date
+[pyarrow]: https://github.com/arrow-py/arrow
+[dateutil]: https://github.com/dateutil/dateutil
+[apache]: https://github.com/Rapptz/eos/blob/master/LICENSE
