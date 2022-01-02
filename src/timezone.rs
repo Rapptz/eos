@@ -67,6 +67,8 @@ impl UtcOffset {
     /// # use eos::UtcOffset;
     /// assert!(UtcOffset::from_hms(24, 0, 0).is_err()); // invalid range
     /// assert_eq!(UtcOffset::from_hms(23, 56, 59)?.into_hms(), (23, 56, 59));
+    /// assert_eq!(UtcOffset::from_hms(0, 30, 0)?.into_hms(), (0, 30, 0));
+    /// assert_eq!(UtcOffset::from_hms(0, -30, 30)?.into_hms(), (0, -30, -30));
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub const fn from_hms(hours: i8, mut minutes: i8, mut seconds: i8) -> Result<Self, Error> {
@@ -82,11 +84,18 @@ impl UtcOffset {
             if seconds.is_positive() {
                 seconds = -seconds;
             }
-        } else {
+        } else if hours.is_positive() {
             if minutes.is_negative() {
                 minutes = -minutes;
             }
             if seconds.is_negative() {
+                seconds = -seconds;
+            }
+        } else {
+            // Special case for 0 hours, it takes the sign of minutes
+            // -30:30 => -30:-30
+            // 30:-30 => 30:30
+            if seconds.is_positive() != minutes.is_positive() {
                 seconds = -seconds;
             }
         }

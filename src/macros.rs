@@ -159,6 +159,8 @@ macro_rules! date {
 /// assert_eq!(utc_offset!(05:30), UtcOffset::from_hms(5, 30, 0)?);
 /// assert_eq!(utc_offset!(01:02:03), UtcOffset::from_hms(1, 2, 3)?);
 /// assert_eq!(utc_offset!(-01:02:03), UtcOffset::from_hms(-1, -2, -3)?);
+/// assert_eq!(utc_offset!(-00:30), UtcOffset::from_hms(0, -30, 0)?);
+/// assert_eq!(utc_offset!(00:30), UtcOffset::from_hms(0, 30, 0)?);
 /// # Ok::<_, eos::Error>(())
 /// ```
 ///
@@ -166,6 +168,19 @@ macro_rules! date {
 #[macro_export]
 #[cfg(feature = "macros")]
 macro_rules! utc_offset {
+    // Repetition because -0 is too special
+    (-$hours:literal$(:$minutes:literal$(:$seconds:literal)?)?) => {{
+        const HOURS: i8 = $hours;
+        const MINUTES: i8 = $crate::macros::__expand_or_zero!($($minutes)?);
+        const SECONDS: i8 = $crate::macros::__expand_or_zero!($($($seconds)?)?);
+
+        $crate::macros::const_assert!(HOURS <= 23 && HOURS >= -23, "hours must be between [-23, 23]");
+        $crate::macros::const_assert!(MINUTES <= 59 && MINUTES >= 0, "minutes must be between [0, 59]");
+        $crate::macros::const_assert!(SECONDS <= 59 && SECONDS >= 0, "seconds must be between [0, 59]");
+
+        $crate::UtcOffset::__new_unchecked_from_macro(-HOURS, -MINUTES, -SECONDS)
+    }};
+
     ($(+)?$hours:literal$(:$minutes:literal$(:$seconds:literal)?)?) => {{
         const HOURS: i8 = $hours;
         const MINUTES: i8 = $crate::macros::__expand_or_zero!($($minutes)?);
@@ -240,6 +255,13 @@ macro_rules! utc_offset {
 ///       .with_time(Time::new(20, 12, 0)?)
 ///       .with_timezone(UtcOffset::from_hms(-6, -30, 0)?)
 /// );
+/// let with_neg_zero_offset = datetime!(2001-02-18 20:12 -00:30);
+/// assert_eq!(
+///     with_neg_zero_offset,
+///     DateTime::<Utc>::new(2001, 2, 18)?
+///       .with_time(Time::new(20, 12, 0)?)
+///       .with_timezone(UtcOffset::from_hms(0, -30, 0)?)
+/// );
 /// # Ok::<_, eos::Error>(())
 /// ```
 ///
@@ -250,6 +272,17 @@ macro_rules! utc_offset {
 #[macro_export]
 #[cfg(feature = "macros")]
 macro_rules! datetime {
+    (
+        $year:tt-$month:tt-$day:tt
+        $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridian:ident)?
+        -$off_hours:literal$(:$off_minutes:literal$(:$off_seconds:literal)?)?
+    ) => {{
+        const DATE: $crate::Date = $crate::date!($year-$month-$day);
+        const TIME: $crate::Time = $crate::time!($hours:$minutes$(:$seconds)? $($meridian)?);
+        const OFFSET: $crate::UtcOffset = $crate::utc_offset!(-$off_hours$(:$off_minutes$(:$off_seconds)?)?);
+        $crate::__create_offset_datetime_from_macro(DATE, TIME, OFFSET)
+    }};
+
     (
         $year:tt-$month:tt-$day:tt
         $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridian:ident)?
