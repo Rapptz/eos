@@ -165,8 +165,8 @@ macro_rules! divmod {
     }};
 }
 
-pub(crate) use divrem;
 pub(crate) use divmod;
+pub(crate) use divrem;
 
 #[cfg(test)]
 mod tests {

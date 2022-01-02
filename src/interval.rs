@@ -1,9 +1,10 @@
 use core::{
+    cmp::Ordering,
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     time::Duration,
 };
 
-use crate::{utils::divrem, Date, DateTime, Time, UtcOffset};
+use crate::{utils::divrem, Date, DateTime, Time, TimeZone, UtcOffset};
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
@@ -367,6 +368,128 @@ impl Interval {
             minutes,
             seconds,
             nanoseconds: nanos,
+            ..Self::ZERO
+        }
+    }
+
+    /// Constructs an [`Interval`] between two datetimes.
+    ///
+    /// If `end` is before `start` then each property will be negative.
+    ///
+    /// Note that the [`Sub`] implementation is more ergonomic and idiomatic than this API.
+    /// Only use this if you need to use references rather than copying.
+    ///
+    /// ```rust
+    /// use eos::{datetime, Interval};
+    ///
+    /// let start = datetime!(2012-03-10 10:00 am);
+    /// let end = datetime!(2012-03-12 2:00 am);
+    /// let interval = Interval::between(&start, &end);
+    /// assert_eq!(interval.days(), 1);
+    /// assert_eq!(interval.hours(), 16);
+    ///
+    /// let start = datetime!(2012-04-11 9:00 am);
+    /// let end = datetime!(2014-05-12 10:00 am);
+    /// let interval = Interval::between(&start, &end);
+    /// assert_eq!(interval.years(), 2);
+    /// assert_eq!(interval.months(), 1);
+    /// assert_eq!(interval.days(), 1);
+    /// assert_eq!(interval.hours(), 1);
+    ///
+    /// let start = datetime!(2000-02-29 10:00 am +5:00);
+    /// let end = datetime!(2000-03-02 6:00 am);
+    /// let interval = Interval::between(&start, &end);
+    /// assert_eq!(interval.days(), 2);
+    /// assert_eq!(interval.hours(), 1);
+    ///
+    /// let start = datetime!(2021-12-31 1:00 -5:00);
+    /// let end = datetime!(2020-12-19 3:00);
+    /// let interval = Interval::between(&start, &end);
+    /// assert_eq!(interval.years(), -1);
+    /// assert_eq!(interval.days(), -12);
+    /// assert_eq!(interval.hours(), -3);
+    /// ```
+    pub fn between<Tz, OtherTz>(start: &DateTime<Tz>, end: &DateTime<OtherTz>) -> Self
+    where
+        Tz: TimeZone,
+        OtherTz: TimeZone,
+    {
+        let cmp = start.cmp_cross_timezone(end);
+        if cmp == Ordering::Equal {
+            return Self::ZERO;
+        }
+
+        // We need to adjust for when overshooting might be possible.
+        // For example, getting the days between March 10th 10AM and March 12th 2AM
+        // would naively return 2 days when in reality it's 1 day (and 16 hours).
+
+        // Let's assume we have 4 cases:
+        // A: 2012-03-10 10am, B: 2012-03-12 2am
+        // C: 2012-04-11 9am,  D: 2014-05-12 10am
+        // E: 2000-02-29 10am UTC+5 F: 2000-03-02 6am UTC
+        // G: 2021-12-31 1am UTC-5 H: 2020-12-19 3am UTC
+        // Each of these account for different edge cases
+        // For A -> B we have 1hr 16min
+        // For C -> D there's 2y 1mo 1d 1h
+        // For E -> F there's 2d 1hr (after considering timezones)
+        // For G -> H there's -1y -12d -3h (after timezones)
+        // N.B. The timezone cases get more complicated (e.g. imaginary times) but that's outside my scope right now
+
+        // Get the number of months between the two dates
+        let mut months = (end.year() as i32 - start.year() as i32) * 12 + end.month() as i32 - start.month() as i32;
+
+        // If there are no months that are different then this is safe to skip
+        if months != 0 {
+            // I was tempted to optimise this to use mutable variables however when I tried it
+            // there was incorrect behaviour when it came to end-of-month boundaries and leap years
+            let mut offset = start.clone().add_months(months);
+
+            let (cmp, inc) = if cmp == Ordering::Greater {
+                (Ordering::Less, 1)
+            } else {
+                (Ordering::Greater, -1)
+            };
+            if offset.cmp_cross_timezone(&end) == cmp {
+                months += inc;
+                offset = start.clone().add_months(months);
+            }
+
+            let mut delta = Self::days_between(&offset, end);
+            let (years, months) = divrem!(months, 12);
+            delta.years = years as i16;
+            delta.months = months;
+            delta.normalize(); // for seconds
+            delta
+        } else {
+            let mut delta = Self::days_between(start, end);
+            delta.normalize();
+            delta
+        }
+    }
+
+    /// Returns the number of days and seconds between the two dates
+    pub(crate) fn days_between<Tz, OtherTz>(start: &DateTime<Tz>, end: &DateTime<OtherTz>) -> Self
+    where
+        Tz: TimeZone,
+        OtherTz: TimeZone,
+    {
+        let days = end.date().epoch_days() - start.date().epoch_days();
+        let mut seconds = end.time().total_seconds() - start.time().total_seconds();
+        let nanos = end.time().nanosecond() as i32 - start.time().nanosecond() as i32;
+
+        let offset = start.timezone().offset(&start);
+        let end_offset = end.timezone().offset(&end);
+        if offset != end_offset {
+            seconds = seconds + offset.total_seconds() - end_offset.total_seconds();
+        }
+
+        // Combine the days and seconds to ensure both of them have the same signage
+        let seconds = days * 86_400 + seconds;
+        let (days, seconds) = divrem!(seconds, 86_400);
+        Self {
+            days: days,
+            seconds: seconds as i64,
+            nanoseconds: nanos as i64,
             ..Self::ZERO
         }
     }

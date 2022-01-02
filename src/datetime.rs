@@ -297,6 +297,11 @@ where
         }
     }
 
+    pub(crate) fn add_months(mut self, months: i32) -> Self {
+        self.date = self.date.add_months(months);
+        self
+    }
+
     // The "common" functions begin here.
     // I want to "unroll" the trait and make them inherent methods since their discoverability
     // is better in the documentation, and the trait usability is mostly subpar.
@@ -693,6 +698,18 @@ where
             time,
             timezone: self.timezone,
         }
+    }
+}
+
+impl<Tz, OtherTz> Sub<DateTime<OtherTz>> for DateTime<Tz>
+where
+    Tz: TimeZone,
+    OtherTz: TimeZone,
+{
+    type Output = Interval;
+
+    fn sub(self, rhs: DateTime<OtherTz>) -> Self::Output {
+        Interval::between(&rhs, &self)
     }
 }
 
