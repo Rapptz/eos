@@ -469,7 +469,7 @@ impl Add<Interval> for Date {
     type Output = Self;
 
     fn add(self, rhs: Interval) -> Self::Output {
-        self.add_months(rhs.total_months()).add_days(rhs.total_days())
+        self.add_months(rhs.total_months()).add_days(rhs.days())
     }
 }
 
@@ -478,7 +478,7 @@ impl Sub<Interval> for Date {
 
     fn sub(self, rhs: Interval) -> Self::Output {
         self.add_months(rhs.total_months().wrapping_neg())
-            .add_days(rhs.total_days().wrapping_neg())
+            .add_days(rhs.days().wrapping_neg())
     }
 }
 

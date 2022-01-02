@@ -659,10 +659,7 @@ where
             self.time.add_with_duration(duration)
         };
 
-        let date = self
-            .date
-            .add_months(rhs.total_months())
-            .add_days(rhs.total_days() + days);
+        let date = self.date.add_months(rhs.total_months()).add_days(rhs.days() + days);
 
         Self {
             date,
@@ -689,7 +686,7 @@ where
         let date = self
             .date
             .add_months(rhs.total_months().wrapping_neg())
-            .add_days(rhs.total_days().wrapping_neg() + days);
+            .add_days(rhs.days().wrapping_neg() + days);
 
         Self {
             date,

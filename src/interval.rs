@@ -30,7 +30,6 @@ pub struct Interval {
     // ISO8601 calendar if I want to in the future.
     years: i16,
     days: i32,
-    weeks: i32,
     months: i32,
     hours: i32,
     minutes: i64,
@@ -43,7 +42,6 @@ impl Interval {
     pub const ZERO: Self = Self {
         years: 0,
         days: 0,
-        weeks: 0,
         months: 0,
         hours: 0,
         minutes: 0,
@@ -72,7 +70,10 @@ impl Interval {
     /// Creates a [`Interval`] representing the specified number of weeks.
     #[inline]
     pub const fn from_weeks(weeks: i32) -> Self {
-        Self { weeks, ..Self::ZERO }
+        Self {
+            days: weeks * 7,
+            ..Self::ZERO
+        }
     }
 
     /// Creates a [`Interval`] representing the specified number of hours.
@@ -147,7 +148,7 @@ impl Interval {
     /// Returns the number of weeks within this interval.
     #[inline]
     pub const fn weeks(&self) -> i32 {
-        self.weeks
+        self.days / 7
     }
 
     /// Returns the number of hours within this interval.
@@ -200,7 +201,7 @@ impl Interval {
 
     /// Returns a new [`Interval`] with the given number of weeks.
     pub fn with_weeks(mut self, weeks: i32) -> Self {
-        self.weeks = weeks;
+        self.days = self.days - (self.days / 7) + weeks * 7;
         self
     }
 
@@ -257,8 +258,8 @@ impl Interval {
     }
 
     /// Normalize the interval so that large units are combined to their larger unit.
-    /// For example, this turns 90 minutes into 1 hour and 30 minutes or 9 days into
-    /// 1 week and 2 days.
+    /// For example, this turns 90 minutes into 1 hour and 30 minutes or 13 months
+    /// into 1 year and 1 month.
     ///
     /// ```rust
     /// use eos::{Interval, ext::IntervalLiteral};
@@ -266,8 +267,7 @@ impl Interval {
     /// interval.normalize();
     /// assert_eq!(interval.years(), 2);
     /// assert_eq!(interval.months(), 1);
-    /// assert_eq!(interval.weeks(), 1);
-    /// assert_eq!(interval.days(), 2);
+    /// assert_eq!(interval.days(), 9);
     /// assert_eq!(interval.hours(), 1);
     /// assert_eq!(interval.minutes(), 30);
     /// ```
@@ -290,11 +290,6 @@ impl Interval {
         if self.hours.abs() >= 24 {
             self.days += self.hours / 24;
             self.hours = self.hours % 24;
-        }
-
-        if self.days.abs() >= 7 {
-            self.weeks += self.days / 7;
-            self.days = self.days % 7;
         }
 
         // Weeks cannot be reduced further... but months can in the gregorian calendar
@@ -374,13 +369,6 @@ impl Interval {
             nanoseconds: nanos,
             ..Self::ZERO
         }
-    }
-
-    /* internal helpers */
-
-    #[inline]
-    pub(crate) const fn total_days(&self) -> i32 {
-        self.weeks * 7 + self.days
     }
 
     #[inline]
@@ -478,7 +466,6 @@ impl Neg for Interval {
         Self {
             years: -self.years,
             days: -self.days,
-            weeks: -self.weeks,
             months: -self.months,
             hours: -self.hours,
             minutes: -self.minutes,
@@ -495,7 +482,6 @@ impl Add for Interval {
         Self {
             years: self.years + rhs.years,
             days: self.days + rhs.days,
-            weeks: self.weeks + rhs.weeks,
             months: self.months + rhs.months,
             hours: self.hours + rhs.hours,
             minutes: self.minutes + rhs.minutes,
@@ -509,7 +495,6 @@ impl AddAssign for Interval {
     fn add_assign(&mut self, rhs: Self) {
         self.years += rhs.years;
         self.days += rhs.days;
-        self.weeks += rhs.weeks;
         self.months += rhs.months;
         self.hours += rhs.hours;
         self.minutes += rhs.minutes;
@@ -525,7 +510,6 @@ impl Sub for Interval {
         Self {
             years: self.years - rhs.years,
             days: self.days - rhs.days,
-            weeks: self.weeks - rhs.weeks,
             months: self.months - rhs.months,
             hours: self.hours - rhs.hours,
             minutes: self.minutes - rhs.minutes,
@@ -539,7 +523,6 @@ impl SubAssign for Interval {
     fn sub_assign(&mut self, rhs: Self) {
         self.years -= rhs.years;
         self.days -= rhs.days;
-        self.weeks -= rhs.weeks;
         self.months -= rhs.months;
         self.hours -= rhs.hours;
         self.minutes -= rhs.minutes;
