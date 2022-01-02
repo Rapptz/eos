@@ -273,28 +273,28 @@ impl Interval {
     /// ```
     pub fn normalize(&mut self) {
         if self.nanoseconds.abs() >= 1_000_000_000 {
-            self.seconds += self.nanoseconds.div_euclid(1_000_000_000);
-            self.nanoseconds = self.nanoseconds.rem_euclid(1_000_000_000);
+            self.seconds += self.nanoseconds / 1_000_000_000;
+            self.nanoseconds = self.nanoseconds % 1_000_000_000;
         }
 
         if self.seconds.abs() >= 60 {
-            self.minutes += self.seconds.div_euclid(60);
-            self.seconds = self.seconds.rem_euclid(60);
+            self.minutes += self.seconds / 60;
+            self.seconds = self.seconds % 60;
         }
 
         if self.minutes.abs() >= 60 {
-            self.hours += self.minutes.div_euclid(60) as i32;
-            self.minutes = self.minutes.rem_euclid(60);
+            self.hours += (self.minutes / 60) as i32;
+            self.minutes = self.minutes % 60;
         }
 
         if self.hours.abs() >= 24 {
-            self.days += self.hours.div_euclid(24);
-            self.hours = self.hours.rem_euclid(24);
+            self.days += self.hours / 24;
+            self.hours = self.hours % 24;
         }
 
         if self.days.abs() >= 7 {
-            self.weeks += self.days.div_euclid(7);
-            self.days = self.days.rem_euclid(7);
+            self.weeks += self.days / 7;
+            self.days = self.days % 7;
         }
 
         // Weeks cannot be reduced further... but months can in the gregorian calendar
@@ -307,8 +307,8 @@ impl Interval {
         // Note that this normalisation is done via the total_months method, not this one
 
         if self.months.abs() >= 12 {
-            self.years += self.months.div_euclid(12) as i16;
-            self.months = self.months.rem_euclid(12);
+            self.years += (self.months / 12) as i16;
+            self.months = self.months % 12;
         }
     }
 
