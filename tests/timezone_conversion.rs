@@ -1,7 +1,7 @@
 // These tests are adapted from Python's datetime library
 // https://github.com/python/cpython/blob/3.10/Lib/test/datetimetester.py
 
-use eos::{datetime, ext::IntervalLiteral, utc_offset, DateTime, TimeZone, Utc, UtcOffset, Weekday};
+use eos::{datetime, ext::IntervalLiteral, utc_offset, DateTime, Interval, TimeZone, Utc, UtcOffset, Weekday};
 
 fn this_or_next_sunday<Tz: TimeZone>(date: DateTime<Tz>) -> DateTime<Tz> {
     if date.weekday() == Weekday::Sunday {
@@ -128,8 +128,7 @@ const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 fn test_from_utc() -> Result<(), eos::Error> {
     for tz in [&EAST, &CENTRAL, &MOUNTAIN, &PACIFIC] {
         let local = tz.from_utc(DT);
-        // TODO: requires diff between DTs
-        // assert_eq!(local - DT, Interval::from(tz.offset(&local)));
+        assert_eq!(local - DT.with_timezone(*tz), Interval::from(tz.offset(&local)));
         assert_eq!(local, DT);
     }
 
