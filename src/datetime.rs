@@ -297,6 +297,16 @@ where
         }
     }
 
+    /// Returns the POSIX timestamp in seconds.
+    pub fn timestamp(&self) -> i64 {
+        Interval::days_between(&DateTime::UNIX_EPOCH, &self).total_seconds_from_days()
+    }
+
+    /// Returns the POSIX timestamp in milliseconds.
+    pub fn timestamp_millis(&self) -> i64 {
+        Interval::days_between(&DateTime::UNIX_EPOCH, &self).total_milliseconds_from_days()
+    }
+
     pub(crate) fn add_months(mut self, months: i32) -> Self {
         self.date = self.date.add_months(months);
         self
@@ -763,5 +773,13 @@ mod tests {
         let offset = utc_offset!(-5:00);
         let left = offset.from_utc(utc);
         assert_eq!(left, utc);
+    }
+
+    #[test]
+    fn test_timestamp() {
+        assert_eq!(datetime!(1970-01-01 00:00).timestamp(), 0);
+        assert_eq!(datetime!(1970-01-01 1:02:03).timestamp(), 3723);
+        assert_eq!(datetime!(2022-01-02 20:38:45).timestamp(), 1641155925);
+        assert_eq!(datetime!(2022-01-02 20:38:45 -5:00).timestamp(), 1641173925);
     }
 }
