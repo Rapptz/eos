@@ -64,31 +64,6 @@ impl DateTime<Utc> {
         }
     }
 
-    /// Creates a [`DateTime`] from the given year and ordinal date. The time is set to
-    /// midnight UTC.
-    ///
-    /// If the ordinal is out of bounds (`1..=366`) then [`None`] is returned.
-    /// Note that 366 is also invalid if the year is not a leap year.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use eos::{DateTime, Utc};
-    /// assert_eq!(DateTime::from_ordinal(1992, 62), Ok(DateTime::<Utc>::new(1992, 3, 2)?)); // leap year
-    /// assert!(DateTime::from_ordinal(2013, 366).is_err()); // not a leap year
-    /// assert_eq!(DateTime::from_ordinal(2012, 366), Ok(DateTime::<Utc>::new(2012, 12, 31)?));
-    /// assert_eq!(DateTime::from_ordinal(2001, 246), Ok(DateTime::<Utc>::new(2001, 9, 3)?));
-    /// # Ok::<_, eos::Error>(())
-    /// ```
-    pub fn from_ordinal(year: i16, ordinal: u16) -> Result<Self, Error> {
-        let date = Date::from_ordinal(year, ordinal)?;
-        Ok(Self {
-            date,
-            time: Time::MIDNIGHT,
-            timezone: Utc,
-        })
-    }
-
     /// Shifts the [`DateTime`] by the given [`UtcOffset`].
     ///
     /// Since this function does the operation in-place, this does not
@@ -147,6 +122,31 @@ impl<Tz> DateTime<Tz>
 where
     Tz: TimeZone,
 {
+    /// Creates a [`DateTime`] from the given year, ordinal date, and timezone. The time is set to
+    /// midnight UTC.
+    ///
+    /// If the ordinal is out of bounds (`1..=366`) then [`None`] is returned.
+    /// Note that 366 is also invalid if the year is not a leap year.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use eos::{DateTime, Utc};
+    /// assert_eq!(DateTime::from_ordinal(1992, 62, Utc), Ok(DateTime::<Utc>::new(1992, 3, 2)?)); // leap year
+    /// assert!(DateTime::from_ordinal(2013, 366, Utc).is_err()); // not a leap year
+    /// assert_eq!(DateTime::from_ordinal(2012, 366, Utc), Ok(DateTime::<Utc>::new(2012, 12, 31)?));
+    /// assert_eq!(DateTime::from_ordinal(2001, 246, Utc), Ok(DateTime::<Utc>::new(2001, 9, 3)?));
+    /// # Ok::<_, eos::Error>(())
+    /// ```
+    pub fn from_ordinal(year: i16, ordinal: u16, timezone: Tz) -> Result<Self, Error> {
+        let date = Date::from_ordinal(year, ordinal)?;
+        Ok(Self {
+            date,
+            time: Time::MIDNIGHT,
+            timezone,
+        })
+    }
+
     /// Returns a reference to the time component.
     pub fn time(&self) -> &Time {
         &self.time
