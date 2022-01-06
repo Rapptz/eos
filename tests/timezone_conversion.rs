@@ -112,7 +112,7 @@ impl TimeZone for AlwaysEasternStandard {
         }
     }
 
-    fn from_utc(self, mut utc: DateTime<Utc>) -> DateTime<Self>
+    fn datetime_at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
     where
         Self: Sized,
     {
@@ -127,13 +127,13 @@ const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 #[test]
 fn test_from_utc() -> Result<(), eos::Error> {
     for tz in [&EAST, &CENTRAL, &MOUNTAIN, &PACIFIC] {
-        let local = tz.from_utc(DT);
+        let local = tz.datetime_at(DT);
         assert_eq!(local - DT.with_timezone(*tz), Interval::from(tz.offset(&local)));
         assert_eq!(local, DT);
     }
 
     let utc_now = Utc::now();
-    let east = EAST.from_utc(utc_now);
+    let east = EAST.datetime_at(utc_now);
     assert_eq!(utc_now, east);
 
     /*
@@ -150,10 +150,10 @@ fn test_from_utc() -> Result<(), eos::Error> {
         if hour == 23 {
             expected = expected - 1.days();
         }
-        let got = EAST.from_utc(start);
+        let got = EAST.datetime_at(start);
         assert_eq!(expected.with_timezone(EAST), got);
 
-        let got = AlwaysEasternStandard.from_utc(start);
+        let got = AlwaysEasternStandard.datetime_at(start);
         let expected = (start + (-5).hours()).with_timezone(AlwaysEasternStandard);
         assert_eq!(expected, got);
 
@@ -166,10 +166,10 @@ fn test_from_utc() -> Result<(), eos::Error> {
     let mut start = DST_END_2021.with_hour(4)?;
     for hour in [0, 1, 1, 2, 3, 4] {
         let expected = start.with_hour(hour)?;
-        let got = EAST.from_utc(start);
+        let got = EAST.datetime_at(start);
         assert_eq!(expected.with_timezone(EAST), got);
 
-        let got = AlwaysEasternStandard.from_utc(start);
+        let got = AlwaysEasternStandard.datetime_at(start);
         let expected = (start + (-5).hours()).with_timezone(AlwaysEasternStandard);
         assert_eq!(expected, got);
 

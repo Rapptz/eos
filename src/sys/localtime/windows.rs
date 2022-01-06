@@ -11,6 +11,7 @@ pub(crate) struct LocalTime {
 #[repr(C)]
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct SYSTEMTIME {
     wYear: u16,

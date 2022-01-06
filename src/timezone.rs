@@ -304,7 +304,7 @@ pub trait TimeZone: Clone {
     fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset;
 
     /// Converts from a UTC [`DateTime`] to a datetime in this timezone.
-    fn from_utc(self, mut utc: DateTime<Utc>) -> DateTime<Self>
+    fn datetime_at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
     where
         Self: Sized,
     {

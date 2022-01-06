@@ -275,22 +275,22 @@ impl Interval {
     pub fn normalize(&mut self) {
         if self.nanoseconds.abs() >= 1_000_000_000 {
             self.seconds += self.nanoseconds / 1_000_000_000;
-            self.nanoseconds = self.nanoseconds % 1_000_000_000;
+            self.nanoseconds %= 1_000_000_000;
         }
 
         if self.seconds.abs() >= 60 {
             self.minutes += self.seconds / 60;
-            self.seconds = self.seconds % 60;
+            self.seconds %= 60;
         }
 
         if self.minutes.abs() >= 60 {
             self.hours += (self.minutes / 60) as i32;
-            self.minutes = self.minutes % 60;
+            self.minutes %= 60;
         }
 
         if self.hours.abs() >= 24 {
             self.days += self.hours / 24;
-            self.hours = self.hours % 24;
+            self.hours %= 24;
         }
 
         // Weeks cannot be reduced further... but months can in the gregorian calendar
@@ -304,7 +304,7 @@ impl Interval {
 
         if self.months.abs() >= 12 {
             self.years += (self.months / 12) as i16;
-            self.months = self.months % 12;
+            self.months %= 12;
         }
     }
 
@@ -449,7 +449,7 @@ impl Interval {
             } else {
                 (Ordering::Greater, -1)
             };
-            if offset.cmp_cross_timezone(&end) == cmp {
+            if offset.cmp_cross_timezone(end) == cmp {
                 months += inc;
                 offset = start.clone().add_months(months);
             }
@@ -477,8 +477,8 @@ impl Interval {
         let mut seconds = end.time().total_seconds() - start.time().total_seconds();
         let nanos = end.time().nanosecond() as i32 - start.time().nanosecond() as i32;
 
-        let offset = start.timezone().offset(&start);
-        let end_offset = end.timezone().offset(&end);
+        let offset = start.timezone().offset(start);
+        let end_offset = end.timezone().offset(end);
         if offset != end_offset {
             seconds = seconds + offset.total_seconds() - end_offset.total_seconds();
         }
@@ -487,7 +487,7 @@ impl Interval {
         let seconds = days * 86_400 + seconds;
         let (days, seconds) = divrem!(seconds, 86_400);
         Self {
-            days: days,
+            days,
             seconds: seconds as i64,
             nanoseconds: nanos as i64,
             ..Self::ZERO
@@ -512,7 +512,7 @@ impl Interval {
     /// Returns a duration representing the time components of this interval.
     ///
     /// The first boolean argument is whether the time ended up being negative.
-    pub(crate) fn to_time_duration(&self) -> (bool, Duration) {
+    pub(crate) fn get_time_duration(&self) -> (bool, Duration) {
         let mut total_seconds = self.hours as i64 * 3600 + self.minutes as i64 * 60 + self.seconds;
         let (seconds, nanos) = divrem!(self.nanoseconds, 1_000_000_000);
         total_seconds += seconds;
@@ -571,12 +571,10 @@ fn months_between(start: &Date, end: &Date) -> i32 {
         } else {
             diff - 1
         }
+    } else if &location >= end {
+        diff
     } else {
-        if &location >= end {
-            diff
-        } else {
-            diff + 1
-        }
+        diff + 1
     }
 }
 

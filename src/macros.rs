@@ -79,8 +79,11 @@ pub use __expand_or_zero;
 #[cfg(feature = "macros")]
 macro_rules! time {
     ($hours:literal:$minutes:literal$(:$seconds:literal)?) => {{
+        #[allow(clippy::zero_prefixed_literal)]
         const HOURS: u8 = $hours;
+        #[allow(clippy::zero_prefixed_literal)]
         const MINUTES: u8 = $minutes;
+        #[allow(clippy::zero_prefixed_literal)]
         const SECONDS: u8 = $crate::macros::__expand_or_zero!($($seconds)?);
         $crate::macros::const_assert!(HOURS <= 23, "hours must be less than 24");
         $crate::macros::const_assert!(MINUTES <= 59, "minutes must be less than 60");
@@ -89,8 +92,11 @@ macro_rules! time {
     }};
 
     ($hours:literal:$minutes:literal$(:$seconds:literal)? $meridian:ident) => {{
+        #[allow(clippy::zero_prefixed_literal)]
         const HOURS: u8 = $hours;
+        #[allow(clippy::zero_prefixed_literal)]
         const MINUTES: u8 = $minutes;
+        #[allow(clippy::zero_prefixed_literal)]
         const SECONDS: u8 = $crate::macros::__expand_or_zero!($($seconds)?);
         $crate::macros::const_assert!(HOURS <= 12, "hours must be less than 13");
         $crate::macros::const_assert!(MINUTES <= 59, "minutes must be less than 60");
@@ -126,8 +132,11 @@ macro_rules! time {
 #[cfg(feature = "macros")]
 macro_rules! date {
     ($year:literal-$month:literal-$day:literal) => {{
+        #[allow(clippy::zero_prefixed_literal)]
         const YEAR: i16 = $year;
+        #[allow(clippy::zero_prefixed_literal)]
         const MONTH: u8 = $month;
+        #[allow(clippy::zero_prefixed_literal)]
         const DAY: u8 = $day;
         $crate::macros::const_assert!(MONTH >= 1 && MONTH <= 12, "months must be between [1, 12]");
 
@@ -170,8 +179,11 @@ macro_rules! date {
 macro_rules! utc_offset {
     // Repetition because -0 is too special
     (-$hours:literal$(:$minutes:literal$(:$seconds:literal)?)?) => {{
+        #[allow(clippy::zero_prefixed_literal)]
         const HOURS: i8 = $hours;
+        #[allow(clippy::zero_prefixed_literal)]
         const MINUTES: i8 = $crate::macros::__expand_or_zero!($($minutes)?);
+        #[allow(clippy::zero_prefixed_literal)]
         const SECONDS: i8 = $crate::macros::__expand_or_zero!($($($seconds)?)?);
 
         $crate::macros::const_assert!(HOURS <= 23 && HOURS >= -23, "hours must be between [-23, 23]");
@@ -182,8 +194,11 @@ macro_rules! utc_offset {
     }};
 
     ($(+)?$hours:literal$(:$minutes:literal$(:$seconds:literal)?)?) => {{
+        #[allow(clippy::zero_prefixed_literal)]
         const HOURS: i8 = $hours;
+        #[allow(clippy::zero_prefixed_literal)]
         const MINUTES: i8 = $crate::macros::__expand_or_zero!($($minutes)?);
+        #[allow(clippy::zero_prefixed_literal)]
         const SECONDS: i8 = $crate::macros::__expand_or_zero!($($($seconds)?)?);
 
         $crate::macros::const_assert!(HOURS <= 23 && HOURS >= -23, "hours must be between [-23, 23]");

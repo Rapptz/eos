@@ -130,6 +130,7 @@ pub(crate) const fn prev_weekday(wd: u8) -> u8 {
 
 macro_rules! ensure_in_range {
     ($value:expr, $min:expr => $max:expr) => {
+        #[allow(clippy::manual_range_contains)]
         if $value > $max || $value < $min {
             return Err(crate::Error::OutOfRange);
         }

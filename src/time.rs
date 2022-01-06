@@ -263,7 +263,7 @@ impl Add<Interval> for Time {
     type Output = Time;
 
     fn add(self, rhs: Interval) -> Self::Output {
-        let (sub, duration) = rhs.to_time_duration();
+        let (sub, duration) = rhs.get_time_duration();
         let (_, ret) = if sub {
             self.sub_with_duration(duration)
         } else {
@@ -277,7 +277,7 @@ impl Sub<Interval> for Time {
     type Output = Time;
 
     fn sub(self, rhs: Interval) -> Self::Output {
-        let (sub, duration) = rhs.to_time_duration();
+        let (sub, duration) = rhs.get_time_duration();
         let (_, ret) = if sub {
             self.add_with_duration(duration)
         } else {

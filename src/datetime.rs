@@ -229,8 +229,8 @@ where
     where
         OtherTz: TimeZone,
     {
-        let my_offset = self.timezone.offset(&self);
-        let other_offset = other.timezone.offset(&other);
+        let my_offset = self.timezone.offset(self);
+        let other_offset = other.timezone.offset(other);
 
         if my_offset == other_offset {
             return (self.date, self.time).cmp(&(other.date, other.time));
@@ -289,7 +289,7 @@ where
     }
 
     #[inline]
-    pub(crate) fn to_utc(self) -> DateTime<Utc> {
+    pub(crate) fn into_utc(self) -> DateTime<Utc> {
         let offset = self.timezone.offset(&self);
         let mut utc = self.with_timezone(Utc);
         utc.shift(-offset);
@@ -306,7 +306,7 @@ where
     where
         OtherTz: TimeZone,
     {
-        timezone.from_utc(self.to_utc())
+        timezone.datetime_at(self.into_utc())
     }
 
     /// Returns a new [`DateTime`] with the timezone component changed.
@@ -326,12 +326,12 @@ where
 
     /// Returns the POSIX timestamp in seconds.
     pub fn timestamp(&self) -> i64 {
-        Interval::days_between(&DateTime::UNIX_EPOCH, &self).total_seconds_from_days()
+        Interval::days_between(&DateTime::UNIX_EPOCH, self).total_seconds_from_days()
     }
 
     /// Returns the POSIX timestamp in milliseconds.
     pub fn timestamp_millis(&self) -> i64 {
-        Interval::days_between(&DateTime::UNIX_EPOCH, &self).total_milliseconds_from_days()
+        Interval::days_between(&DateTime::UNIX_EPOCH, self).total_milliseconds_from_days()
     }
 
     pub(crate) fn add_months(mut self, months: i32) -> Self {
@@ -694,7 +694,7 @@ where
     type Output = Self;
 
     fn add(self, rhs: Interval) -> Self::Output {
-        let (sub, duration) = rhs.to_time_duration();
+        let (sub, duration) = rhs.get_time_duration();
         let (days, time) = if sub {
             self.time.sub_with_duration(duration)
         } else {
@@ -718,13 +718,14 @@ where
     type Output = Self;
 
     fn sub(self, rhs: Interval) -> Self::Output {
-        let (sub, duration) = rhs.to_time_duration();
+        let (sub, duration) = rhs.get_time_duration();
         let (days, time) = if sub {
             self.time.add_with_duration(duration)
         } else {
             self.time.sub_with_duration(duration)
         };
 
+        #[allow(clippy::suspicious_arithmetic_impl)]
         let date = self
             .date
             .add_months(rhs.total_months().wrapping_neg())
@@ -754,6 +755,8 @@ where
 // TODO: move to a separate file
 
 #[cfg(test)]
+// TODO: remove when this is standardised inside clippy
+#[allow(clippy::eq_op)]
 mod tests {
     use super::*;
     use crate::{datetime, utc_offset};
@@ -798,7 +801,7 @@ mod tests {
 
         let utc = datetime!(2021-12-31 00:00);
         let offset = utc_offset!(-5:00);
-        let left = offset.from_utc(utc);
+        let left = offset.datetime_at(utc);
         assert_eq!(left, utc);
     }
 
