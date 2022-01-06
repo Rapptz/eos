@@ -1,6 +1,6 @@
 ## eos
 
-`eos` is a datetime library for Rust, aimed at being robust, simple, and easy to use. `eos` is made with the assumption of operating under a [proleptic Gregorian calendar][greg-cal]. If you're looking for different calendar systems, similar to those in JavaScript's [Temporal library][temporal], then this library is not for you. Although I am open to the idea of having calendar systems in the future.
+`eos` is a datetime library for Rust, aimed at being robust, simple, and easy to use. `eos` is made with the assumption of operating under a [proleptic Gregorian calendar][greg-cal]. If you're looking for different calendar systems, similar to those in JavaScript's [Temporal library][temporal], then this library is not for you. However, I am open to the idea of having calendar systems in the future.
 
 **Right now, this library is in its development phase.**
 
