@@ -18,7 +18,7 @@
 
 There already exist well established libraries in the ecosystem to deal with both dates and times so it's fair to be skeptical of any new library in this space. However, this library was created due to inadequacies in both offerings when it came to more complicated offerings. I had wanted to create a library that was both simpler, more robust, and correct when it came to the complexities of dealing with time.
 
-Timezone naive datetimes are often enough for basic cases but when faced with more complex use cases they often show limitations. Due to this, both `chrono` and `time` can have erradic and surprising behaviour when it comes with working with timezone-aware dates and times. For example, comparisons, hashing, and switching are not timezone aware. `eos` aims to have timezones as a core concept within the library and not as a second thought.
+Timezone naive datetimes are often enough for basic cases but when faced with more complex use cases they often show limitations. Due to this, both `chrono` and `time` can have erratic and surprising behaviour when it comes with working with timezone-aware dates and times. For example, comparisons, hashing, and switching are not timezone aware. `eos` aims to have timezones as a core concept within the library and not as a second thought.
 
 ### Design
 
