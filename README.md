@@ -1,6 +1,6 @@
 ## eos
 
-`eos` is a datetime library for Rust, aimed at being robust, simple, and easy to use. `eos` is made with the assumption of operating under a [proleptic Gregorian calendar][greg-cal]. If you're looking for different calendar systems, similar to those in JavaScript's [Temporal library][temporal], then this library is not for you. Although I am open to the idea of having calendar systems in the future.
+`eos` is a datetime library for Rust, aimed at being robust, simple, and easy to use. `eos` is made with the assumption of operating under a [proleptic Gregorian calendar][greg-cal]. If you're looking for different calendar systems, similar to those in JavaScript's [Temporal library][temporal], then this library is not for you. However, I am open to the idea of having calendar systems in the future.
 
 **Right now, this library is in its development phase.**
 
@@ -16,13 +16,13 @@
 
 ### Why not `chrono` or `time`?
 
-There already exist well established libraries in the ecosystem to deal with both dates and times so it's fair to be skeptical of any new library in this space. However, this library was created due to inadequacies in both offerings when it came to more complicated offerings. I had wanted to create a library that was both simpler, more robust, and correct when it came to the complexities of dealing with time.
+There already exist well established libraries in the ecosystem to deal with both dates and times so it's fair to be skeptical of any new library in this space. However, this library was created due to inadequacies in both offerings when it came to more complicated use cases (such as timezones). I had wanted to create a library that was both simpler, more robust, and correct when it came to the complexities of dealing with time.
 
-Timezone naive datetimes are often enough for basic cases but when faced with more complex use cases they often show limitations. Due to this, both `chrono` and `time` can have erradic and surprising behaviour when it comes with working with timezone-aware dates and times. For example, comparisons, hashing, and switching are not timezone aware. `eos` aims to have timezones as a core concept within the library and not as a second thought.
+Timezone naive datetimes are often enough for basic cases but when faced with more complex use cases they often show limitations. Due to this, both `chrono` and `time` can have erratic and surprising behaviour when it comes with working with timezone-aware dates and times. For example, comparisons, hashing, and switching are not timezone aware. `eos` aims to have timezones as a core concept within the library and not as a second thought.
 
 ### Design
 
-Unlike most datetime libraries, `eos` does not have the concept of a "naive" datetime without a timezone. All datetimes must have a timezone attached to them, a sensible default being UTC or local time. `eos` only supports ISO 8601 dates used throughout the world and is exclusively on the proleptic Gregorian calendar. This makes it not ideal for dates dealing with the past or with alternative Calendar systems. `eos` also assumes that there are 86400 seconds in a day.
+Unlike most datetime libraries, `eos` does not have the concept of a "naive" datetime without a timezone. All datetimes must have a timezone attached to them, a sensible default being UTC or local time. `eos` only supports ISO 8601 dates used throughout the world and is exclusively on the proleptic Gregorian calendar. This makes it not ideal for dates dealing with the far past or with alternative calendar systems. `eos` also assumes that there are 86400 seconds in a day.
 
 ### Acknowledgements
 
@@ -34,11 +34,11 @@ The design of this library was inspired by the following:
 - [Java's `java.time`][javadt]
 - [Joda-Time][joda-time]
 - [Noda-Time][noda-time]
-- [Howard Hinnant's <date>][cpp-date]
+- [Howard Hinnant's `date`][cpp-date]
 
 Certain algorithms come from one of these libraries above. Likewise, due to the difficult nature of testing datetimes, certain tests were adapted from one of these libraries as well to have better test coverage.
 
-Without these libraries, this one would not be possible. This one stands on the shoulder of giants.
+Without these libraries, this one would not be possible. `eos` stands on the shoulder of giants.
 
 ### License
 
