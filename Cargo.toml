@@ -14,9 +14,13 @@ categories = ["date-and-time"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["alloc", "std", "macros"]
+default = ["alloc", "std", "macros", "localtime"]
 std = ["alloc"]
 alloc = []
 macros = []
+localtime = ["libc"]
 
 [dependencies]
+
+[target.'cfg(target_family = "unix")'.dependencies]
+libc = { version = "0.2", optional = true }

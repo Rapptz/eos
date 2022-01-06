@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+#[cfg(feature = "localtime")]
+use crate::sys::localtime;
 #[cfg(doc)]
 use crate::Time;
 
@@ -154,10 +156,16 @@ impl UtcOffset {
         (self.hours, self.minutes, self.seconds)
     }
 
-    /// Returns `true` whether this offset is UTC.
+    /// Returns `true` if this offset is UTC.
     #[inline]
     pub const fn is_utc(&self) -> bool {
         self.hours == 0 && self.minutes == 0 && self.seconds == 0
+    }
+
+    /// Returns `true` if this offset is negative.
+    #[inline]
+    pub const fn is_negative(&self) -> bool {
+        self.hours < 0 && self.minutes < 0 && self.seconds < 0
     }
 
     /// Subtracts two offsets, returning [`Error`] if the result would be out of bounds.
@@ -352,6 +360,83 @@ impl Utc {
     #[inline(always)]
     pub fn now() -> DateTime<Self> {
         DateTime::utc_now()
+    }
+}
+
+/// Represents the machine's local timezone.
+///
+/// Due to differences in operating systems, the information returned by this
+/// struct isn't necessarily the most detailed.
+///
+/// This requires the `localtime` feature to be enabled.
+///
+/// # Underlying OS APIs
+///
+/// Currently, the following OS APIs are being used to get the local timezone:
+///
+/// | Platform |                  Function Call                  |
+/// |----------|-------------------------------------------------|
+/// | POSIX    | [`localtime_r`]                                 |
+/// | Windows  | [`GetTimeZoneInformation`] and [`GetLocalTime`] |
+///
+/// **Disclaimer**: These OS APIs might change over time.
+///
+/// [`localtime_r`]: https://linux.die.net/man/3/localtime_r
+/// [`GetTimeZoneInformation`]: https://docs.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-gettimezoneinformation
+/// [`GetLocalTime`]: https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlocaltime
+///
+/// ## Why `localtime_r`?
+///
+/// Users familiar with the [`chrono`] or the [`time`] crate would be aware that this underlying C API has been
+/// the [source] of an CVE ([CVE-2020-26235][CVE]). However, as more time has passed on the issue there are dissenting
+/// views within both the Rust community and the C community on whether the issue lied within `localtime_r` or `setenv`. This
+/// is because the `localtime_r` function only *reads* from the environment, it does not modify it. Many users have
+/// expressed the opinion that the issue is the underlying [`std::env::set_env`] call not being marked `unsafe`
+/// since by its nature it is not a thread safe function. There have been many proposals that have gained significant
+/// traction to mark `set_env` as `unsafe`. Given the direction the standard library is heading, the opinion of various
+/// experts, and the fact that there is no feasible alternative API in POSIX, this library opts to remain using
+/// `localtime_r` despite its previously tainted status causing an CVE.
+///
+/// If an alternative API were to exist that would fill this gap of functionality for POSIX systems the library gladly
+/// switch to it, however, this ideal has yet to be met.
+///
+/// [`chrono`]: https://github.com/chronotope/chrono/
+/// [`time`]: https://github.com/time-rs/time/
+/// [source]: https://passcod.name/technical/no-time-for-chrono.html
+/// [CVE]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-26235
+///
+#[cfg(feature = "localtime")]
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct Local(pub(crate) localtime::LocalTime);
+
+impl core::fmt::Debug for Local {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Local").field(&self.0.offset()).finish()
+    }
+}
+
+#[cfg(feature = "localtime")]
+impl Local {
+    /// Creates a new [`Local`].
+    #[inline]
+    pub fn new() -> Result<Self, Error> {
+        Ok(Self(localtime::LocalTime::new()?))
+    }
+
+    /// Returns the current [`DateTime`] in local time.
+    #[inline]
+    pub fn now() -> Result<DateTime<Self>, Error> {
+        DateTime::now()
+    }
+}
+
+impl TimeZone for Local {
+    fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+        self.0.offset()
+    }
+
+    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+        self.0.dst_offset()
     }
 }
 

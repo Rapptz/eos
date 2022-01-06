@@ -146,9 +146,9 @@ pub struct Date {
     /// amount of memory lost is not too bad, especially since the range of a 16-bit type
     /// is large enough for any human being alive right now. Therefore I've opted for the
     /// simplest representation, which should be easier to maintain.
-    year: i16,
-    month: u8,
-    day: u8,
+    pub(crate) year: i16,
+    pub(crate) month: u8,
+    pub(crate) day: u8,
 }
 
 impl Date {

@@ -13,6 +13,7 @@
 - `alloc`: Enable features that require allocation.
 - `macros`: Enables the compile-time construction macros. These use `macro_rules!` rather than the proc-macro machinery to keep compile times sane.
 - `std`: Enable features that require the standard library. Implies `alloc`.
+- `localtime`: Enable features that allow retrieving local time information. Requires `libc` on POSIX.
 
 ### Why not `chrono` or `time`?
 

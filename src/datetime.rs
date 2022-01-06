@@ -1,10 +1,12 @@
 use crate::{
     timezone::{Utc, UtcOffset},
     utils::divmod,
-    Date, Time, TimeZone, Weekday,
+    Date, Local, Time, TimeZone, Weekday,
 };
 use crate::{Error, Interval};
 
+#[cfg(feature = "localtime")]
+use crate::sys::localtime;
 use core::time::Duration;
 use core::{
     cmp::Ordering,
@@ -80,6 +82,16 @@ impl DateTime<Utc> {
         let (days, time) = Time::adjust_from_nanos(self.time.total_nanos() as i64 + offset_nanos);
         self.date = self.date.add_days(days);
         self.time = time;
+    }
+}
+
+impl DateTime<Local> {
+    /// Returns the current [`DateTime`] in local time.
+    #[cfg(feature = "localtime")]
+    #[inline]
+    pub fn now() -> Result<Self, Error> {
+        let (dt, local) = localtime::get_local_time_components()?;
+        Ok(dt.with_timezone(Local(local)))
     }
 }
 

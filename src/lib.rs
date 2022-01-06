@@ -14,6 +14,7 @@ mod datetime;
 mod error;
 pub mod ext;
 mod interval;
+pub(crate) mod sys;
 mod time;
 mod timezone;
 pub mod utils;
@@ -23,7 +24,7 @@ pub use datetime::DateTime;
 pub use error::Error;
 pub use interval::Interval;
 pub use time::Time;
-pub use timezone::{TimeZone, Utc, UtcOffset};
+pub use timezone::{Local, TimeZone, Utc, UtcOffset};
 
 // Internal helper for the macro_rules
 #[doc(hidden)]

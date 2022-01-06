@@ -14,10 +14,10 @@ use core::{
 /// This type has nanosecond precision. Comparisons assume they're on the same calendar date.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Time {
-    hour: u8,
-    minute: u8,
-    second: u8,
-    nanosecond: u32,
+    pub(crate) hour: u8,
+    pub(crate) minute: u8,
+    pub(crate) second: u8,
+    pub(crate) nanosecond: u32,
 }
 
 const MAXIMUM_SECONDS_FROM_DURATION: u64 = i32::MAX as u64 * 24 * 60 * 60;
