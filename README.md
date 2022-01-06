@@ -22,7 +22,7 @@ Timezone naive datetimes are often enough for basic cases but when faced with mo
 
 ### Design
 
-Unlike most datetime libraries, `eos` does not have the concept of a "naive" datetime without a timezone. All datetimes must have a timezone attached to them, a sensible default being UTC or local time. `eos` only supports ISO 8601 dates used throughout the world and is exclusively on the proleptic Gregorian calendar. This makes it not ideal for dates dealing with the far past or with alternative Calendar systems. `eos` also assumes that there are 86400 seconds in a day.
+Unlike most datetime libraries, `eos` does not have the concept of a "naive" datetime without a timezone. All datetimes must have a timezone attached to them, a sensible default being UTC or local time. `eos` only supports ISO 8601 dates used throughout the world and is exclusively on the proleptic Gregorian calendar. This makes it not ideal for dates dealing with the far past or with alternative calendar systems. `eos` also assumes that there are 86400 seconds in a day.
 
 ### Acknowledgements
 
