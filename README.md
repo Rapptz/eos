@@ -34,7 +34,7 @@ The design of this library was inspired by the following:
 - [Java's `java.time`][javadt]
 - [Joda-Time][joda-time]
 - [Noda-Time][noda-time]
-- [Howard Hinnant's <date>][cpp-date]
+- [Howard Hinnant's `date`][cpp-date]
 
 Certain algorithms come from one of these libraries above. Likewise, due to the difficult nature of testing datetimes, certain tests were adapted from one of these libraries as well to have better test coverage.
 
