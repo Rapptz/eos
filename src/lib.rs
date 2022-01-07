@@ -19,7 +19,7 @@ mod time;
 mod timezone;
 pub mod utils;
 
-pub use date::{Date, Weekday};
+pub use date::{Date, IsoCalendarDate, Weekday};
 pub use datetime::DateTime;
 pub use error::Error;
 pub use interval::Interval;

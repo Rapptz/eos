@@ -1,7 +1,8 @@
 use crate::{
     utils::{
         date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, divrem, ensure_in_range,
-        is_leap_year, DAYS_BEFORE_MONTH,
+        find_iso_week_start_epoch, is_leap_year, iso_week_start_epoch_from_year, iso_weeks_in_year, weekday_from_days,
+        DAYS_BEFORE_MONTH,
     },
     Error, Interval,
 };
@@ -132,6 +133,83 @@ impl Weekday {
             Self::Saturday => 6,
             Self::Sunday => 0,
         }
+    }
+}
+
+/// Represents a date in the [ISO 8601 calendar].
+///
+/// The ISO calendar is a commonly used variant of the Gregorian calendar, mainly
+/// in financial systems and other forms of businesses that revolve around fiscal
+/// years.
+///
+/// The ISO year is made up of either 52 or 53 weeks, where a week always starts on
+/// Monday and always ends on Sunday even if the boundary would not make sense
+/// in a traditional Gregorian calendar. The first week of an ISO year begins on
+/// the Monday following the first Thursday, with the year being the same year
+/// as that Thursday.
+///
+/// [ISO 8601 calendar]: https://en.wikipedia.org/wiki/ISO_week_date
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct IsoCalendarDate {
+    year: i16,
+    week: u8,
+    weekday: Weekday,
+}
+
+impl IsoCalendarDate {
+    /// Creates a new [`IsoCalendarDate`] from the given year, week, and weekday.
+    ///
+    /// # Errors
+    ///
+    /// If the week is out of bounds for the given year (53 or higher).
+    ///
+    pub const fn new(year: i16, week: u8, weekday: Weekday) -> Result<Self, Error> {
+        ensure_in_range!(week, 1 => iso_weeks_in_year(year));
+        Ok(Self { year, week, weekday })
+    }
+
+    /// Returns the ISO year.
+    ///
+    /// Note that the ISO year might be different from the Gregorian year.
+    #[inline]
+    pub const fn year(&self) -> i16 {
+        self.year
+    }
+
+    /// Returns the ISO week.
+    ///
+    /// This value will always be within `1..=53`.
+    #[inline]
+    pub const fn week(&self) -> u8 {
+        self.week
+    }
+
+    /// Returns the ISO weekday.
+    #[inline]
+    pub const fn weekday(&self) -> Weekday {
+        self.weekday
+    }
+}
+
+impl PartialOrd for IsoCalendarDate {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for IsoCalendarDate {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        match self.year.cmp(&other.year) {
+            core::cmp::Ordering::Equal => {}
+            ord => return ord,
+        }
+        match self.week.cmp(&other.week) {
+            core::cmp::Ordering::Equal => {}
+            ord => return ord,
+        }
+        self.weekday
+            .number_from_monday()
+            .cmp(&other.weekday.number_from_monday())
     }
 }
 
@@ -412,6 +490,54 @@ impl Date {
         self.add_days(if diff >= 0 { diff - 7 } else { diff } as i32)
     }
 
+    /// Returns the ISO Calendar for this date.
+    ///
+    /// See [`IsoCalendarDate`] for more information.
+    ///
+    /// Note that the familiar notion of a year is different under the ISO calendar.
+    ///
+    /// ```
+    /// use eos::{date, Weekday};
+    ///
+    /// // January 1st 1995 is a Sunday
+    /// let iso = date!(1995-01-01).iso_calendar();
+    ///
+    /// assert_eq!(iso.weekday(), Weekday::Sunday);
+    /// // Despite being 1995 in Gregorian it is the 52nd week of 1994
+    /// assert_eq!(iso.year(), 1994);
+    /// assert_eq!(iso.week(), 52);
+    ///
+    /// // Despite December 31st 1996 being in 1996, it's the 1st week of ISO year 1997.
+    /// let iso = date!(1996-12-31).iso_calendar();
+    /// assert_eq!(iso.weekday(), Weekday::Tuesday);
+    /// assert_eq!(iso.year(), 1997);
+    /// assert_eq!(iso.week(), 1);
+    /// ```
+    pub const fn iso_calendar(&self) -> IsoCalendarDate {
+        let epoch = self.epoch_days();
+        let start_epoch = find_iso_week_start_epoch(self.year, epoch);
+        let weekday = weekday_from_days(epoch);
+        let week = (epoch - start_epoch) / 7 + 1; // range: [1, 53]
+        let (year, _, _) = date_from_epoch_days(start_epoch + 3); // Thursday - Monday = 3
+
+        let weekday = match weekday {
+            0 => Weekday::Sunday,
+            1 => Weekday::Monday,
+            2 => Weekday::Tuesday,
+            3 => Weekday::Wednesday,
+            4 => Weekday::Thursday,
+            5 => Weekday::Friday,
+            6 => Weekday::Saturday,
+            _ => unreachable!(),
+        };
+
+        IsoCalendarDate {
+            year,
+            week: week as _,
+            weekday,
+        }
+    }
+
     /// Returns a new [`Date] that points to the given year.
     pub fn with_year(mut self, year: i16) -> Self {
         // TODO: needs to error out when switching from e.g. 2012-02-29 -> 2013-02-29
@@ -518,5 +644,15 @@ impl Sub for Date {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Interval::between_dates(&rhs, &self)
+    }
+}
+
+impl From<IsoCalendarDate> for Date {
+    fn from(iso: IsoCalendarDate) -> Self {
+        let epoch = iso_week_start_epoch_from_year(iso.year)
+            + (iso.week as i32 - 1) * 7
+            + iso.weekday.days_from_sunday() as i32;
+        let (year, month, day) = date_from_epoch_days(epoch);
+        Self { year, month, day }
     }
 }

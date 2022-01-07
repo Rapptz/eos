@@ -83,6 +83,48 @@ pub(crate) const fn date_from_epoch_days(mut days: i32) -> (i16, u8, u8) {
     (y, m as u8, d as u8)
 }
 
+/// Returns the weekday for December 31st of a given year
+///
+/// 0 is Sunday, 6 is Saturday.
+#[inline]
+pub(crate) const fn end_of_year_weekday(year: i16) -> u8 {
+    let count = year + year / 4 - year / 100 + year / 400;
+    count.rem_euclid(7) as u8
+}
+
+/// Returns the number of ISO weeks in a given year
+#[inline]
+pub(crate) const fn iso_weeks_in_year(year: i16) -> u8 {
+    if end_of_year_weekday(year) == 4 || end_of_year_weekday(year - 1) == 3 {
+        53
+    } else {
+        52
+    }
+}
+
+/// Returns the epoch representing the start of an ISO year.
+#[inline]
+pub(crate) const fn iso_week_start_epoch_from_year(year: i16) -> i32 {
+    let epoch = date_to_epoch_days(year, 1, 4);
+    let weekday = weekday_from_days(epoch);
+    // difference from Monday
+    epoch - weekday_difference(weekday, 1) as i32
+}
+
+/// Determines where the ISO week starts from a given year and epoch of date.
+pub(crate) const fn find_iso_week_start_epoch(year: i16, epoch: i32) -> i32 {
+    let start = iso_week_start_epoch_from_year(year);
+    if epoch < start {
+        return iso_week_start_epoch_from_year(year - 1);
+    }
+    let next_start = iso_week_start_epoch_from_year(year + 1);
+    if epoch >= next_start {
+        next_start
+    } else {
+        start
+    }
+}
+
 /// Returns the difference between two weekdays.
 ///
 /// This returns a number between [0, 6] and assumes both x and y are <= 6.
