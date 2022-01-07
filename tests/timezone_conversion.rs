@@ -25,11 +25,11 @@ struct AmericanTimeZone {
 }
 
 impl TimeZone for AmericanTimeZone {
-    fn name<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> Option<&str> {
+    fn name<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> Option<String> {
         if self.dst_offset(datetime).is_utc() {
-            Some(self.name)
+            Some(String::from(self.name))
         } else {
-            Some(self.dst_name)
+            Some(String::from(self.dst_name))
         }
     }
 

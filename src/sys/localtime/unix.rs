@@ -1,11 +1,16 @@
 use core::mem::MaybeUninit;
 use core::time::Duration;
 
+#[cfg(feature = "alloc")]
+use alloc::string::String;
+
 use crate::{DateTime, Error, Utc, UtcOffset};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub(crate) struct LocalTime {
     offset: UtcOffset,
+    #[cfg(feature = "alloc")]
+    name: Option<String>,
 }
 
 extern "C" {
@@ -58,7 +63,23 @@ impl LocalTime {
         // a completely bogus value.
         let seconds = tm.tm_gmtoff as i32;
         let offset = UtcOffset::from_seconds_unchecked(seconds);
-        Ok(Self { offset })
+
+        #[cfg(feature = "alloc")]
+        {
+            // SAFETY: the string returned by localtime_r is a standard NUL-terminating string.
+            let length = unsafe { libc::strlen(tm.tm_zone) };
+            // SAFETY: the string is at least the specified length
+            // const char* can also be reinterpreted as const u8* since they're
+            // the same aliasing and size
+            let slice = unsafe { core::slice::from_raw_parts(tm.tm_zone as *const u8, length) };
+            let name = core::str::from_utf8(slice).ok().map(String::from);
+            Ok(Self { offset, name })
+        }
+
+        #[cfg(not(feature = "alloc"))]
+        {
+            Ok(Self { offset })
+        }
     }
 
     pub(crate) fn offset(&self) -> UtcOffset {
@@ -67,6 +88,11 @@ impl LocalTime {
 
     pub(crate) fn dst_offset(&self) -> UtcOffset {
         UtcOffset::UTC
+    }
+
+    #[cfg(feature = "alloc")]
+    pub(crate) fn name(&self) -> Option<String> {
+        self.name.clone()
     }
 }
 

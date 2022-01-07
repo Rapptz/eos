@@ -1,5 +1,8 @@
 use core::mem::MaybeUninit;
 
+#[cfg(feature = "alloc")]
+use alloc::string::String;
+
 use crate::{Date, DateTime, Time, Utc, UtcOffset};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -80,6 +83,23 @@ impl LocalTime {
             UtcOffset::from_seconds_unchecked(self.info.DaylightBias * 60)
         } else {
             UtcOffset::UTC
+        }
+    }
+
+    #[cfg(feature = "alloc")]
+    pub(crate) fn name(&self) -> Option<String> {
+        let bytes = if self.is_dst {
+            self.info.DaylightName
+        } else {
+            self.info.StandardName
+        };
+
+        // Find the first "null terminator byte"
+        let null = bytes.iter().position(|&p| p == 0).unwrap_or(bytes.len());
+        if null == 0 {
+            None
+        } else {
+            String::from_utf16(&bytes[0..null]).ok()
         }
     }
 }

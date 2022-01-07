@@ -2,6 +2,10 @@ use std::fmt::Write;
 
 #[cfg(feature = "localtime")]
 use crate::sys::localtime;
+
+#[cfg(feature = "alloc")]
+use alloc::string::String;
+
 #[cfg(doc)]
 use crate::Time;
 
@@ -283,12 +287,13 @@ impl core::ops::Neg for UtcOffset {
 
 /// A trait that defines timezone behaviour.
 pub trait TimeZone: Clone {
-    /// Returns the name of the timezone at an optional datetime.
-    fn name<Tz: TimeZone>(&self, _datetime: &DateTime<Tz>) -> Option<&str> {
+    /// Returns the name of the timezone at a given datetime.
+    #[cfg(feature = "alloc")]
+    fn name<Tz: TimeZone>(&self, _datetime: &DateTime<Tz>) -> Option<String> {
         None
     }
 
-    /// Returns the UTC offset of the timezone at an optional datetime.
+    /// Returns the UTC offset of the timezone at a given datetime.
     ///
     /// If DST is being observed then the offset must take that into account.
     fn offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset;
@@ -323,10 +328,6 @@ pub trait TimeZone: Clone {
 }
 
 impl TimeZone for UtcOffset {
-    fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<&str> {
-        None
-    }
-
     fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
         *self
     }
@@ -341,8 +342,9 @@ impl TimeZone for UtcOffset {
 pub struct Utc;
 
 impl TimeZone for Utc {
-    fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<&str> {
-        Some("UTC")
+    #[cfg(feature = "alloc")]
+    fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<String> {
+        Some(String::from("UTC"))
     }
 
     fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
@@ -411,7 +413,14 @@ pub struct Local(pub(crate) localtime::LocalTime);
 
 impl core::fmt::Debug for Local {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Local").field(&self.0.offset()).finish()
+        if cfg!(feature = "alloc") {
+            f.debug_struct("Local")
+                .field("offset", &self.0.offset())
+                .field("name", &self.0.name())
+                .finish()
+        } else {
+            f.debug_struct("Local").field("offset", &self.0.offset()).finish()
+        }
     }
 }
 
@@ -431,6 +440,11 @@ impl Local {
 }
 
 impl TimeZone for Local {
+    #[cfg(feature = "alloc")]
+    fn name<Tz: TimeZone>(&self, _datetime: &DateTime<Tz>) -> Option<String> {
+        self.0.name()
+    }
+
     fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
         self.0.offset()
     }
