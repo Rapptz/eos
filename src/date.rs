@@ -8,6 +8,9 @@ use crate::{
 
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
+#[cfg(feature = "localtime")]
+use crate::sys::localtime::get_local_time_components;
+
 /// An enum representing the different weekdays.
 ///
 /// Due to different orderings of weekdays, this type does not implement `PartialOrd` or `Ord`. Some
@@ -164,6 +167,22 @@ impl Date {
     #[inline]
     pub const fn __new_unchecked_from_macro(year: i16, month: u8, day: u8) -> Self {
         Self { year, month, day }
+    }
+
+    /// Creates a new [`Date`] representing today's date in local time.
+    #[cfg(feature = "localtime")]
+    #[inline]
+    pub fn today() -> Result<Self, Error> {
+        let (dt, _) = get_local_time_components()?;
+        Ok(*dt.date())
+    }
+
+    /// Creates a new [`Date`] representing today's date in UTC.
+    #[cfg(feature = "std")]
+    #[inline]
+    pub fn today_utc() -> Self {
+        let dt = crate::DateTime::utc_now();
+        *dt.date()
     }
 
     /// Creates a new [`Date`] from a given year, month, and day.
