@@ -136,9 +136,9 @@ impl Weekday {
     }
 }
 
-/// Represents a date in the [ISO 8601 calendar].
+/// Represents a date in the [ISO 8601 week date system].
 ///
-/// The ISO calendar is a commonly used variant of the Gregorian calendar, mainly
+/// The ISO week date system is a commonly used variant of the Gregorian calendar, mainly
 /// in financial systems and other forms of businesses that revolve around fiscal
 /// years.
 ///
@@ -148,16 +148,16 @@ impl Weekday {
 /// the Monday following the first Thursday, with the year being the same year
 /// as that Thursday.
 ///
-/// [ISO 8601 calendar]: https://en.wikipedia.org/wiki/ISO_week_date
+/// [ISO 8601 week date system]: https://en.wikipedia.org/wiki/ISO_week_date
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct IsoCalendarDate {
+pub struct IsoWeekDate {
     year: i16,
     week: u8,
     weekday: Weekday,
 }
 
-impl IsoCalendarDate {
-    /// Creates a new [`IsoCalendarDate`] from the given year, week, and weekday.
+impl IsoWeekDate {
+    /// Creates a new [`IsoWeekDate`] from the given year, week, and weekday.
     ///
     /// # Errors
     ///
@@ -191,13 +191,13 @@ impl IsoCalendarDate {
     }
 }
 
-impl PartialOrd for IsoCalendarDate {
+impl PartialOrd for IsoWeekDate {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for IsoCalendarDate {
+impl Ord for IsoWeekDate {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         match self.year.cmp(&other.year) {
             core::cmp::Ordering::Equal => {}
@@ -490,17 +490,17 @@ impl Date {
         self.add_days(if diff >= 0 { diff - 7 } else { diff } as i32)
     }
 
-    /// Returns the ISO Calendar for this date.
+    /// Returns the ISO week date for this date.
     ///
-    /// See [`IsoCalendarDate`] for more information.
+    /// See [`IsoWeekDate`] for more information.
     ///
-    /// Note that the familiar notion of a year is different under the ISO calendar.
+    /// Note that the familiar notion of a year is different under the ISO week date.
     ///
     /// ```
     /// use eos::{date, Weekday};
     ///
     /// // January 1st 1995 is a Sunday
-    /// let iso = date!(1995-01-01).iso_calendar();
+    /// let iso = date!(1995-01-01).iso_week();
     ///
     /// assert_eq!(iso.weekday(), Weekday::Sunday);
     /// // Despite being 1995 in Gregorian it is the 52nd week of 1994
@@ -508,12 +508,12 @@ impl Date {
     /// assert_eq!(iso.week(), 52);
     ///
     /// // Despite December 31st 1996 being in 1996, it's the 1st week of ISO year 1997.
-    /// let iso = date!(1996-12-31).iso_calendar();
+    /// let iso = date!(1996-12-31).iso_week();
     /// assert_eq!(iso.weekday(), Weekday::Tuesday);
     /// assert_eq!(iso.year(), 1997);
     /// assert_eq!(iso.week(), 1);
     /// ```
-    pub const fn iso_calendar(&self) -> IsoCalendarDate {
+    pub const fn iso_week(&self) -> IsoWeekDate {
         let epoch = self.epoch_days();
         let start_epoch = find_iso_week_start_epoch(self.year, epoch);
         let weekday = weekday_from_days(epoch);
@@ -531,7 +531,7 @@ impl Date {
             _ => unreachable!(),
         };
 
-        IsoCalendarDate {
+        IsoWeekDate {
             year,
             week: week as _,
             weekday,
@@ -647,8 +647,8 @@ impl Sub for Date {
     }
 }
 
-impl From<IsoCalendarDate> for Date {
-    fn from(iso: IsoCalendarDate) -> Self {
+impl From<IsoWeekDate> for Date {
+    fn from(iso: IsoWeekDate) -> Self {
         let epoch = iso_week_start_epoch_from_year(iso.year)
             + (iso.week as i32 - 1) * 7
             + iso.weekday.days_from_sunday() as i32;

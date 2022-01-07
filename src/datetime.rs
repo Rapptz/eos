@@ -1,7 +1,7 @@
 use crate::{
     timezone::{Utc, UtcOffset},
     utils::divmod,
-    Date, IsoCalendarDate, Local, Time, TimeZone, Weekday,
+    Date, IsoWeekDate, Local, Time, TimeZone, Weekday,
 };
 use crate::{Error, Interval};
 
@@ -475,17 +475,17 @@ where
         self
     }
 
-    /// Returns the ISO Calendar for this date.
+    /// Returns the ISO week date for this datetime.
     ///
-    /// See [`IsoCalendarDate`] for more information.
+    /// See [`IsoWeekDate`] for more information.
     ///
-    /// Note that the familiar notion of a year is different under the ISO calendar.
+    /// Note that the familiar notion of a year is different under the ISO week date.
     ///
     /// ```
     /// use eos::{datetime, Weekday};
     ///
     /// // January 1st 1995 is a Sunday
-    /// let iso = datetime!(1995-01-01 00:00).iso_calendar();
+    /// let iso = datetime!(1995-01-01 00:00).iso_week();
     ///
     /// assert_eq!(iso.weekday(), Weekday::Sunday);
     /// // Despite being 1995 in Gregorian it is the 52nd week of 1994
@@ -493,14 +493,14 @@ where
     /// assert_eq!(iso.week(), 52);
     ///
     /// // Despite December 31st 1996 being in 1996, it's the 1st week of ISO year 1997.
-    /// let iso = datetime!(1996-12-31 00:00).iso_calendar();
+    /// let iso = datetime!(1996-12-31 00:00).iso_week();
     /// assert_eq!(iso.weekday(), Weekday::Tuesday);
     /// assert_eq!(iso.year(), 1997);
     /// assert_eq!(iso.week(), 1);
     /// ```
     #[inline]
-    pub fn iso_calendar(&self) -> IsoCalendarDate {
-        self.date.iso_calendar()
+    pub fn iso_week(&self) -> IsoWeekDate {
+        self.date.iso_week()
     }
 
     /// Returns a new [`DateTime`] with the date pointing to the given year.
