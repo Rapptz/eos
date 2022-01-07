@@ -174,6 +174,12 @@ where
             .in_timezone(timezone))
     }
 
+    /// Creates a [`DateTime`] representing the current day at midnight.
+    #[cfg(feature = "std")]
+    pub fn today(tz: Tz) -> Self {
+        DateTime::utc_now().in_timezone(tz).with_time(Time::MIDNIGHT)
+    }
+
     /// Returns a reference to the time component.
     pub fn time(&self) -> &Time {
         &self.time
