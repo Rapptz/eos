@@ -24,3 +24,9 @@ localtime = ["libc"]
 
 [target.'cfg(target_family = "unix")'.dependencies]
 libc = { version = "0.2", optional = true, default-features = false } # this could use the weak dep feature
+
+[workspace]
+members = [
+    "eos-tz",
+    "eos-tzdata",
+]

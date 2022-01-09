@@ -1,0 +1,20 @@
+[package]
+name = "eos-tz"
+version = "0.1.0"
+edition = "2021"
+authors = ["Rapptz"]
+rust-version = "1.57"
+description = "IANA database TimeZone extension for eos"
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Rapptz/eos"
+keywords = ["date", "time", "timezone", "tzdb"]
+categories = ["date-and-time"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+bundled = ["eos-tzdata"]
+
+[dependencies]
+eos-tzdata = { path = "../eos-tzdata", optional = true }
