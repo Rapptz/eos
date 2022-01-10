@@ -290,7 +290,7 @@ impl Date {
             return *self;
         }
 
-        let days = self.epoch_days() + days;
+        let days = self.days_since_epoch() + days;
         let (year, month, day) = date_from_epoch_days(days);
         Self { year, month, day }
     }
@@ -421,7 +421,8 @@ impl Date {
         date_to_ordinal(self.year, self.month, self.day)
     }
 
-    pub(crate) const fn epoch_days(&self) -> i32 {
+    /// Returns the number of days since the UNIX Epoch (1970-01-01).
+    pub const fn days_since_epoch(&self) -> i32 {
         date_to_epoch_days(self.year, self.month, self.day)
     }
 
@@ -437,7 +438,7 @@ impl Date {
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub fn weekday(&self) -> Weekday {
-        let days = self.epoch_days();
+        let days = self.days_since_epoch();
         let d = (days + 4).rem_euclid(7) as u8;
         match d {
             0 => Weekday::Sunday,
@@ -514,7 +515,7 @@ impl Date {
     /// assert_eq!(iso.week(), 1);
     /// ```
     pub const fn iso_week(&self) -> IsoWeekDate {
-        let epoch = self.epoch_days();
+        let epoch = self.days_since_epoch();
         let start_epoch = find_iso_week_start_epoch(self.year, epoch);
         let weekday = weekday_from_days(epoch);
         let week = (epoch - start_epoch) / 7 + 1; // range: [1, 53]

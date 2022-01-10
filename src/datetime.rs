@@ -248,7 +248,7 @@ where
             // Initially this is just a difference in days via epoch
             // If the UTC offsets at that date resolve to the same one, then they're on the same
             // date and the calculation is correct
-            let days = self.date().epoch_days() - other.date().epoch_days();
+            let days = self.date().days_since_epoch() - other.date().days_since_epoch();
             if my_offset == other_offset {
                 (days, true)
             } else {
@@ -420,6 +420,11 @@ where
     #[inline]
     pub fn ordinal(&self) -> u16 {
         self.date.ordinal()
+    }
+
+    /// Returns the number of days since the UNIX Epoch (1970-01-01).
+    pub fn days_since_epoch(&self) -> i32 {
+        self.date().days_since_epoch()
     }
 
     /// Returns the weekday.

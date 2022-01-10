@@ -333,7 +333,7 @@ impl Interval {
         result = result.add_years(years);
         let months = months_between(&result, end);
         result = result.add_months(months);
-        let days = end.epoch_days() - result.epoch_days();
+        let days = end.days_since_epoch() - result.days_since_epoch();
         Self {
             years,
             days,
@@ -473,7 +473,7 @@ impl Interval {
         Tz: TimeZone,
         OtherTz: TimeZone,
     {
-        let days = end.date().epoch_days() - start.date().epoch_days();
+        let days = end.date().days_since_epoch() - start.date().days_since_epoch();
         let mut seconds = end.time().total_seconds() - start.time().total_seconds();
         let nanos = end.time().nanosecond() as i32 - start.time().nanosecond() as i32;
 
