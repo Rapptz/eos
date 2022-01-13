@@ -141,7 +141,7 @@ macro_rules! date {
         $crate::macros::const_assert!(MONTH >= 1 && MONTH <= 12, "months must be between [1, 12]");
 
         $crate::macros::const_assert!(
-            DAY >= 1 && DAY <= $crate::utils::days_in_month(YEAR, MONTH),
+            DAY >= 1 && DAY <= $crate::gregorian::days_in_month(YEAR, MONTH),
             "day must be positive and within range of the month"
         );
 

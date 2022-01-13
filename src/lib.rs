@@ -13,11 +13,12 @@ mod date;
 mod datetime;
 mod error;
 pub mod ext;
+pub mod gregorian;
 mod interval;
 pub(crate) mod sys;
 mod time;
 mod timezone;
-pub mod utils;
+mod utils;
 
 pub use date::{Date, IsoWeekDate, Weekday};
 pub use datetime::DateTime;
