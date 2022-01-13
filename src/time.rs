@@ -169,7 +169,7 @@ impl Time {
     ///
     /// This value will always be within `0..24`.
     #[inline]
-    pub fn hour(&self) -> u8 {
+    pub const fn hour(&self) -> u8 {
         self.hour
     }
 
@@ -177,7 +177,7 @@ impl Time {
     ///
     /// This value will always be within `0..60`.
     #[inline]
-    pub fn minute(&self) -> u8 {
+    pub const fn minute(&self) -> u8 {
         self.minute
     }
 
@@ -185,7 +185,7 @@ impl Time {
     ///
     /// This value will always be within `0..60`.
     #[inline]
-    pub fn second(&self) -> u8 {
+    pub const fn second(&self) -> u8 {
         self.second
     }
 
@@ -193,7 +193,7 @@ impl Time {
     ///
     /// This value will always be within `0..1000`.
     #[inline]
-    pub fn millisecond(&self) -> u16 {
+    pub const fn millisecond(&self) -> u16 {
         (self.nanosecond / 1_000_000) as u16
     }
 
@@ -201,7 +201,7 @@ impl Time {
     ///
     /// This value will always be within `0..1_000_000`.
     #[inline]
-    pub fn microsecond(&self) -> u32 {
+    pub const fn microsecond(&self) -> u32 {
         self.nanosecond / 1_000
     }
 
@@ -209,7 +209,7 @@ impl Time {
     ///
     /// This value will always be within `0..2_000_000_000`.
     #[inline]
-    pub fn nanosecond(&self) -> u32 {
+    pub const fn nanosecond(&self) -> u32 {
         self.nanosecond
     }
 
