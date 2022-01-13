@@ -235,8 +235,8 @@ where
     where
         OtherTz: TimeZone,
     {
-        let my_offset = self.timezone.offset(self);
-        let other_offset = other.timezone.offset(other);
+        let my_offset = self.timezone.offset(self.date(), self.time());
+        let other_offset = other.timezone.offset(other.date(), other.time());
 
         if my_offset == other_offset {
             return (self.date, self.time).cmp(&(other.date, other.time));
@@ -296,7 +296,7 @@ where
 
     #[inline]
     pub(crate) fn into_utc(self) -> DateTime<Utc> {
-        let offset = self.timezone.offset(&self);
+        let offset = self.timezone.offset(self.date(), self.time());
         let mut utc = self.with_timezone(Utc);
         utc.shift(-offset);
         utc

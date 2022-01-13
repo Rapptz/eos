@@ -6,10 +6,7 @@ use crate::sys::localtime;
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 
-#[cfg(doc)]
-use crate::Time;
-
-use crate::{utils::ensure_in_range, DateTime, Error};
+use crate::{utils::ensure_in_range, Date, DateTime, Error, Time};
 
 /// Represents an offset from UTC.
 ///
@@ -287,53 +284,38 @@ impl core::ops::Neg for UtcOffset {
 
 /// A trait that defines timezone behaviour.
 pub trait TimeZone: Clone {
-    /// Returns the name of the timezone at a given datetime.
+    /// Returns the name of the timezone at a given date and time.
+    ///
+    /// The `date` and `time` parameters represent the local date time.
     #[cfg(feature = "alloc")]
-    fn name<Tz: TimeZone>(&self, _datetime: &DateTime<Tz>) -> Option<String> {
+    fn name(&self, _date: &Date, _time: &Time) -> Option<String> {
         None
     }
 
-    /// Returns the UTC offset of the timezone at a given datetime.
+    /// Returns the UTC offset of the timezone at a given date and time.
     ///
     /// If DST is being observed then the offset must take that into account.
-    fn offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset;
-
-    /// Returns the DST offset if it's being observed.
     ///
-    /// Note that despite this method existing, [`TimeZone::offset`] must
-    /// still include this offset. This method is mainly used in aiding for
-    /// timezone movement calculations.
-    ///
-    /// If DST is not being observed for this TimeZone at the given date
-    /// then [`UtcOffset::UTC`] should be returned.
-    fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset;
+    /// The `date` and `time` parameters represent the local date time.
+    fn offset(&self, date: &Date, time: &Time) -> UtcOffset;
 
     /// Converts from a UTC [`DateTime`] to a datetime in this timezone.
+    fn datetime_at(self, utc: DateTime<Utc>) -> DateTime<Self>
+    where
+        Self: Sized;
+}
+
+impl TimeZone for UtcOffset {
+    fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
+        *self
+    }
+
     fn datetime_at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
     where
         Self: Sized,
     {
-        // Algorithm taken from the PSF
-        let offset = self.offset(&utc);
-        let mut dst = self.dst_offset(&utc);
-        if let Ok(delta) = offset.checked_sub(dst) {
-            if !delta.is_utc() {
-                utc.shift(delta);
-                dst = self.dst_offset(&utc);
-            }
-        }
-        utc.shift(dst);
+        utc.shift(self);
         utc.with_timezone(self)
-    }
-}
-
-impl TimeZone for UtcOffset {
-    fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
-        *self
-    }
-
-    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
-        UtcOffset::UTC
     }
 }
 
@@ -343,16 +325,19 @@ pub struct Utc;
 
 impl TimeZone for Utc {
     #[cfg(feature = "alloc")]
-    fn name<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> Option<String> {
+    fn name(&self, _: &Date, _: &Time) -> Option<String> {
         Some(String::from("UTC"))
     }
 
-    fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+    fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
         UtcOffset::UTC
     }
 
-    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
-        UtcOffset::UTC
+    fn datetime_at(self, utc: DateTime<Utc>) -> DateTime<Self>
+    where
+        Self: Sized,
+    {
+        utc
     }
 }
 
@@ -441,16 +426,20 @@ impl Local {
 
 impl TimeZone for Local {
     #[cfg(feature = "alloc")]
-    fn name<Tz: TimeZone>(&self, _datetime: &DateTime<Tz>) -> Option<String> {
+    fn name(&self, _: &Date, _: &Time) -> Option<String> {
         self.0.name()
     }
 
-    fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+    fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
         self.0.offset()
     }
 
-    fn dst_offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
-        self.0.dst_offset()
+    fn datetime_at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
+    where
+        Self: Sized,
+    {
+        utc.shift(self.0.offset());
+        utc.with_timezone(self)
     }
 }
 

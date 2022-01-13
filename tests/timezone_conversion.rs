@@ -1,9 +1,11 @@
 // These tests are adapted from Python's datetime library
 // https://github.com/python/cpython/blob/3.10/Lib/test/datetimetester.py
 
-use eos::{datetime, ext::IntervalLiteral, utc_offset, DateTime, Interval, TimeZone, Utc, UtcOffset, Weekday};
+use eos::{
+    datetime, ext::IntervalLiteral, utc_offset, Date, DateTime, Interval, Time, TimeZone, Utc, UtcOffset, Weekday,
+};
 
-fn this_or_next_sunday<Tz: TimeZone>(date: DateTime<Tz>) -> DateTime<Tz> {
+fn this_or_next_sunday(date: Date) -> Date {
     if date.weekday() == Weekday::Sunday {
         date
     } else {
@@ -24,37 +26,53 @@ struct AmericanTimeZone {
     dst_name: &'static str,
 }
 
+impl AmericanTimeZone {
+    fn is_dst(&self, date: &Date, time: &Time) -> bool {
+        let start = this_or_next_sunday(*DST_START.with_year(date.year()).date());
+        assert_eq!(start.weekday(), Weekday::Sunday);
+        assert_eq!(start.month(), 3);
+        assert!(start.day() > 7);
+
+        let end = this_or_next_sunday(*DST_END.with_year(date.year()).date());
+        assert_eq!(end.weekday(), Weekday::Sunday);
+        assert_eq!(end.month(), 11);
+        assert!(end.day() <= 7);
+
+        let start_dt = (&start, DST_START.time());
+        let end_dt = (&end, DST_END.time());
+        let dt = (date, time);
+
+        dt >= start_dt && dt < end_dt
+    }
+}
+
 impl TimeZone for AmericanTimeZone {
-    fn name<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> Option<String> {
-        if self.dst_offset(datetime).is_utc() {
+    fn name(&self, date: &Date, time: &Time) -> Option<String> {
+        if self.is_dst(date, time) {
             Some(String::from(self.name))
         } else {
             Some(String::from(self.dst_name))
         }
     }
 
-    fn offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset {
-        self.offset.saturating_add(self.dst_offset(datetime))
+    fn offset(&self, date: &Date, time: &Time) -> UtcOffset {
+        if self.is_dst(date, time) {
+            self.offset.saturating_add(utc_offset!(+01:00))
+        } else {
+            self.offset
+        }
     }
 
-    fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset {
-        let start = this_or_next_sunday(DST_START.with_year(datetime.year()));
-        assert_eq!(start.weekday(), Weekday::Sunday);
-        assert_eq!(start.month(), 3);
-        assert!(start.day() > 7);
-
-        let end = this_or_next_sunday(DST_END.with_year(datetime.year()));
-        assert_eq!(end.weekday(), Weekday::Sunday);
-        assert_eq!(end.month(), 11);
-        assert!(end.day() <= 7);
-
-        // Compare while disregarding timezones
-        let dt = (datetime.date(), datetime.time());
-        if dt >= (start.date(), start.time()) && dt < (end.date(), end.time()) {
-            utc_offset!(+1:00)
-        } else {
-            UtcOffset::UTC
+    fn datetime_at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
+    where
+        Self: Sized,
+    {
+        // This doesn't deal with imaginary or ambiguous times
+        utc.shift(self.offset);
+        if self.is_dst(utc.date(), utc.time()) {
+            utc.shift(utc_offset!(+01:00));
         }
+        utc.with_timezone(self)
     }
 }
 
@@ -88,28 +106,8 @@ const DT: DateTime = datetime!(2021-12-31 00:00);
 struct AlwaysEasternStandard;
 
 impl TimeZone for AlwaysEasternStandard {
-    fn offset<Tz: TimeZone>(&self, _: &DateTime<Tz>) -> UtcOffset {
+    fn offset(&self, _date: &Date, _time: &Time) -> UtcOffset {
         utc_offset!(-5:00)
-    }
-
-    fn dst_offset<Tz: TimeZone>(&self, datetime: &DateTime<Tz>) -> UtcOffset {
-        let start = this_or_next_sunday(DST_START.with_year(datetime.year()));
-        assert_eq!(start.weekday(), Weekday::Sunday);
-        assert_eq!(start.month(), 3);
-        assert!(start.day() > 7);
-
-        let end = this_or_next_sunday(DST_END.with_year(datetime.year()));
-        assert_eq!(end.weekday(), Weekday::Sunday);
-        assert_eq!(end.month(), 11);
-        assert!(end.day() <= 7);
-
-        // Compare while disregarding timezones
-        let dt = (datetime.date(), datetime.time());
-        if dt >= (start.date(), end.time()) && dt < (end.date(), end.time()) {
-            utc_offset!(+1:00)
-        } else {
-            UtcOffset::UTC
-        }
     }
 
     fn datetime_at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
@@ -128,7 +126,10 @@ const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 fn test_from_utc() -> Result<(), eos::Error> {
     for tz in [&EAST, &CENTRAL, &MOUNTAIN, &PACIFIC] {
         let local = tz.datetime_at(DT);
-        assert_eq!(local - DT.with_timezone(*tz), Interval::from(tz.offset(&local)));
+        assert_eq!(
+            local - DT.with_timezone(*tz),
+            Interval::from(tz.offset(local.date(), local.time()))
+        );
         assert_eq!(local, DT);
     }
 

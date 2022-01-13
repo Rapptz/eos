@@ -477,8 +477,8 @@ impl Interval {
         let mut seconds = end.time().total_seconds() - start.time().total_seconds();
         let nanos = end.time().nanosecond() as i32 - start.time().nanosecond() as i32;
 
-        let offset = start.timezone().offset(start);
-        let end_offset = end.timezone().offset(end);
+        let offset = start.timezone().offset(start.date(), start.time());
+        let end_offset = end.timezone().offset(end.date(), end.time());
         if offset != end_offset {
             seconds = seconds + offset.total_seconds() - end_offset.total_seconds();
         }
