@@ -28,9 +28,9 @@ pub struct DateTime<Tz = Utc>
 where
     Tz: TimeZone,
 {
-    date: Date,
-    time: Time,
-    timezone: Tz,
+    pub(crate) date: Date,
+    pub(crate) time: Time,
+    pub(crate) timezone: Tz,
 }
 
 #[doc(hidden)]
@@ -312,7 +312,7 @@ where
     where
         OtherTz: TimeZone,
     {
-        timezone.datetime_at(self.into_utc())
+        timezone.at(self.into_utc())
     }
 
     /// Returns a new [`DateTime`] with the timezone component changed.
@@ -328,6 +328,18 @@ where
             time: self.time,
             timezone,
         }
+    }
+
+    /// Returns a new [`DateTime`] with the newly specified [`TimeZone`],
+    /// adjusting the date and time components to point to the same internal UTC
+    /// time but in the given timezone's local time.
+    ///
+    /// This is an alias to [`in_timezone`].
+    pub fn at<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
+    where
+        OtherTz: TimeZone,
+    {
+        timezone.at(self.into_utc())
     }
 
     /// Returns the POSIX timestamp in seconds.
@@ -840,7 +852,7 @@ mod tests {
 
         let utc = datetime!(2021-12-31 00:00);
         let offset = utc_offset!(-5:00);
-        let left = offset.datetime_at(utc);
+        let left = offset.at(utc);
         assert_eq!(left, utc);
     }
 

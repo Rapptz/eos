@@ -4,7 +4,7 @@ use crate::{
         is_leap_year, iso_week_start_epoch_from_year, iso_weeks_in_year, weekday_from_days, DAYS_BEFORE_MONTH,
     },
     utils::{divrem, ensure_in_range},
-    Error, Interval,
+    DateTime, Error, Interval, Time, Utc,
 };
 
 use core::ops::{Add, AddAssign, Sub, SubAssign};
@@ -283,6 +283,15 @@ impl Date {
         ensure_in_range!(month, 1 => 12);
         ensure_in_range!(day, 1 => days_in_month(year, month));
         Ok(Self { year, month, day })
+    }
+
+    /// Combines this [`Date`] with a [`Time`] to create a [`DateTime`] in [`Utc`].
+    pub fn at(&self, time: Time) -> DateTime<Utc> {
+        DateTime {
+            date: *self,
+            time,
+            timezone: Utc,
+        }
     }
 
     pub(crate) fn add_days(&self, days: i32) -> Self {

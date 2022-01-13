@@ -1,7 +1,7 @@
 use crate::{
     interval::{NANOS_PER_HOUR, NANOS_PER_MIN, NANOS_PER_SEC},
     utils::{divmod, ensure_in_range},
-    Error, Interval,
+    Date, DateTime, Error, Interval, Utc,
 };
 
 use core::{
@@ -86,6 +86,15 @@ impl Time {
             minute,
             second,
         })
+    }
+
+    /// Combines this [`Time`] with a [`Date`] to create a [`DateTime`] in [`Utc`].
+    pub fn at(&self, date: Date) -> DateTime<Utc> {
+        DateTime {
+            date,
+            time: *self,
+            timezone: Utc,
+        }
     }
 
     #[inline]
