@@ -1,5 +1,3 @@
-use std::fmt::Write;
-
 #[cfg(feature = "localtime")]
 use crate::sys::localtime;
 
@@ -258,15 +256,12 @@ impl UtcOffset {
 
 impl core::fmt::Display for UtcOffset {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.hours.fmt(f)?;
-        f.write_char(':')?;
         let (m, s) = (self.minutes.abs(), self.seconds.abs());
-        m.fmt(f)?;
         if s > 0 {
-            f.write_char(':')?;
-            s.fmt(f)?;
+            write!(f, "{:+03}:{:02}:{:02}", self.hours, m, s)
+        } else {
+            write!(f, "{:+03}:{:02}", self.hours, m)
         }
-        Ok(())
     }
 }
 

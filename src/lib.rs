@@ -9,6 +9,9 @@ extern crate alloc;
 #[cfg(feature = "macros")]
 pub mod macros;
 
+#[cfg(feature = "format")]
+pub mod isoformat;
+
 mod date;
 mod datetime;
 mod error;
@@ -24,6 +27,7 @@ pub use date::{Date, IsoWeekDate, Weekday};
 pub use datetime::DateTime;
 pub use error::Error;
 pub use interval::Interval;
+pub use isoformat::ToIsoFormat;
 pub use time::Time;
 pub use timezone::{Local, TimeZone, Utc, UtcOffset};
 

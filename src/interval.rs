@@ -3,8 +3,12 @@ use core::{
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     time::Duration,
 };
+use std::fmt::Write;
 
 use crate::{utils::divrem, Date, DateTime, Time, TimeZone, UtcOffset};
+
+#[cfg(feature = "format")]
+use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
@@ -723,5 +727,64 @@ impl Add<DateTime> for Interval {
 
     fn add(self, rhs: DateTime) -> Self::Output {
         rhs + self
+    }
+}
+
+impl core::fmt::Display for Interval {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self == &Self::ZERO {
+            return f.write_str("PT0S");
+        }
+        f.write_char('P')?;
+        if self.years != 0 {
+            write!(f, "{}Y", self.years)?;
+        }
+
+        if self.months != 0 {
+            write!(f, "{}M", self.months)?;
+        }
+
+        if self.days != 0 {
+            write!(f, "{}D", self.days)?;
+        }
+
+        if self.hours != 0 || self.minutes != 0 || self.seconds != 0 || self.nanoseconds != 0 {
+            f.write_char('T')?;
+        }
+
+        if self.hours != 0 {
+            write!(f, "{}H", self.hours)?;
+        }
+
+        if self.minutes != 0 {
+            write!(f, "{}M", self.minutes)?;
+        }
+
+        if self.nanoseconds == 0 {
+            if self.seconds != 0 {
+                write!(f, "{}S", self.seconds)?;
+            }
+        } else {
+            let as_frac = (self.seconds as f64) + (self.nanoseconds as f64) / (NANOS_PER_SEC as f64);
+            if as_frac != 0.0 {
+                write!(f, "{}S", as_frac)?
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "format")]
+impl ToIsoFormat for Interval {
+    fn to_iso_format_with_precision(&self, _precision: IsoFormatPrecision) -> String {
+        self.to_string()
+    }
+
+    /// Converts to an ISO-8601 format string such as `PnYnMnDTnHnMnS` where `Y`, `M`, `D`,`H`
+    /// and `S` represent units. Unlike the ISO-8601 format, this outputs negative values if the
+    /// corresponding unit is negative.
+    fn to_iso_format(&self) -> String {
+        self.to_string()
     }
 }

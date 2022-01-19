@@ -12,6 +12,9 @@ use core::ops::{Add, AddAssign, Sub, SubAssign};
 #[cfg(feature = "localtime")]
 use crate::sys::localtime::get_local_time_components;
 
+#[cfg(feature = "format")]
+use crate::isoformat::ToIsoFormat;
+
 /// An enum representing the different weekdays.
 ///
 /// Due to different orderings of weekdays, this type does not implement `PartialOrd` or `Ord`. Some
@@ -664,5 +667,49 @@ impl From<IsoWeekDate> for Date {
             + iso.weekday.days_from_sunday() as i32;
         let (year, month, day) = date_from_epoch_days(epoch);
         Self { year, month, day }
+    }
+}
+
+impl core::fmt::Display for Date {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        if self.year >= 0 && self.year <= 9999 {
+            write!(f, "{:04}-{:02}-{:02}", self.year, self.month, self.day)
+        } else {
+            write!(f, "{:+05}-{:02}-{:02}", self.year, self.month, self.day)
+        }
+    }
+}
+
+#[cfg(feature = "format")]
+impl ToIsoFormat for Date {
+    fn to_iso_format_with_precision(&self, _precision: crate::isoformat::IsoFormatPrecision) -> String {
+        self.to_iso_format()
+    }
+
+    fn to_iso_format(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl core::fmt::Display for IsoWeekDate {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "{:04}-W{:02}-{}",
+            self.year,
+            self.week,
+            self.weekday.number_from_monday()
+        )
+    }
+}
+
+#[cfg(feature = "format")]
+impl ToIsoFormat for IsoWeekDate {
+    fn to_iso_format_with_precision(&self, _precision: crate::isoformat::IsoFormatPrecision) -> String {
+        self.to_string()
+    }
+
+    fn to_iso_format(&self) -> String {
+        self.to_string()
     }
 }

@@ -10,8 +10,10 @@ use crate::sys::localtime;
 use core::time::Duration;
 use core::{
     cmp::Ordering,
+    fmt::Write,
     ops::{Add, Sub},
 };
+
 #[cfg(feature = "std")]
 use std::time::SystemTime;
 
@@ -662,6 +664,36 @@ where
     pub fn with_nanosecond(mut self, nanosecond: u32) -> Result<Self, Error> {
         self.time = self.time.with_nanosecond(nanosecond)?;
         Ok(self)
+    }
+}
+
+impl<Tz> core::fmt::Display for DateTime<Tz>
+where
+    Tz: TimeZone,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let offset = self.timezone.offset(&self.date, &self.time);
+        write!(f, "{}T{}{}", self.date, self.time, offset)
+    }
+}
+
+#[cfg(feature = "format")]
+impl<Tz> crate::isoformat::ToIsoFormat for DateTime<Tz>
+where
+    Tz: TimeZone,
+{
+    fn to_iso_format_with_precision(&self, precision: crate::isoformat::IsoFormatPrecision) -> String {
+        let offset = self.timezone.offset(&self.date, &self.time);
+        let mut buffer = String::with_capacity(40);
+        write!(&mut buffer, "{}", &self.date).expect("unexpected error when writing string");
+        buffer.push('T');
+        crate::time::fmt_iso_time(&mut buffer, &self.time, precision).expect("unexpected error when writing string");
+        write!(&mut buffer, "{}", offset).expect("unexpected error when writing string");
+        buffer
+    }
+
+    fn to_iso_format(&self) -> String {
+        self.to_string()
     }
 }
 

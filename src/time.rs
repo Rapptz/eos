@@ -9,6 +9,9 @@ use core::{
     time::Duration,
 };
 
+#[cfg(feature = "format")]
+use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
+
 /// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
 ///
 /// This type has nanosecond precision. Comparisons assume they're on the same calendar date.
@@ -317,5 +320,59 @@ impl Sub for Time {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Interval::between_times(&rhs, &self)
+    }
+}
+
+#[cfg(feature = "format")]
+pub(crate) fn fmt_iso_time<W>(f: &mut W, t: &Time, precision: IsoFormatPrecision) -> core::fmt::Result
+where
+    W: core::fmt::Write,
+{
+    match precision {
+        IsoFormatPrecision::Hour => write!(f, "{:02}:00", t.hour),
+        IsoFormatPrecision::Minute => write!(f, "{:02}:{:02}", t.hour, t.minute),
+        IsoFormatPrecision::Second => write!(f, "{:02}:{:02}:{:02}", t.hour, t.minute, t.second),
+        IsoFormatPrecision::Millisecond => {
+            let ms = t.millisecond();
+            write!(f, "{:02}:{:02}:{:02}.{:03}", t.hour, t.minute, t.second, ms)
+        }
+        IsoFormatPrecision::Microsecond => {
+            let ms = t.microsecond();
+            write!(f, "{:02}:{:02}:{:02}.{:06}", t.hour, t.minute, t.second, ms)
+        }
+        IsoFormatPrecision::Nanosecond => {
+            write!(f, "{:02}:{:02}:{:02}.{:07}", t.hour, t.minute, t.second, t.nanosecond)
+        }
+    }
+}
+
+impl core::fmt::Display for Time {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        if self.nanosecond != 0 {
+            write!(
+                f,
+                "{:02}:{:02}:{:02}.{:07}",
+                self.hour, self.minute, self.second, self.nanosecond
+            )
+        } else {
+            write!(f, "{:02}:{:02}:{:02}", self.hour, self.minute, self.second)
+        }
+    }
+}
+
+#[cfg(feature = "format")]
+impl ToIsoFormat for Time {
+    fn to_iso_format_with_precision(&self, precision: IsoFormatPrecision) -> String {
+        let mut buffer = String::with_capacity(16);
+        fmt_iso_time(&mut buffer, self, precision).unwrap();
+        buffer
+    }
+
+    fn to_iso_format(&self) -> String {
+        if self.nanosecond != 0 {
+            self.to_iso_format_with_precision(IsoFormatPrecision::Microsecond)
+        } else {
+            self.to_iso_format_with_precision(IsoFormatPrecision::Second)
+        }
     }
 }
