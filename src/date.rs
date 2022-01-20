@@ -664,7 +664,7 @@ impl From<IsoWeekDate> for Date {
     fn from(iso: IsoWeekDate) -> Self {
         let epoch = iso_week_start_epoch_from_year(iso.year)
             + (iso.week as i32 - 1) * 7
-            + iso.weekday.days_from_sunday() as i32;
+            + iso.weekday.days_from_monday() as i32;
         let (year, month, day) = date_from_epoch_days(epoch);
         Self { year, month, day }
     }
@@ -711,5 +711,32 @@ impl ToIsoFormat for IsoWeekDate {
 
     fn to_iso_format(&self) -> String {
         self.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::date;
+
+    use super::*;
+
+    #[test]
+    fn test_iso_week() {
+        assert_eq!(
+            date!(2008 - 12 - 29).iso_week(),
+            IsoWeekDate {
+                year: 2009,
+                week: 1,
+                weekday: Weekday::Monday
+            }
+        );
+        assert_eq!(
+            Date::from(IsoWeekDate {
+                year: 2009,
+                week: 1,
+                weekday: Weekday::Monday
+            }),
+            date!(2008 - 12 - 29)
+        );
     }
 }
