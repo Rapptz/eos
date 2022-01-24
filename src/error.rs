@@ -52,7 +52,7 @@ impl core::fmt::Display for ParseError {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "format"))]
 impl std::error::Error for ParseError {}
 
 impl From<core::num::TryFromIntError> for ParseError {
