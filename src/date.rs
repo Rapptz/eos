@@ -300,6 +300,17 @@ impl Date {
         }
     }
 
+    /// Formats this date with a given slice of [`crate::fmt::FormatSpec`].
+    ///
+    /// Check the [`crate::fmt`] module for more documentation.
+    #[cfg(feature = "format")]
+    pub fn format<'a, 'b, S>(&'a self, spec: S) -> crate::fmt::DateFormatter<'a, 'b, S>
+    where
+        S: AsRef<[crate::fmt::FormatSpec<'b>]>,
+    {
+        crate::fmt::DateFormatter::new(self, spec)
+    }
+
     pub(crate) fn add_days(&self, days: i32) -> Self {
         if days == 0 {
             return *self;

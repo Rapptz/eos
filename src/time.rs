@@ -103,6 +103,17 @@ impl Time {
         }
     }
 
+    /// Formats this time with a given slice of [`crate::fmt::FormatSpec`].
+    ///
+    /// Check the [`crate::fmt`] module for more documentation.
+    #[cfg(feature = "format")]
+    pub fn format<'a, 'b, S>(&'a self, spec: S) -> crate::fmt::TimeFormatter<'a, 'b, S>
+    where
+        S: AsRef<[crate::fmt::FormatSpec<'b>]>,
+    {
+        crate::fmt::TimeFormatter::new(self, spec)
+    }
+
     #[inline]
     pub(crate) fn total_seconds(&self) -> i32 {
         self.hour as i32 * 3600 + self.minute as i32 * 60 + self.second as i32

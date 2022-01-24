@@ -12,6 +12,9 @@ pub mod macros;
 #[cfg(feature = "format")]
 pub mod isoformat;
 
+#[cfg(feature = "format")]
+pub mod fmt;
+
 mod date;
 mod datetime;
 mod error;

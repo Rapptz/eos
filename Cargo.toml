@@ -16,12 +16,13 @@ categories = ["date-and-time"]
 [features]
 default = ["alloc", "std", "macros", "localtime", "format"]
 std = ["alloc"]
-format = ["alloc"]
+format = ["alloc", "eos-format-spec-macro"]
 alloc = []
 macros = []
 localtime = ["libc"]
 
 [dependencies]
+eos-format-spec-macro = { path = "eos-format-spec-macro", optional = true }
 
 [target.'cfg(target_family = "unix")'.dependencies]
 libc = { version = "0.2", optional = true, default-features = false } # this could use the weak dep feature
@@ -30,4 +31,5 @@ libc = { version = "0.2", optional = true, default-features = false } # this cou
 members = [
     "eos-tz",
     "eos-tzdata",
+    "eos-format-spec-macro",
 ]

@@ -188,6 +188,17 @@ where
         DateTime::utc_now().in_timezone(tz).with_time(Time::MIDNIGHT)
     }
 
+    /// Formats this datetime with a given slice of [`crate::fmt::FormatSpec`].
+    ///
+    /// Check the [`crate::fmt`] module for more documentation.
+    #[cfg(feature = "format")]
+    pub fn format<'a, 'b, S>(&'a self, spec: S) -> crate::fmt::DateTimeFormatter<'a, 'b, Tz, S>
+    where
+        S: AsRef<[crate::fmt::FormatSpec<'b>]>,
+    {
+        crate::fmt::DateTimeFormatter::new(self, spec)
+    }
+
     /// Returns a reference to the time component.
     pub fn time(&self) -> &Time {
         &self.time
