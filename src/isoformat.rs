@@ -217,9 +217,9 @@ impl<'a> IsoParser<'a> {
     pub(crate) fn parse_year(&mut self) -> Result<i16, ParseError> {
         let negative = self.parse_sign();
         let mut digits = [0u8; 4];
-        for index in 0..4 {
+        for digit in digits.iter_mut() {
             match self.advance() {
-                Some(b) if b.is_ascii_digit() => digits[index] = b - b'0',
+                Some(b) if b.is_ascii_digit() => *digit = b - b'0',
                 Some(_) => return Err(ParseError::UnexpectedNonDigit),
                 None => return Err(ParseError::UnexpectedEnd),
             }
@@ -242,9 +242,9 @@ impl<'a> IsoParser<'a> {
     /// Must be zero padded. Note this does not do bound checking.
     pub(crate) fn parse_two_digits(&mut self) -> Result<u8, ParseError> {
         let mut digits = [0u8; 2];
-        for index in 0..2 {
+        for digit in digits.iter_mut() {
             match self.advance() {
-                Some(b) if b.is_ascii_digit() => digits[index] = b - b'0',
+                Some(b) if b.is_ascii_digit() => *digit = b - b'0',
                 Some(_) => return Err(ParseError::UnexpectedNonDigit),
                 None => return Err(ParseError::UnexpectedEnd),
             }
@@ -281,12 +281,10 @@ impl<'a> IsoParser<'a> {
         if let Some(b) = self.advance_if(u8::is_ascii_digit) {
             let ordinal = digits as u16 * 10 + (b - b'0') as u16;
             Ok(OrdinalMonthResult::Ordinal(ordinal))
+        } else if digits == 0 || digits > 12 {
+            Err(ParseError::OutOfBounds)
         } else {
-            if digits == 0 || digits > 12 {
-                Err(ParseError::OutOfBounds)
-            } else {
-                Ok(OrdinalMonthResult::Month(digits))
-            }
+            Ok(OrdinalMonthResult::Month(digits))
         }
     }
 
