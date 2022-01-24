@@ -322,6 +322,7 @@ pub fn parse_spec(s: &str) -> Result<Vec<FormatSpec<'_>>, Error> {
 
 /// Parses and validates format string at compile time.
 #[doc(inline)]
+#[cfg(feature = "macros")]
 pub use eos_format_spec_macro::format_spec;
 
 /// Helper macro to make formatting types a bit less cumbersome.
@@ -336,6 +337,7 @@ pub use eos_format_spec_macro::format_spec;
 ///     format_dt!("%Y-%m-%d", date).to_string(),
 /// );
 /// ```
+#[cfg(all(feature = "macros", feature = "formatting"))]
 #[macro_export]
 macro_rules! format_dt {
     ($fmt:literal, $dt:expr) => {
@@ -343,9 +345,11 @@ macro_rules! format_dt {
     };
 }
 
+#[cfg(feature = "formatting")]
 pub use format_dt;
 
 /// A wrapper type that formats [`Date`] instances with the given format spec.
+#[cfg(feature = "formatting")]
 pub struct DateFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -355,6 +359,7 @@ where
     phantom: core::marker::PhantomData<&'b Date>,
 }
 
+#[cfg(feature = "formatting")]
 impl<'a, 'b, Spec> DateFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -369,6 +374,7 @@ where
 }
 
 /// A wrapper type that formats [`Time`] instances with the given format spec.
+#[cfg(feature = "formatting")]
 pub struct TimeFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -378,6 +384,7 @@ where
     phantom: core::marker::PhantomData<&'b Time>,
 }
 
+#[cfg(feature = "formatting")]
 impl<'a, 'b, Spec> TimeFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -392,6 +399,7 @@ where
 }
 
 /// A wrapper type that formats [`DateTime`] instances with the given format spec.
+#[cfg(feature = "formatting")]
 pub struct DateTimeFormatter<'a, 'b, Tz, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -402,6 +410,7 @@ where
     phantom: core::marker::PhantomData<&'b DateTime>,
 }
 
+#[cfg(feature = "formatting")]
 impl<'a, 'b, Tz, Spec> DateTimeFormatter<'a, 'b, Tz, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -416,6 +425,7 @@ where
     }
 }
 
+#[cfg(feature = "formatting")]
 fn abbreviated_weekday(weekday: crate::Weekday) -> &'static str {
     match weekday {
         crate::Weekday::Monday => "Mon",
@@ -428,6 +438,7 @@ fn abbreviated_weekday(weekday: crate::Weekday) -> &'static str {
     }
 }
 
+#[cfg(feature = "formatting")]
 fn full_weekday(weekday: crate::Weekday) -> &'static str {
     match weekday {
         crate::Weekday::Monday => "Monday",
@@ -440,6 +451,7 @@ fn full_weekday(weekday: crate::Weekday) -> &'static str {
     }
 }
 
+#[cfg(feature = "formatting")]
 fn abbreviated_month(month: u8) -> &'static str {
     match month {
         1 => "Jan",
@@ -459,6 +471,7 @@ fn abbreviated_month(month: u8) -> &'static str {
     }
 }
 
+#[cfg(feature = "formatting")]
 fn full_month(month: u8) -> &'static str {
     match month {
         1 => "January",
@@ -480,6 +493,7 @@ fn full_month(month: u8) -> &'static str {
 
 /// Pads a number to the specified digits given a specified padding.
 #[inline]
+#[cfg(feature = "formatting")]
 fn pad_number<T>(
     f: &mut core::fmt::Formatter<'_>,
     number: T,
@@ -496,6 +510,7 @@ where
     }
 }
 
+#[cfg(feature = "formatting")]
 impl<'a, 'b, Spec> core::fmt::Display for DateFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -558,6 +573,7 @@ where
     }
 }
 
+#[cfg(feature = "formatting")]
 impl<'a, 'b, Spec> core::fmt::Display for TimeFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -594,6 +610,7 @@ where
     }
 }
 
+#[cfg(feature = "formatting")]
 impl<'a, 'b, Tz, Spec> core::fmt::Display for DateTimeFormatter<'a, 'b, Tz, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,

@@ -15,7 +15,7 @@
 use crate::{utils::divmod, Date, Time};
 use core::{fmt::Write, iter::Peekable, str::Bytes};
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 use crate::error::ParseError;
 
 /// Converts a value from an ISO-8601-1:2019 formatted string.
@@ -26,7 +26,7 @@ use crate::error::ParseError;
 /// Note that this library does not aim for strict ISO-8601 compliance and a lot of esoteric
 /// formats are not supported. The documentation of the individual implementations should
 /// mention what formats are supported.
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 pub trait FromIsoFormat: Sized {
     /// Parses a string `s` to return a valid value of this type.
     ///
@@ -42,7 +42,7 @@ pub trait FromIsoFormat: Sized {
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 pub enum IsoFormatPrecision {
     /// Display up to the hour, leaving remaining values either as 0 or omitted if possible.
     Hour,
@@ -63,7 +63,7 @@ pub enum IsoFormatPrecision {
 /// such as negative duration and have a lot of esoteric formats that aren't supported.
 ///
 /// This conversion should be infallible (other than allocation errors...).
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 pub trait ToIsoFormat {
     /// Converts to an appropriate ISO-8601 extended formatted string with the given precision.
     ///
@@ -79,7 +79,7 @@ pub trait ToIsoFormat {
     fn to_iso_format(&self) -> String;
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 impl ToIsoFormat for core::time::Duration {
     fn to_iso_format_with_precision(&self, _precision: IsoFormatPrecision) -> String {
         self.to_iso_format()
@@ -122,18 +122,22 @@ impl ToIsoFormat for core::time::Duration {
 ///
 /// This assumes that the string is entirely ASCII (which it should be).
 /// Anything outside of the ASCII range would return an appropriate error anyway.
+#[cfg(feature = "parsing")]
 pub(crate) struct IsoParser<'a> {
     bytes: Peekable<Bytes<'a>>,
 }
 
 /// Represents either a month or an ordinal date
+#[cfg(feature = "parsing")]
 enum OrdinalMonthResult {
     Month(u8),
     Ordinal(u16),
 }
 
+#[cfg(feature = "parsing")]
 const POW10: [u32; 9] = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
 
+#[cfg(feature = "parsing")]
 impl<'a> IsoParser<'a> {
     pub(crate) fn new(s: &'a str) -> Self {
         Self {

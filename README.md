@@ -11,10 +11,11 @@
 **Default features:**
 
 - `alloc`: Enable features that require allocation.
-- `macros`: Enables the compile-time construction macros. These use `macro_rules!` rather than the proc-macro machinery to keep compile times sane.
+- `macros`: Enables the compile-time construction macros. Most of these use `macro_rules!` rather than the proc-macro machinery to keep compile times sane. Unfortunately, due to limitations in `const fn`, the `format_spec!` macro uses proc-macro machinery. To keep compile-times sane for this macro, `syn` and `quote` are **not** used.
 - `std`: Enable features that require the standard library. Implies `alloc`.
 - `localtime`: Enable features that allow retrieving local time information. Requires `libc` on POSIX.
-- `format`: Enable features relating to formatting various types. This also adds the The `format_spec!` macro which uses proc-macros due to limitations in `const fn`. Implies `alloc`.
+- `formatting`: Enable features relating to formatting various types. Implies `alloc`.
+- `parsing`: Enable features relating to parsing strings to various types. Implies `alloc`.
 
 ### Why not `chrono` or `time`?
 

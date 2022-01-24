@@ -17,11 +17,14 @@ use core::{
 #[cfg(feature = "std")]
 use std::time::SystemTime;
 
-#[cfg(feature = "format")]
-use crate::isoformat::{FromIsoFormat, IsoFormatPrecision, IsoParser, ToIsoFormat};
+#[cfg(feature = "formatting")]
+use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 use crate::error::ParseError;
+
+#[cfg(feature = "parsing")]
+use crate::isoformat::{FromIsoFormat, IsoParser};
 
 /// An ISO 8601 combined date and time component.
 ///
@@ -191,7 +194,7 @@ where
     /// Formats this datetime with a given slice of [`crate::fmt::FormatSpec`].
     ///
     /// Check the [`crate::fmt`] module for more documentation.
-    #[cfg(feature = "format")]
+    #[cfg(feature = "formatting")]
     pub fn format<'a, 'b, S>(&'a self, spec: S) -> crate::fmt::DateTimeFormatter<'a, 'b, Tz, S>
     where
         S: AsRef<[crate::fmt::FormatSpec<'b>]>,
@@ -694,7 +697,7 @@ where
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 impl<Tz> ToIsoFormat for DateTime<Tz>
 where
     Tz: TimeZone,
@@ -714,7 +717,7 @@ where
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 impl FromIsoFormat for DateTime<UtcOffset> {
     /// Parses an ISO-8601 formatted string into a [`DateTime`] with a [`UtcOffset`].
     ///

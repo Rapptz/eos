@@ -12,11 +12,14 @@ use core::ops::{Add, AddAssign, Sub, SubAssign};
 #[cfg(feature = "localtime")]
 use crate::sys::localtime::get_local_time_components;
 
-#[cfg(feature = "format")]
-use crate::isoformat::{FromIsoFormat, IsoParser, ToIsoFormat};
+#[cfg(feature = "formatting")]
+use crate::isoformat::ToIsoFormat;
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 use crate::error::ParseError;
+
+#[cfg(feature = "parsing")]
+use crate::isoformat::{FromIsoFormat, IsoParser};
 
 /// An enum representing the different weekdays.
 ///
@@ -303,7 +306,7 @@ impl Date {
     /// Formats this date with a given slice of [`crate::fmt::FormatSpec`].
     ///
     /// Check the [`crate::fmt`] module for more documentation.
-    #[cfg(feature = "format")]
+    #[cfg(feature = "formatting")]
     pub fn format<'a, 'b, S>(&'a self, spec: S) -> crate::fmt::DateFormatter<'a, 'b, S>
     where
         S: AsRef<[crate::fmt::FormatSpec<'b>]>,
@@ -694,7 +697,7 @@ impl core::fmt::Display for Date {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 impl ToIsoFormat for Date {
     fn to_iso_format_with_precision(&self, _precision: crate::isoformat::IsoFormatPrecision) -> String {
         self.to_iso_format()
@@ -705,7 +708,7 @@ impl ToIsoFormat for Date {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 impl FromIsoFormat for Date {
     /// Parse an ISO-8601 formatted string to a [`Date`].
     ///
@@ -734,7 +737,7 @@ impl core::fmt::Display for IsoWeekDate {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 impl ToIsoFormat for IsoWeekDate {
     fn to_iso_format_with_precision(&self, _precision: crate::isoformat::IsoFormatPrecision) -> String {
         self.to_string()
@@ -745,7 +748,7 @@ impl ToIsoFormat for IsoWeekDate {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 impl FromIsoFormat for IsoWeekDate {
     /// Parse an ISO-8601 formatted string to a [`IsoWeekDate`].
     ///

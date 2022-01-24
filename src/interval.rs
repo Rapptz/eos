@@ -7,7 +7,7 @@ use std::fmt::Write;
 
 use crate::{utils::divrem, Date, DateTime, Time, TimeZone, UtcOffset};
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
@@ -775,7 +775,7 @@ impl core::fmt::Display for Interval {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 impl ToIsoFormat for Interval {
     fn to_iso_format_with_precision(&self, _precision: IsoFormatPrecision) -> String {
         self.to_string()

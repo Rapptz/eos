@@ -14,11 +14,12 @@ categories = ["date-and-time"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["alloc", "std", "macros", "localtime", "format"]
+default = ["alloc", "std", "macros", "localtime", "formatting", "parsing"]
 std = ["alloc"]
-format = ["alloc", "eos-format-spec-macro"]
+formatting = ["alloc"]
+parsing = ["alloc"]
 alloc = []
-macros = []
+macros = ["eos-format-spec-macro"]
 localtime = ["libc"]
 
 [dependencies]

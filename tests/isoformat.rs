@@ -1,8 +1,10 @@
 use std::time::Duration;
 
 use eos::{
-    date, datetime, ext::IntervalLiteral, isoformat::FromIsoFormat, time, Date, DateTime, IsoWeekDate, Time,
-    ToIsoFormat, Weekday,
+    date, datetime,
+    ext::IntervalLiteral,
+    isoformat::{FromIsoFormat, ToIsoFormat},
+    time, Date, DateTime, IsoWeekDate, Time, Weekday,
 };
 
 #[test]

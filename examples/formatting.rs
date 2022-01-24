@@ -1,4 +1,4 @@
-use eos::{Local, format_dt};
+use eos::{format_dt, Local};
 
 // Example showcasing different forms of formatting
 

@@ -25,7 +25,7 @@ impl std::error::Error for Error {}
 /// the [`crate::isoformat::FromIsoFormat`] trait.
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 pub enum ParseError {
     /// The parser expected a character but there were no more.
     UnexpectedEnd,
@@ -39,6 +39,7 @@ pub enum ParseError {
     OutOfBounds,
 }
 
+#[cfg(feature = "parsing")]
 impl core::fmt::Display for ParseError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
@@ -52,9 +53,10 @@ impl core::fmt::Display for ParseError {
     }
 }
 
-#[cfg(all(feature = "std", feature = "format"))]
+#[cfg(all(feature = "std", feature = "parsing"))]
 impl std::error::Error for ParseError {}
 
+#[cfg(feature = "parsing")]
 impl From<core::num::TryFromIntError> for ParseError {
     fn from(_: core::num::TryFromIntError) -> Self {
         Self::OutOfBounds

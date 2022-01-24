@@ -9,10 +9,10 @@ use core::{
     time::Duration,
 };
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 use crate::isoformat::{FromIsoFormat, IsoFormatPrecision, IsoParser, ToIsoFormat};
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 use crate::error::ParseError;
 
 /// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
@@ -106,7 +106,7 @@ impl Time {
     /// Formats this time with a given slice of [`crate::fmt::FormatSpec`].
     ///
     /// Check the [`crate::fmt`] module for more documentation.
-    #[cfg(feature = "format")]
+    #[cfg(feature = "formatting")]
     pub fn format<'a, 'b, S>(&'a self, spec: S) -> crate::fmt::TimeFormatter<'a, 'b, S>
     where
         S: AsRef<[crate::fmt::FormatSpec<'b>]>,
@@ -337,7 +337,7 @@ impl Sub for Time {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 pub(crate) fn fmt_iso_time<W>(f: &mut W, t: &Time, precision: IsoFormatPrecision) -> core::fmt::Result
 where
     W: core::fmt::Write,
@@ -374,7 +374,7 @@ impl core::fmt::Display for Time {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "formatting")]
 impl ToIsoFormat for Time {
     fn to_iso_format_with_precision(&self, precision: IsoFormatPrecision) -> String {
         let mut buffer = String::with_capacity(16);
@@ -391,7 +391,7 @@ impl ToIsoFormat for Time {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(feature = "parsing")]
 impl FromIsoFormat for Time {
     /// Parse an ISO-8601 formatted string to a [`Time`].
     ///
