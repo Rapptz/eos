@@ -12,10 +12,29 @@
 //!
 //! [`java.time`]: https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
 
-use crate::utils::divmod;
-use core::fmt::Write;
+use crate::{utils::divmod, Date, Time};
+use core::{fmt::Write, iter::Peekable, str::Bytes};
 
-/// An enum that specifies how the [`ToIso`] trait should handle precision of the components.
+#[cfg(feature = "format")]
+use crate::error::ParseError;
+
+/// Converts a value from an ISO-8601-1:2019 formatted string.
+///
+/// This trait is similar to [`std::str::FromStr`] except it deals with a subset of
+/// string formats.
+///
+/// Note that this library does not aim for strict ISO-8601 compliance and a lot of esoteric
+/// formats are not supported. The documentation of the individual implementations should
+/// mention what formats are supported.
+#[cfg(feature = "format")]
+pub trait FromIsoFormat: Sized {
+    /// Parses a string `s` to return a valid value of this type.
+    ///
+    /// If parsing fails then [`ParseError`] is returned in the [`Err`] variant.
+    fn from_iso_format(s: &str) -> Result<Self, ParseError>;
+}
+
+/// An enum that specifies how the [`ToIsoFormat`] trait should handle precision of the components.
 ///
 /// If a given precision would omit certain values from displaying, these values are *omitted*
 /// rather than rounded to that value. For example, if the [`IsoFormatPrecision::Hour`] precision
@@ -49,7 +68,7 @@ pub trait ToIsoFormat {
     /// Converts to an appropriate ISO-8601 extended formatted string with the given precision.
     ///
     /// Certain types do not make use of this precision and will be ignored. A much simpler
-    /// alternative is provided under [`Self::to_iso`].
+    /// alternative is provided under [`Self::to_iso_format`].
     fn to_iso_format_with_precision(&self, precision: IsoFormatPrecision) -> String;
 
     /// Converts to an appropriate ISO-8601 extended formatted string.
@@ -96,5 +115,312 @@ impl ToIsoFormat for core::time::Duration {
             }
         }
         buffer
+    }
+}
+
+/// A parser to parse ISO-8601 like strings.
+///
+/// This assumes that the string is entirely ASCII (which it should be).
+/// Anything outside of the ASCII range would return an appropriate error anyway.
+pub(crate) struct IsoParser<'a> {
+    bytes: Peekable<Bytes<'a>>,
+}
+
+/// Represents either a month or an ordinal date
+enum OrdinalMonthResult {
+    Month(u8),
+    Ordinal(u16),
+}
+
+const POW10: [u32; 9] = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
+
+impl<'a> IsoParser<'a> {
+    pub(crate) fn new(s: &'a str) -> Self {
+        Self {
+            bytes: s.bytes().peekable(),
+        }
+    }
+
+    /// Peeks the next character in the stream
+    #[inline]
+    pub(crate) fn peek(&mut self) -> Option<u8> {
+        self.bytes.peek().copied()
+    }
+
+    /// Advances the stream by 1 byte.
+    #[inline]
+    pub(crate) fn advance(&mut self) -> Option<u8> {
+        self.bytes.next()
+    }
+
+    /// Advances the stream if the predicate is met.
+    pub(crate) fn advance_if<F>(&mut self, predicate: F) -> Option<u8>
+    where
+        F: FnOnce(&u8) -> bool,
+    {
+        self.bytes.next_if(predicate)
+    }
+
+    /// Advanced the stream by 1 byte if the next
+    /// byte matches the expected one.
+    #[inline]
+    pub(crate) fn advance_if_equal(&mut self, expected: u8) -> Option<u8> {
+        self.advance_if(|&ch| ch == expected)
+    }
+
+    /// Parses up to N digits, returning an N-sized array with a count of how many digits were found.
+    ///
+    /// This does not error on end of string or if a non-digit is found.
+    pub(crate) fn parse_up_to_n_digits<const N: usize>(&mut self) -> ([u8; N], usize) {
+        let mut digits = [0u8; N];
+        let mut index = 0;
+        while index < N {
+            match self.bytes.next_if(u8::is_ascii_digit) {
+                Some(b) => digits[index] = b - b'0',
+                None => break,
+            }
+            index += 1;
+        }
+
+        (digits, index)
+    }
+
+    /// Expects the stream to have the following byte
+    #[inline]
+    pub(crate) fn expect(&mut self, expected: u8) -> Result<u8, ParseError> {
+        match self.advance() {
+            Some(b) if b == expected => Ok(b),
+            Some(b) => Err(ParseError::UnexpectedChar {
+                expected: expected as char,
+                found: b as char,
+            }),
+            None => Err(ParseError::UnexpectedEnd),
+        }
+    }
+
+    /// Parses an optional ± and returns whether the value is negative.
+    pub(crate) fn parse_sign(&mut self) -> bool {
+        match self.peek() {
+            Some(b'+') => {
+                self.bytes.next();
+                false
+            }
+            Some(b'-') => {
+                self.bytes.next();
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Parses a year matching the syntax `±?YYYYY?`. Years must be zero-padded.
+    pub(crate) fn parse_year(&mut self) -> Result<i16, ParseError> {
+        let negative = self.parse_sign();
+        let mut digits = [0u8; 4];
+        for index in 0..4 {
+            match self.advance() {
+                Some(b) if b.is_ascii_digit() => digits[index] = b - b'0',
+                Some(_) => return Err(ParseError::UnexpectedNonDigit),
+                None => return Err(ParseError::UnexpectedEnd),
+            }
+        }
+
+        let year = digits[0] as i32 * 1000 + digits[1] as i32 * 100 + digits[2] as i32 * 10 + digits[3] as i32;
+        let year = if let Some(b) = self.advance_if(u8::is_ascii_digit) {
+            let new_year = year * 10 + (b - b'0') as i32;
+            i16::try_from(new_year)?
+        } else {
+            year as i16
+        };
+
+        Ok(if negative { -year } else { year })
+    }
+
+    /// Parses a two digit unit (e.g. `02`) into their integer representation.
+    /// This must match the syntax `NN`. No signs permitted.
+    ///
+    /// Must be zero padded. Note this does not do bound checking.
+    pub(crate) fn parse_two_digits(&mut self) -> Result<u8, ParseError> {
+        let mut digits = [0u8; 2];
+        for index in 0..2 {
+            match self.advance() {
+                Some(b) if b.is_ascii_digit() => digits[index] = b - b'0',
+                Some(_) => return Err(ParseError::UnexpectedNonDigit),
+                None => return Err(ParseError::UnexpectedEnd),
+            }
+        }
+
+        Ok(digits[0] * 10 + digits[1])
+    }
+
+    /// Parses a single digit
+    pub(crate) fn parse_digit(&mut self) -> Result<u8, ParseError> {
+        match self.advance() {
+            Some(b) if b.is_ascii_digit() => Ok(b - b'0'),
+            Some(_) => Err(ParseError::UnexpectedNonDigit),
+            None => Err(ParseError::UnexpectedEnd),
+        }
+    }
+
+    /// Parses a month matching the `MM` syntax. This performs bounds checking between
+    /// 1 and 12.
+    pub(crate) fn parse_month(&mut self) -> Result<u8, ParseError> {
+        let digits = self.parse_two_digits()?;
+        if digits == 0 || digits > 12 {
+            Err(ParseError::OutOfBounds)
+        } else {
+            Ok(digits)
+        }
+    }
+
+    /// Parses either a month in `NN` syntax or an ordinal in `NNN` syntax.
+    ///
+    /// This bound checks the month but *not* the ordinal date.
+    fn parse_month_or_ordinal(&mut self) -> Result<OrdinalMonthResult, ParseError> {
+        let digits = self.parse_two_digits()?;
+        if let Some(b) = self.advance_if(u8::is_ascii_digit) {
+            let ordinal = digits as u16 * 10 + (b - b'0') as u16;
+            Ok(OrdinalMonthResult::Ordinal(ordinal))
+        } else {
+            if digits == 0 || digits > 12 {
+                Err(ParseError::OutOfBounds)
+            } else {
+                Ok(OrdinalMonthResult::Month(digits))
+            }
+        }
+    }
+
+    /// Parses the supported date formats.
+    ///
+    /// Right now these are:
+    ///
+    /// - `±YYYYY-MM-DD` (e.g. `2012-02-13` or `-9999-10-12`)
+    /// - `±YYYYY-MM` (e.g. `2012-02`)
+    /// - `±YYYYY-Www` (e.g. `2012-W10`)
+    /// - `±YYYYY-Www-D` (e.g. `2012-W10-1`)
+    /// - `±YYYYY-DDD` (e.g. `2021-048`)
+    pub(crate) fn parse_date(&mut self) -> Result<Date, ParseError> {
+        let year = self.parse_year()?;
+        self.expect(b'-')?;
+        match self.advance_if_equal(b'W') {
+            Some(_) => {
+                // week date parsing, i.e. 2012-W10-1
+                let week = self.parse_two_digits()?;
+                if week == 0 || week > crate::gregorian::iso_weeks_in_year(year) {
+                    return Err(ParseError::OutOfBounds);
+                }
+                let weekday = match self.advance_if_equal(b'-') {
+                    Some(_) => match self.parse_digit()? {
+                        n @ 1..=7 => n - 1,
+                        _ => return Err(ParseError::OutOfBounds),
+                    },
+                    None => 0,
+                };
+                let epoch =
+                    crate::gregorian::iso_week_start_epoch_from_year(year) + (week as i32 - 1) * 7 + weekday as i32;
+                let (year, month, day) = crate::gregorian::date_from_epoch_days(epoch);
+                Ok(Date { year, month, day })
+            }
+            None => {
+                match self.parse_month_or_ordinal()? {
+                    OrdinalMonthResult::Month(month) => {
+                        let day = match self.advance_if_equal(b'-') {
+                            Some(_) => {
+                                // YYYY-MM-DD
+                                let day = self.parse_two_digits()?;
+                                if day > crate::gregorian::days_in_month(year, month) {
+                                    return Err(ParseError::OutOfBounds);
+                                }
+                                day
+                            }
+                            None => 1,
+                        };
+                        // The parser ensures these values are bound checked
+                        Ok(Date { year, month, day })
+                    }
+                    OrdinalMonthResult::Ordinal(ordinal) => {
+                        Date::from_ordinal(year, ordinal).map_err(|_| ParseError::OutOfBounds)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Parses the supported time formats.
+    ///
+    /// Right now these are:
+    ///
+    /// - `HH:MM` (e.g. `10:23`)
+    /// - `HH:MM:SS` (e.g. `10:24:30`)
+    /// - `HH:MM:SS.sssssssss`, up to 9 digits of precision (e.g. `10:24:30.999999999`)
+    /// - `HH:MM:SS,sssssssss`, same as above
+    ///
+    pub(crate) fn parse_time(&mut self) -> Result<Time, ParseError> {
+        let hour = self.parse_two_digits()?;
+        self.expect(b':')?;
+        let minute = self.parse_two_digits()?;
+        let (mut second, mut nanosecond) = match self.advance_if_equal(b':') {
+            Some(_) => {
+                let seconds = self.parse_two_digits()?;
+                let nanoseconds = match self.advance_if(|&c| c == b'.' || c == b',') {
+                    Some(_) => {
+                        let (digits, count) = self.parse_up_to_n_digits::<9>();
+                        if count == 0 {
+                            // 12:34:56. is invalid (and incomplete...)
+                            return Err(ParseError::UnexpectedNonDigit);
+                        }
+                        let mut ns = 0;
+                        for (index, value) in digits.iter().enumerate() {
+                            ns += *value as u32 * POW10[8 - index];
+                        }
+                        ns
+                    }
+                    None => 0,
+                };
+                (seconds, nanoseconds)
+            }
+            None => (0, 0),
+        };
+
+        if second == 60 {
+            second -= 1;
+            nanosecond += crate::interval::NANOS_PER_SEC as u32;
+        }
+
+        if hour > 24 || minute > 59 || second > 59 || nanosecond > 1_999_999_999 {
+            Err(ParseError::OutOfBounds)
+        } else {
+            Ok(Time {
+                hour,
+                minute,
+                second,
+                nanosecond,
+            })
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_year() {
+        let mut parser = IsoParser::new("2012-02-13");
+        assert_eq!(parser.parse_year(), Ok(2012));
+        assert_eq!(parser.advance(), Some(b'-'));
+
+        let mut parser = IsoParser::new("-2012-02-13");
+        assert_eq!(parser.parse_year(), Ok(-2012));
+        assert_eq!(parser.advance(), Some(b'-'));
+
+        let mut parser = IsoParser::new("-45678-02-13");
+        assert_eq!(parser.parse_year(), Err(ParseError::OutOfBounds));
+
+        let mut parser = IsoParser::new("234");
+        assert_eq!(parser.parse_year(), Err(ParseError::UnexpectedEnd));
+
+        let mut parser = IsoParser::new("234a");
+        assert_eq!(parser.parse_year(), Err(ParseError::UnexpectedNonDigit));
     }
 }

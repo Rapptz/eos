@@ -25,7 +25,7 @@ mod utils;
 
 pub use date::{Date, IsoWeekDate, Weekday};
 pub use datetime::DateTime;
-pub use error::Error;
+pub use error::{Error, ParseError};
 pub use interval::Interval;
 pub use isoformat::ToIsoFormat;
 pub use time::Time;

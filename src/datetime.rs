@@ -17,6 +17,12 @@ use core::{
 #[cfg(feature = "std")]
 use std::time::SystemTime;
 
+#[cfg(feature = "format")]
+use crate::isoformat::{FromIsoFormat, IsoFormatPrecision, IsoParser, ToIsoFormat};
+
+#[cfg(feature = "format")]
+use crate::error::ParseError;
+
 /// An ISO 8601 combined date and time component.
 ///
 /// Unlike their individual components, [`DateTime`] have a timezone associated with them.
@@ -678,11 +684,11 @@ where
 }
 
 #[cfg(feature = "format")]
-impl<Tz> crate::isoformat::ToIsoFormat for DateTime<Tz>
+impl<Tz> ToIsoFormat for DateTime<Tz>
 where
     Tz: TimeZone,
 {
-    fn to_iso_format_with_precision(&self, precision: crate::isoformat::IsoFormatPrecision) -> String {
+    fn to_iso_format_with_precision(&self, precision: IsoFormatPrecision) -> String {
         let offset = self.timezone.offset(&self.date, &self.time);
         let mut buffer = String::with_capacity(40);
         write!(&mut buffer, "{}", &self.date).expect("unexpected error when writing string");
@@ -694,6 +700,79 @@ where
 
     fn to_iso_format(&self) -> String {
         self.to_string()
+    }
+}
+
+#[cfg(feature = "format")]
+impl FromIsoFormat for DateTime<UtcOffset> {
+    /// Parses an ISO-8601 formatted string into a [`DateTime`] with a [`UtcOffset`].
+    ///
+    /// This accepts the formats accepted by [`Date`], followed with a `'T'`,
+    /// then the formats accepted by [`Time`] and an optional UTC offset.
+    ///
+    /// The UTC offset syntax must be in the following forms:
+    ///
+    /// - `±HH` (e.g. `+12`)
+    /// - `±HH:MM` (e.g. `+12:23`)
+    /// - `±HH:MM:SS` (e.g. `+12:23:45`).
+    /// - `Z` (represents UTC)
+    ///
+    /// Note that strict ISO-8601 compliance would forbid the seconds component and would
+    /// make the `:` optional. This function does not currently accept such syntax.
+    fn from_iso_format(s: &str) -> Result<Self, ParseError> {
+        let mut parser = IsoParser::new(s);
+        let date = parser.parse_date()?;
+        parser.expect(b'T')?;
+        let time = parser.parse_time()?;
+        let offset = if let None | Some(b'Z') = parser.peek() {
+            UtcOffset::UTC
+        } else {
+            let negative = parser.parse_sign();
+            let hours = parser.parse_two_digits()? as i8;
+            if hours > 23 {
+                return Err(ParseError::OutOfBounds);
+            }
+
+            let (minutes, seconds) = match parser.advance_if_equal(b':') {
+                Some(_) => {
+                    let minute = parser.parse_two_digits()? as i8;
+                    if minute > 59 {
+                        return Err(ParseError::OutOfBounds);
+                    }
+                    match parser.advance_if_equal(b':') {
+                        Some(_) => {
+                            let second = parser.parse_two_digits()? as i8;
+                            if second > 59 {
+                                return Err(ParseError::OutOfBounds);
+                            }
+                            (minute, second)
+                        }
+                        None => (minute, 0),
+                    }
+                }
+                None => (0, 0),
+            };
+
+            if negative {
+                UtcOffset {
+                    hours: -hours,
+                    minutes: -minutes,
+                    seconds: -seconds,
+                }
+            } else {
+                UtcOffset {
+                    hours,
+                    minutes,
+                    seconds,
+                }
+            }
+        };
+
+        Ok(Self {
+            date,
+            time,
+            timezone: offset,
+        })
     }
 }
 

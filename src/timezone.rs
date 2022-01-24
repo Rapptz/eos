@@ -11,9 +11,9 @@ use crate::{utils::ensure_in_range, Date, DateTime, Error, Time};
 /// This struct can only store values up to ±23:59:59.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UtcOffset {
-    hours: i8,
-    minutes: i8,
-    seconds: i8,
+    pub(crate) hours: i8,
+    pub(crate) minutes: i8,
+    pub(crate) seconds: i8,
 }
 
 impl Default for UtcOffset {

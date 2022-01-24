@@ -13,7 +13,10 @@ use core::ops::{Add, AddAssign, Sub, SubAssign};
 use crate::sys::localtime::get_local_time_components;
 
 #[cfg(feature = "format")]
-use crate::isoformat::ToIsoFormat;
+use crate::isoformat::{FromIsoFormat, IsoParser, ToIsoFormat};
+
+#[cfg(feature = "format")]
+use crate::error::ParseError;
 
 /// An enum representing the different weekdays.
 ///
@@ -691,6 +694,23 @@ impl ToIsoFormat for Date {
     }
 }
 
+#[cfg(feature = "format")]
+impl FromIsoFormat for Date {
+    /// Parse an ISO-8601 formatted string to a [`Date`].
+    ///
+    /// The syntax accepted by this function are:
+    ///
+    /// - `±YYYYY-MM-DD` (e.g. `2012-02-13` or `-9999-10-12`)
+    /// - `±YYYYY-MM` (e.g. `2012-02`)
+    /// - `±YYYYY-Www` (e.g. `2012-W10`)
+    /// - `±YYYYY-Www-D` (e.g. `2012-W10-1`)
+    /// - `±YYYYY-DDD` (e.g. `2021-048`)
+    fn from_iso_format(s: &str) -> Result<Self, ParseError> {
+        let mut parser = IsoParser::new(s);
+        parser.parse_date()
+    }
+}
+
 impl core::fmt::Display for IsoWeekDate {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
@@ -711,6 +731,41 @@ impl ToIsoFormat for IsoWeekDate {
 
     fn to_iso_format(&self) -> String {
         self.to_string()
+    }
+}
+
+#[cfg(feature = "format")]
+impl FromIsoFormat for IsoWeekDate {
+    /// Parse an ISO-8601 formatted string to a [`IsoWeekDate`].
+    ///
+    /// The syntax accepted by this function are:
+    ///
+    /// - `±YYYYY-Www` (e.g. `2012-W10`)
+    /// - `±YYYYY-Www-D` (e.g. `2012-W10-1`)
+    fn from_iso_format(s: &str) -> Result<Self, ParseError> {
+        let mut parser = IsoParser::new(s);
+        let year = parser.parse_year()?;
+        parser.expect(b'-')?;
+        parser.expect(b'W')?;
+        // week date parsing, i.e. 2012-W10-1
+        let week = parser.parse_two_digits()?;
+        if week == 0 || week > iso_weeks_in_year(year) {
+            return Err(ParseError::OutOfBounds);
+        }
+        let weekday = match parser.advance_if_equal(b'-') {
+            Some(_) => match parser.parse_digit()? {
+                1 => Weekday::Monday,
+                2 => Weekday::Tuesday,
+                3 => Weekday::Wednesday,
+                4 => Weekday::Thursday,
+                5 => Weekday::Friday,
+                6 => Weekday::Saturday,
+                7 => Weekday::Sunday,
+                _ => return Err(ParseError::OutOfBounds),
+            },
+            None => Weekday::Monday,
+        };
+        Ok(Self { year, week, weekday })
     }
 }
 

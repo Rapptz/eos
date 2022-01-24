@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use eos::{date, datetime, ext::IntervalLiteral, time, ToIsoFormat};
+use eos::{
+    date, datetime, ext::IntervalLiteral, isoformat::FromIsoFormat, time, Date, DateTime, IsoWeekDate, Time,
+    ToIsoFormat, Weekday,
+};
 
 #[test]
 fn test_duration_isoformat() {
@@ -373,4 +376,233 @@ fn test_interval_isoformat() {
         (35.days() + 25.hours() + 80.seconds() + (-10).milliseconds()).to_iso_format(),
         "P35DT25H79.99S"
     );
+}
+
+#[test]
+fn test_valid_from_year_month() -> Result<(), eos::ParseError> {
+    assert_eq!(Date::from_iso_format("2012-02")?, date!(2012 - 02 - 01));
+    assert_eq!(Date::from_iso_format("2021-04")?, date!(2021 - 04 - 01));
+    assert_eq!(Date::from_iso_format("-9999-04")?, date!(-9999 - 04 - 01));
+    Ok(())
+}
+
+#[test]
+fn test_valid_from_year_ordinal() -> Result<(), eos::ParseError> {
+    assert_eq!(Date::from_iso_format("2009-123")?, date!(2009 - 05 - 03));
+    assert_eq!(Date::from_iso_format("2009-222")?, date!(2009 - 08 - 10));
+    assert_eq!(Date::from_iso_format("2009-001")?, date!(2009 - 01 - 01));
+    Ok(())
+}
+
+#[test]
+fn test_valid_year_week() -> Result<(), eos::ParseError> {
+    assert_eq!(Date::from_iso_format("2009-W01-1")?, date!(2008 - 12 - 29));
+    assert_eq!(Date::from_iso_format("2009-W53-7")?, date!(2010 - 01 - 03));
+    assert_eq!(Date::from_iso_format("2009-W51-1")?, date!(2009 - 12 - 14));
+    assert_eq!(Date::from_iso_format("2008-W39-6")?, date!(2008 - 09 - 27));
+    assert_eq!(Date::from_iso_format("2009-W33")?, date!(2009 - 08 - 10));
+    assert_eq!(Date::from_iso_format("2009-W51-1")?, date!(2009 - 12 - 14));
+    assert_eq!(Date::from_iso_format("2009-W21-2")?, date!(2009 - 05 - 19));
+
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W01-1")?,
+        date!(2008 - 12 - 29).iso_week()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W53-7")?,
+        date!(2010 - 01 - 03).iso_week()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W51-1")?,
+        date!(2009 - 12 - 14).iso_week()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2008-W39-6")?,
+        date!(2008 - 09 - 27).iso_week()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W33")?,
+        date!(2009 - 08 - 10).iso_week()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W51-1")?,
+        date!(2009 - 12 - 14).iso_week()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W21-2")?,
+        date!(2009 - 05 - 19).iso_week()
+    );
+
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W01-1")?,
+        IsoWeekDate::new(2009, 1, Weekday::Monday).unwrap()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W53-7")?,
+        IsoWeekDate::new(2009, 53, Weekday::Sunday).unwrap()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W51-1")?,
+        IsoWeekDate::new(2009, 51, Weekday::Monday).unwrap()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2008-W39-6")?,
+        IsoWeekDate::new(2008, 39, Weekday::Saturday).unwrap()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W33")?,
+        IsoWeekDate::new(2009, 33, Weekday::Monday).unwrap()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W51-1")?,
+        IsoWeekDate::new(2009, 51, Weekday::Monday).unwrap()
+    );
+    assert_eq!(
+        IsoWeekDate::from_iso_format("2009-W21-2")?,
+        IsoWeekDate::new(2009, 21, Weekday::Tuesday).unwrap()
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_time() -> Result<(), eos::ParseError> {
+    assert_eq!(
+        Time::from_iso_format("06:14:00.000123")?,
+        time!(06:14:00).with_microsecond(123).unwrap()
+    );
+    assert_eq!(Time::from_iso_format("06:40:34.00")?, time!(06:40:34));
+    assert_eq!(Time::from_iso_format("19:20")?, time!(19:20));
+    assert_eq!(Time::from_iso_format("08:00:00")?, time!(08:00:00));
+    assert_eq!(
+        Time::from_iso_format("15:34:56.123")?,
+        time!(15:34:56).with_millisecond(123).unwrap()
+    );
+    assert_eq!(Time::from_iso_format("15:34:56")?, time!(15:34:56));
+    assert_eq!(
+        Time::from_iso_format("11:43:55.328")?,
+        time!(11:43:55).with_millisecond(328).unwrap()
+    );
+    assert_eq!(
+        Time::from_iso_format("15:34:56.123")?,
+        time!(15:34:56).with_millisecond(123).unwrap()
+    );
+    assert_eq!(
+        Time::from_iso_format("15:34:56.123456789")?,
+        time!(15:34:56).with_nanosecond(123456789).unwrap()
+    );
+    assert_eq!(Time::from_iso_format("18:30")?, time!(18:30));
+    Ok(())
+}
+
+#[test]
+fn test_valid_datetime() -> Result<(), eos::ParseError> {
+    assert_eq!(
+        DateTime::from_iso_format("2007-06-23T06:40:34.00Z")?,
+        datetime!(2007-6-23 6:40:34+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("1997-07-16T19:20+01:00")?,
+        datetime!(1997-7-16 19:20:00+01:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2007-01-01T08:00:00")?,
+        datetime!(2007-1-1 08:00:00+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2006-10-20T15:34:56.123+02:30")?,
+        datetime!(2006-10-20 15:34:56+02:30).with_microsecond(123000).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2006-10-20T15:34:56Z")?,
+        datetime!(2006-10-20 15:34:56+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2007-05-07T11:43:55.328Z")?,
+        datetime!(2007-5-7 11:43:55+00:00).with_microsecond(328000).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2006-10-20T15:34:56.123Z")?,
+        datetime!(2006-10-20 15:34:56+00:00).with_microsecond(123000).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T18:30Z")?,
+        datetime!(2013-10-15 18:30:00+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T22:30+04")?,
+        datetime!(2013-10-15 22:30:00+04:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T11:30-07:00")?,
+        datetime!(2013-10-15 11:30:00-07:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T11:30+07:00")?,
+        datetime!(2013-10-15 11:30:00+07:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T11:30+07")?,
+        datetime!(2013-10-15 11:30:00+07:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T11:30-07")?,
+        datetime!(2013-10-15 11:30:00-07:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T15:00-03:30")?,
+        datetime!(2013-10-15 15:00:00-03:30)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T18:31:23Z")?,
+        datetime!(2013-10-15 18:31:23+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T18:31Z")?,
+        datetime!(2013-10-15 18:31:00+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T18:00Z")?,
+        datetime!(2013-10-15 18:00:00+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2013-10-15T18:30Z")?,
+        datetime!(2013-10-15 18:30:00+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2012-12-19T23:21:28.512400+00:00")?,
+        datetime!(2012-12-19 23:21:28+00:00).with_microsecond(512400).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2006-10-20T15:34:56.123+02:30")?,
+        datetime!(2006-10-20 15:34:56+02:30).with_microsecond(123000).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2010-07-20T15:25:52.520701+00:00")?,
+        datetime!(2010-7-20 15:25:52+00:00).with_microsecond(520701).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("1985-04-12T23:20:50.52-05:30")?,
+        datetime!(1985-4-12 23:20:50-05:30).with_microsecond(520000).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("1997-08-29T06:14:00.000123Z")?,
+        datetime!(1997-8-29 6:14:00+00:00).with_microsecond(123).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("1997-08-29T06:14:00,000123Z")?,
+        datetime!(1997-8-29 6:14:00+00:00).with_microsecond(123).unwrap()
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2009-12T12:34")?,
+        datetime!(2009-12-1 12:34+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2009-W21-2T01:22")?,
+        datetime!(2009-5-19 1:22+00:00)
+    );
+    assert_eq!(
+        DateTime::from_iso_format("2009-139T00:00+01:00")?,
+        datetime!(2009-5-19 00:00+01:00)
+    );
+    Ok(())
 }

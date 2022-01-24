@@ -10,7 +10,10 @@ use core::{
 };
 
 #[cfg(feature = "format")]
-use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
+use crate::isoformat::{FromIsoFormat, IsoFormatPrecision, IsoParser, ToIsoFormat};
+
+#[cfg(feature = "format")]
+use crate::error::ParseError;
 
 /// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
 ///
@@ -374,5 +377,24 @@ impl ToIsoFormat for Time {
         } else {
             self.to_iso_format_with_precision(IsoFormatPrecision::Second)
         }
+    }
+}
+
+#[cfg(feature = "format")]
+impl FromIsoFormat for Time {
+    /// Parse an ISO-8601 formatted string to a [`Time`].
+    ///
+    /// The syntax accepted by this function are:
+    ///
+    /// - `HH:MM` (e.g. `10:23`)
+    /// - `HH:MM:SS` (e.g. `10:24:30`)
+    /// - `HH:MM:SS.sssssssss`, up to 9 digits of precision (e.g. `10:24:30.999999999)
+    /// - `HH:MM:SS,sssssssss`, similar to above except with `,` instead of `.`
+    ///
+    /// Notably, formats *without* the colon are not allowed despite being part of the
+    /// ISO-8601 standard.
+    fn from_iso_format(s: &str) -> Result<Self, ParseError> {
+        let mut parser = IsoParser::new(s);
+        parser.parse_time()
     }
 }
