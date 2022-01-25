@@ -13,13 +13,10 @@ use core::ops::{Add, AddAssign, Sub, SubAssign};
 use crate::sys::localtime::get_local_time_components;
 
 #[cfg(feature = "formatting")]
-use crate::isoformat::ToIsoFormat;
+use crate::fmt::ToIsoFormat;
 
 #[cfg(feature = "parsing")]
-use crate::error::ParseError;
-
-#[cfg(feature = "parsing")]
-use crate::isoformat::{FromIsoFormat, IsoParser};
+use crate::fmt::{FromIsoFormat, IsoParser, ParseError};
 
 /// An enum representing the different weekdays.
 ///
@@ -699,7 +696,7 @@ impl core::fmt::Display for Date {
 
 #[cfg(feature = "formatting")]
 impl ToIsoFormat for Date {
-    fn to_iso_format_with_precision(&self, _precision: crate::isoformat::IsoFormatPrecision) -> String {
+    fn to_iso_format_with_precision(&self, _precision: crate::fmt::IsoFormatPrecision) -> String {
         self.to_iso_format()
     }
 
@@ -739,7 +736,7 @@ impl core::fmt::Display for IsoWeekDate {
 
 #[cfg(feature = "formatting")]
 impl ToIsoFormat for IsoWeekDate {
-    fn to_iso_format_with_precision(&self, _precision: crate::isoformat::IsoFormatPrecision) -> String {
+    fn to_iso_format_with_precision(&self, _precision: crate::fmt::IsoFormatPrecision) -> String {
         self.to_string()
     }
 

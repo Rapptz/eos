@@ -8,10 +8,10 @@ use std::fmt::Write;
 use crate::{utils::divrem, Date, DateTime, Time, TimeZone, UtcOffset};
 
 #[cfg(feature = "formatting")]
-use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
+use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 
 #[cfg(feature = "parsing")]
-use crate::isoformat::{FromIsoFormat, IsoParser};
+use crate::fmt::{FromIsoFormat, IsoParser, ParseError};
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
@@ -814,7 +814,7 @@ impl FromIsoFormat for Interval {
     /// - `P-30D` (-30 days)
     /// - `-P-30DT30S` (30 days and -30 seconds).
     ///
-    fn from_iso_format(s: &str) -> Result<Self, crate::ParseError> {
+    fn from_iso_format(s: &str) -> Result<Self, ParseError> {
         let mut parser = IsoParser::new(s);
         let negative = parser.parse_sign();
         parser.expect(b'P')?;
@@ -831,7 +831,7 @@ impl FromIsoFormat for Interval {
             match parser.peek() {
                 Some(b'T') => {
                     if time_units {
-                        return Err(crate::ParseError::UnexpectedNonDigit);
+                        return Err(ParseError::UnexpectedNonDigit);
                     }
                     time_units = true;
                     parser.advance();
@@ -840,7 +840,7 @@ impl FromIsoFormat for Interval {
                     if parsed_once {
                         break;
                     } else {
-                        return Err(crate::ParseError::UnexpectedEnd);
+                        return Err(ParseError::UnexpectedEnd);
                     }
                 }
                 _ => {}
@@ -850,7 +850,7 @@ impl FromIsoFormat for Interval {
             match parser.advance() {
                 Some(b'Y') => {
                     if time_units {
-                        return Err(crate::ParseError::UnexpectedChar('Y'));
+                        return Err(ParseError::UnexpectedChar('Y'));
                     }
                     result.years = i16::try_from(value)?;
                 }
@@ -863,25 +863,25 @@ impl FromIsoFormat for Interval {
                 }
                 Some(b'D') => {
                     if time_units {
-                        return Err(crate::ParseError::UnexpectedChar('D'));
+                        return Err(ParseError::UnexpectedChar('D'));
                     }
                     result.days = value;
                 }
                 Some(b'H') => {
                     if !time_units {
-                        return Err(crate::ParseError::UnexpectedChar('H'));
+                        return Err(ParseError::UnexpectedChar('H'));
                     }
                     result.hours = value;
                 }
                 Some(b'S') => {
                     if !time_units {
-                        return Err(crate::ParseError::UnexpectedChar('S'));
+                        return Err(ParseError::UnexpectedChar('S'));
                     }
                     result.seconds = value as i64;
                 }
                 Some(b'.') => {
                     if !time_units {
-                        return Err(crate::ParseError::UnexpectedChar('.'));
+                        return Err(ParseError::UnexpectedChar('.'));
                     }
 
                     let mut nanos = i32::try_from(parser.parse_nanoseconds()?)?;
@@ -889,7 +889,7 @@ impl FromIsoFormat for Interval {
 
                     // Expect end of string
                     if let Some(c) = parser.advance() {
-                        return Err(crate::ParseError::UnexpectedChar(c as char));
+                        return Err(ParseError::UnexpectedChar(c as char));
                     }
 
                     if value < 0 {
@@ -899,8 +899,8 @@ impl FromIsoFormat for Interval {
                     result.seconds = value as i64;
                     break;
                 }
-                Some(b) => return Err(crate::ParseError::UnexpectedChar(b as char)),
-                None => return Err(crate::ParseError::UnexpectedEnd),
+                Some(b) => return Err(ParseError::UnexpectedChar(b as char)),
+                None => return Err(ParseError::UnexpectedEnd),
             }
             parsed_once = true;
         }
@@ -929,7 +929,7 @@ impl FromIsoFormat for core::time::Duration {
     /// - `PT10H` (10 hours)
     /// - `PT6H30M20.5S` (6 hours, 30 minutes, 20.5 seconds)
     ///
-    fn from_iso_format(s: &str) -> Result<Self, crate::ParseError> {
+    fn from_iso_format(s: &str) -> Result<Self, ParseError> {
         let mut parser = IsoParser::new(s);
         parser.expect(b'P')?;
         parser.expect(b'T')?;
@@ -942,28 +942,28 @@ impl FromIsoFormat for core::time::Duration {
                 if parsed_units.iter().any(|f| *f) {
                     break;
                 } else {
-                    return Err(crate::ParseError::UnexpectedEnd);
+                    return Err(ParseError::UnexpectedEnd);
                 }
             }
             let value = parser.parse_u32()?;
             match parser.advance() {
                 Some(b'M') => {
                     if parsed_units[1] {
-                        return Err(crate::ParseError::UnexpectedChar('M'));
+                        return Err(ParseError::UnexpectedChar('M'));
                     }
                     total_seconds += value as u64 * 60;
                     parsed_units[1] = true;
                 }
                 Some(b'S') => {
                     if parsed_units[2] {
-                        return Err(crate::ParseError::UnexpectedChar('S'));
+                        return Err(ParseError::UnexpectedChar('S'));
                     }
                     total_seconds += value as u64;
                     parsed_units[2] = true;
                 }
                 Some(b'H') => {
                     if parsed_units[0] {
-                        return Err(crate::ParseError::UnexpectedChar('H'));
+                        return Err(ParseError::UnexpectedChar('H'));
                     }
                     total_seconds += value as u64 * 3600;
                     parsed_units[0] = true;
@@ -972,13 +972,13 @@ impl FromIsoFormat for core::time::Duration {
                     nanoseconds = parser.parse_nanoseconds()?;
                     parser.expect(b'S')?;
                     if let Some(c) = parser.advance() {
-                        return Err(crate::ParseError::UnexpectedChar(c as char));
+                        return Err(ParseError::UnexpectedChar(c as char));
                     }
                     total_seconds += value as u64;
                     break;
                 }
-                Some(c) => return Err(crate::ParseError::UnexpectedChar(c as char)),
-                None => return Err(crate::ParseError::UnexpectedEnd),
+                Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                None => return Err(ParseError::UnexpectedEnd),
             }
         }
 

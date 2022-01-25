@@ -18,13 +18,10 @@ use core::{
 use std::time::SystemTime;
 
 #[cfg(feature = "formatting")]
-use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
+use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 
 #[cfg(feature = "parsing")]
-use crate::error::ParseError;
-
-#[cfg(feature = "parsing")]
-use crate::isoformat::{FromIsoFormat, IsoParser};
+use crate::fmt::{FromIsoFormat, IsoParser, ParseError};
 
 /// An ISO 8601 combined date and time component.
 ///

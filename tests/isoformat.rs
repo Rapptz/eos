@@ -3,7 +3,7 @@ use std::time::Duration;
 use eos::{
     date, datetime,
     ext::IntervalLiteral,
-    isoformat::{FromIsoFormat, ToIsoFormat},
+    fmt::{FromIsoFormat, ToIsoFormat},
     time, utc_offset, Date, DateTime, Interval, IsoWeekDate, Time, Weekday,
 };
 
@@ -387,7 +387,7 @@ fn test_interval_isoformat() {
 }
 
 #[test]
-fn test_valid_from_year_month() -> Result<(), eos::ParseError> {
+fn test_valid_from_year_month() -> Result<(), eos::fmt::ParseError> {
     assert_eq!(Date::from_iso_format("2012-02")?, date!(2012 - 02 - 01));
     assert_eq!(Date::from_iso_format("2021-04")?, date!(2021 - 04 - 01));
     assert_eq!(Date::from_iso_format("-9999-04")?, date!(-9999 - 04 - 01));
@@ -395,7 +395,7 @@ fn test_valid_from_year_month() -> Result<(), eos::ParseError> {
 }
 
 #[test]
-fn test_valid_from_year_ordinal() -> Result<(), eos::ParseError> {
+fn test_valid_from_year_ordinal() -> Result<(), eos::fmt::ParseError> {
     assert_eq!(Date::from_iso_format("2009-123")?, date!(2009 - 05 - 03));
     assert_eq!(Date::from_iso_format("2009-222")?, date!(2009 - 08 - 10));
     assert_eq!(Date::from_iso_format("2009-001")?, date!(2009 - 01 - 01));
@@ -403,7 +403,7 @@ fn test_valid_from_year_ordinal() -> Result<(), eos::ParseError> {
 }
 
 #[test]
-fn test_valid_year_week() -> Result<(), eos::ParseError> {
+fn test_valid_year_week() -> Result<(), eos::fmt::ParseError> {
     assert_eq!(Date::from_iso_format("2009-W01-1")?, date!(2008 - 12 - 29));
     assert_eq!(Date::from_iso_format("2009-W53-7")?, date!(2010 - 01 - 03));
     assert_eq!(Date::from_iso_format("2009-W51-1")?, date!(2009 - 12 - 14));
@@ -473,7 +473,7 @@ fn test_valid_year_week() -> Result<(), eos::ParseError> {
 }
 
 #[test]
-fn test_valid_time() -> Result<(), eos::ParseError> {
+fn test_valid_time() -> Result<(), eos::fmt::ParseError> {
     assert_eq!(
         Time::from_iso_format("06:14:00.000123")?,
         time!(06:14:00).with_microsecond(123).unwrap()
@@ -503,7 +503,7 @@ fn test_valid_time() -> Result<(), eos::ParseError> {
 }
 
 #[test]
-fn test_valid_datetime() -> Result<(), eos::ParseError> {
+fn test_valid_datetime() -> Result<(), eos::fmt::ParseError> {
     assert_eq!(
         DateTime::from_iso_format("2007-06-23T06:40:34.00Z")?,
         datetime!(2007-6-23 6:40:34+00:00)
@@ -657,7 +657,7 @@ fn test_isoformat_roundtrip() {
 }
 
 #[test]
-fn test_valid_interval() -> Result<(), eos::ParseError> {
+fn test_valid_interval() -> Result<(), eos::fmt::ParseError> {
     assert_eq!(Interval::from_iso_format("PT15M")?, 15.minutes());
     assert_eq!(
         Interval::from_iso_format("PT20.5S")?,
@@ -674,7 +674,7 @@ fn test_valid_interval() -> Result<(), eos::ParseError> {
 }
 
 #[test]
-fn test_valid_duration() -> Result<(), eos::ParseError> {
+fn test_valid_duration() -> Result<(), eos::fmt::ParseError> {
     assert_eq!(Duration::from_iso_format("PT15M")?, Duration::from_secs(15 * 60));
     assert_eq!(Duration::from_iso_format("PT20.5S")?, Duration::from_secs_f64(20.5));
     assert_eq!(Duration::from_iso_format("PT10H")?, Duration::from_secs(10 * 3600));
