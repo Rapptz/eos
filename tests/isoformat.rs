@@ -48,6 +48,12 @@ fn test_time_isoformat() {
     assert_eq!(time!(04:50:07).to_iso_format(), "04:50:07");
     assert_eq!(time!(10:01:56).to_iso_format(), "10:01:56");
     assert_eq!(time!(20:18:31).to_iso_format(), "20:18:31");
+
+    let base_time = time!(20:10:30);
+    let a1 = base_time.with_microsecond(123).unwrap();
+    let a2 = base_time.with_millisecond(123).unwrap();
+    assert_eq!(a1.to_iso_format(), "20:10:30.000123");
+    assert_eq!(a2.to_iso_format(), "20:10:30.123000");
 }
 
 #[test]
