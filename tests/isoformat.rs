@@ -4,7 +4,7 @@ use eos::{
     date, datetime,
     ext::IntervalLiteral,
     isoformat::{FromIsoFormat, ToIsoFormat},
-    time, Date, DateTime, Interval, IsoWeekDate, Time, Weekday,
+    time, utc_offset, Date, DateTime, Interval, IsoWeekDate, Time, Weekday,
 };
 
 #[test]
@@ -613,6 +613,47 @@ fn test_valid_datetime() -> Result<(), eos::ParseError> {
         datetime!(2009-5-19 00:00+01:00)
     );
     Ok(())
+}
+
+#[test]
+fn test_isoformat_roundtrip() {
+    let dates = [
+        date!(0001 - 01 - 01),
+        date!(1990 - 01 - 01),
+        date!(2005 - 11 - 12),
+        date!(2012 - 02 - 29),
+        date!(2022 - 01 - 25),
+    ];
+
+    let times = [
+        time!(00:00:00),
+        time!(05:06:07),
+        time!(05:06:07).with_microsecond(123456).unwrap(),
+        time!(12:30:40),
+        time!(12:34:56).with_microsecond(789101).unwrap(),
+    ];
+
+    let offsets = [
+        utc_offset!(00:00),
+        utc_offset!(-05:00),
+        utc_offset!(04:00),
+        utc_offset!(12:45),
+        utc_offset!(-10:00),
+    ];
+
+    for date in dates {
+        let s = date.to_iso_format();
+        assert_eq!(Date::from_iso_format(&s).unwrap(), date);
+        for time in times {
+            let s = time.to_iso_format();
+            assert_eq!(Time::from_iso_format(&s).unwrap(), time);
+            for offset in offsets {
+                let dt = date.at(time).with_timezone(offset);
+                let out = dt.to_iso_format().to_string();
+                assert_eq!(DateTime::from_iso_format(&out).unwrap(), dt);
+            }
+        }
+    }
 }
 
 #[test]
