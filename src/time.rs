@@ -10,10 +10,13 @@ use core::{
 };
 
 #[cfg(feature = "formatting")]
-use crate::isoformat::{FromIsoFormat, IsoFormatPrecision, IsoParser, ToIsoFormat};
+use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
 
 #[cfg(feature = "parsing")]
 use crate::error::ParseError;
+
+#[cfg(feature = "parsing")]
+use crate::isoformat::{FromIsoFormat, IsoParser};
 
 /// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
 ///

@@ -1,8 +1,9 @@
 use eos::{
     date, datetime,
     fmt::{FormatSpec, FormatSpecKind},
-    format_dt, time, Utc,
+    format_dt, time, utc_offset, DateTime, Utc,
 };
+
 #[test]
 fn parse_invalid_format_spec() {
     assert!(eos::fmt::parse_spec("%d%").is_err());
@@ -77,4 +78,61 @@ fn test_datetime_format() {
     );
     assert_eq!(format_dt!("%A %Y-%j", dt).to_string(), "Sunday 2022-023");
     assert_eq!(format_dt!("%G-W%V-%u", dt).to_string(), "2022-W03-7");
+}
+
+#[test]
+fn test_datetime_to_rfc3339() {
+    let dt = datetime!(2001-02-03 04:05:01);
+    assert_eq!(dt.to_rfc3339().to_string(), "2001-02-03 04:05:01+00:00");
+    let prec = dt.with_millisecond(123).unwrap();
+    assert_eq!(prec.to_rfc3339().to_string(), "2001-02-03 04:05:01.123000+00:00");
+
+    let o1 = prec.with_timezone(utc_offset!(05:00));
+    let o2 = prec.with_timezone(utc_offset!(-02:00));
+    let o3 = prec.with_timezone(utc_offset!(06:30));
+    let o4 = prec.with_timezone(utc_offset!(-12:15));
+    let o5 = prec.with_timezone(utc_offset!(16:18));
+
+    assert_eq!(o1.to_rfc3339().to_string(), "2001-02-03 04:05:01.123000+05:00");
+    assert_eq!(o2.to_rfc3339().to_string(), "2001-02-03 04:05:01.123000-02:00");
+    assert_eq!(o3.to_rfc3339().to_string(), "2001-02-03 04:05:01.123000+06:30");
+    assert_eq!(o4.to_rfc3339().to_string(), "2001-02-03 04:05:01.123000-12:15");
+    assert_eq!(o5.to_rfc3339().to_string(), "2001-02-03 04:05:01.123000+16:18");
+}
+
+#[test]
+fn test_datetime_rfc3339_roundtrip() {
+    let dates = [
+        date!(0001 - 01 - 01),
+        date!(1990 - 01 - 01),
+        date!(2005 - 11 - 12),
+        date!(2012 - 02 - 29),
+        date!(2022 - 01 - 25),
+    ];
+
+    let times = [
+        time!(00:00:00),
+        time!(05:06:07),
+        time!(05:06:07).with_microsecond(123456).unwrap(),
+        time!(12:30:40),
+        time!(12:34:56).with_microsecond(789101).unwrap(),
+    ];
+
+    let offsets = [
+        utc_offset!(00:00),
+        utc_offset!(-05:00),
+        utc_offset!(04:00),
+        utc_offset!(12:45),
+        utc_offset!(-10:00),
+    ];
+
+    for date in dates {
+        for time in times {
+            for offset in offsets {
+                let dt = date.at(time).with_timezone(offset);
+                let out = dt.to_rfc3339().to_string();
+                assert_eq!(DateTime::from_rfc3339(&out).unwrap(), dt);
+            }
+        }
+    }
 }

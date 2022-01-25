@@ -106,6 +106,69 @@ impl DateTime<Local> {
     }
 }
 
+impl DateTime<UtcOffset> {
+    /// Parses a [`DateTime`] with a [`UtcOffset`] from an [RFC 3339] string.
+    ///
+    /// This differs from ISO-8601 parsing by only allowing the basic format:
+    ///
+    /// - `YYYY-MM-DD HH:MM:SS.ssssss+HH:MM`
+    ///
+    /// The offset can be negative or positive or `Z`. The fractional seconds
+    /// can be ignored and be up to 9 digits of precision. The space separator
+    /// between date and time can be a `T` instead.
+    ///
+    /// [RFC 3339]: https://datatracker.ietf.org/doc/html/rfc3339
+    #[cfg(feature = "parsing")]
+    pub fn from_rfc3339(s: &str) -> Result<Self, ParseError> {
+        let mut parser = IsoParser::new(s);
+        let year = parser.parse_year()?;
+        parser.expect(b'-')?;
+        let month = parser.parse_month()?;
+        parser.expect(b'-')?;
+        let day = parser.parse_two_digits()?;
+        let date = Date::new(year, month, day).map_err(|_| ParseError::OutOfBounds)?;
+        match parser.advance() {
+            Some(b' ' | b'T') => {}
+            Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+            None => return Err(ParseError::UnexpectedEnd),
+        }
+        let time = parser.parse_time()?;
+        let offset = match parser.advance() {
+            Some(b'Z') => UtcOffset::UTC,
+            Some(x @ b'+' | x @ b'-') => {
+                let negative = x == b'-';
+                let hours = parser.parse_two_digits()? as i8;
+                parser.expect(b':')?;
+                let minutes = parser.parse_two_digits()? as i8;
+                if hours > 23 || minutes > 59 {
+                    return Err(ParseError::OutOfBounds);
+                }
+                if negative {
+                    UtcOffset {
+                        hours: -hours,
+                        minutes: -minutes,
+                        seconds: 0,
+                    }
+                } else {
+                    UtcOffset {
+                        hours,
+                        minutes,
+                        seconds: 0,
+                    }
+                }
+            }
+            Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+            None => return Err(ParseError::UnexpectedEnd),
+        };
+
+        Ok(Self {
+            date,
+            time,
+            timezone: offset,
+        })
+    }
+}
+
 impl<Tz> DateTime<Tz>
 where
     Tz: Default + TimeZone,
@@ -200,6 +263,20 @@ where
         S: AsRef<[crate::fmt::FormatSpec<'b>]>,
     {
         crate::fmt::DateTimeFormatter::new(self, spec)
+    }
+
+    /// Formats this datetime using [RFC 3339] formatting rules.
+    ///
+    /// This is mostly the same as ISO-8601 except a space is used
+    /// instead of a `T` for the separator between the date and time.
+    /// Microsecond precision is used for the fractional component
+    /// rather than nanoseconds. Likewise, the seconds component of
+    /// the UTC offset is always ignored.
+    ///
+    /// [RFC 3339]: https://datatracker.ietf.org/doc/html/rfc3339
+    #[cfg(feature = "formatting")]
+    pub fn to_rfc3339(&self) -> crate::fmt::Rfc3339Formatter<'_, Tz> {
+        crate::fmt::Rfc3339Formatter { dt: self }
     }
 
     /// Returns a reference to the time component.

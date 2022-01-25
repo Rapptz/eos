@@ -425,6 +425,17 @@ where
     }
 }
 
+/// Formats a [`DateTime`] into [RFC 3339] format.
+///
+/// [RFC 3339]: https://datatracker.ietf.org/doc/html/rfc3339
+#[cfg(feature = "formatting")]
+pub struct Rfc3339Formatter<'a, Tz>
+where
+    Tz: TimeZone,
+{
+    pub(crate) dt: &'a DateTime<Tz>,
+}
+
 #[cfg(feature = "formatting")]
 fn abbreviated_weekday(weekday: crate::Weekday) -> &'static str {
     match weekday {
@@ -707,5 +718,49 @@ where
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(feature = "formatting")]
+impl<'a, Tz> core::fmt::Display for Rfc3339Formatter<'a, Tz>
+where
+    Tz: TimeZone,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let offset = self.dt.timezone().offset(self.dt.date(), self.dt.time());
+        let (h, m, _) = offset.into_hms();
+        let m = m.abs();
+        let time = self.dt.time();
+        let mut us = time.microsecond();
+        let mut s = time.second();
+        if us >= 1_000_000 {
+            s += 1;
+            us -= 1_000_000;
+        }
+
+        if us != 0 {
+            write!(
+                f,
+                "{} {:02}:{:02}:{:02}.{:06}{:+03}:{:02}",
+                self.dt.date(),
+                time.hour(),
+                time.minute(),
+                s,
+                us,
+                h,
+                m
+            )
+        } else {
+            write!(
+                f,
+                "{} {:02}:{:02}:{:02}{:+03}:{:02}",
+                self.dt.date(),
+                time.hour(),
+                time.minute(),
+                s,
+                h,
+                m
+            )
+        }
     }
 }
