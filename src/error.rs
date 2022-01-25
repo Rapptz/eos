@@ -30,7 +30,9 @@ pub enum ParseError {
     /// The parser expected a character but there were no more.
     UnexpectedEnd,
     /// The parser expected a character but it found something else.
-    UnexpectedChar { expected: char, found: char },
+    ///
+    /// The inner character is the character found.
+    UnexpectedChar(char),
     /// The parser expected a digit but did not find one
     UnexpectedNonDigit,
     /// A value was out of bounds (such as a year, month, day, etc.)
@@ -44,8 +46,8 @@ impl core::fmt::Display for ParseError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             ParseError::UnexpectedEnd => f.write_str("unexpected end of string"),
-            ParseError::UnexpectedChar { expected, found } => {
-                write!(f, "expected `{}` but received `{}`", expected, found)
+            ParseError::UnexpectedChar(found) => {
+                write!(f, "unexpected character found `{}`", found)
             }
             ParseError::UnexpectedNonDigit => f.write_str("expected a digit but did not find one"),
             ParseError::OutOfBounds => f.write_str("a unit was out of bounds"),

@@ -4,7 +4,7 @@ use eos::{
     date, datetime,
     ext::IntervalLiteral,
     isoformat::{FromIsoFormat, ToIsoFormat},
-    time, Date, DateTime, IsoWeekDate, Time, Weekday,
+    time, Date, DateTime, Interval, IsoWeekDate, Time, Weekday,
 };
 
 #[test]
@@ -605,6 +605,35 @@ fn test_valid_datetime() -> Result<(), eos::ParseError> {
     assert_eq!(
         DateTime::from_iso_format("2009-139T00:00+01:00")?,
         datetime!(2009-5-19 00:00+01:00)
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_interval() -> Result<(), eos::ParseError> {
+    assert_eq!(Interval::from_iso_format("PT15M")?, 15.minutes());
+    assert_eq!(
+        Interval::from_iso_format("PT20.5S")?,
+        (20.seconds() + 500.milliseconds())
+    );
+    assert_eq!(
+        Interval::from_iso_format("P10Y2M3DT10S")?,
+        (10.years() + 2.months() + 3.days() + 10.seconds())
+    );
+    assert_eq!(Interval::from_iso_format("-P30D")?, (-30).days());
+    assert_eq!(Interval::from_iso_format("P-30D")?, (-30).days());
+    assert_eq!(Interval::from_iso_format("-P-30DT30S")?, (30.days() - 30.seconds()));
+    Ok(())
+}
+
+#[test]
+fn test_valid_duration() -> Result<(), eos::ParseError> {
+    assert_eq!(Duration::from_iso_format("PT15M")?, Duration::from_secs(15 * 60));
+    assert_eq!(Duration::from_iso_format("PT20.5S")?, Duration::from_secs_f64(20.5));
+    assert_eq!(Duration::from_iso_format("PT10H")?, Duration::from_secs(10 * 3600));
+    assert_eq!(
+        Duration::from_iso_format("PT6H30M20.5S")?,
+        Duration::from_secs(6 * 3600 + 30 * 60 + 20).saturating_add(Duration::from_millis(500))
     );
     Ok(())
 }

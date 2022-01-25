@@ -189,15 +189,78 @@ impl<'a> IsoParser<'a> {
         (digits, index)
     }
 
+    /// Parses up to 9 digits, returning the number being represented.
+    ///
+    /// This also handles the optional sign. If the number is too large to fit in an
+    /// i32 then it errors out. If no numbers are given then this will also error.
+    pub(crate) fn parse_i32(&mut self) -> Result<i32, ParseError> {
+        let negative = self.parse_sign();
+        let mut read_any: bool = false;
+        let mut n: i32 = 0;
+        for _ in 0..9 {
+            match self.advance_if(u8::is_ascii_digit) {
+                Some(c) => {
+                    n = n * 10 + (c as u8 - b'0') as i32;
+                    read_any = true;
+                }
+                None => break,
+            }
+        }
+
+        if read_any {
+            Ok(if negative { -n } else { n })
+        } else {
+            Err(ParseError::UnexpectedNonDigit)
+        }
+    }
+
+    /// Parses up to 9 digits, returning the number being represented.
+    ///
+    /// If the number is too large to fit in an u32 then it errors out.
+    /// If no numbers are given then this will also error.
+    pub(crate) fn parse_u32(&mut self) -> Result<u32, ParseError> {
+        let mut read_any: bool = false;
+        let mut n: u32 = 0;
+        for _ in 0..9 {
+            match self.advance_if(u8::is_ascii_digit) {
+                Some(c) => {
+                    n = n * 10 + (c as u8 - b'0') as u32;
+                    read_any = true;
+                }
+                None => break,
+            }
+        }
+
+        if read_any {
+            Ok(n)
+        } else {
+            Err(ParseError::UnexpectedNonDigit)
+        }
+    }
+
+    /// Parses up to 9 digits, returning the number being represented.
+    ///
+    /// If the number is too large to fit in an u32 then it errors out.
+    /// If no numbers are given then this will also error.
+    pub(crate) fn parse_nanoseconds(&mut self) -> Result<u32, ParseError> {
+        let (digits, count) = self.parse_up_to_n_digits::<9>();
+        if count == 0 {
+            Err(ParseError::UnexpectedNonDigit)
+        } else {
+            let mut result = 0;
+            for (index, value) in digits.iter().enumerate() {
+                result += *value as u32 * POW10[8 - index];
+            }
+            Ok(result)
+        }
+    }
+
     /// Expects the stream to have the following byte
     #[inline]
     pub(crate) fn expect(&mut self, expected: u8) -> Result<u8, ParseError> {
         match self.advance() {
             Some(b) if b == expected => Ok(b),
-            Some(b) => Err(ParseError::UnexpectedChar {
-                expected: expected as char,
-                found: b as char,
-            }),
+            Some(b) => Err(ParseError::UnexpectedChar(b as char)),
             None => Err(ParseError::UnexpectedEnd),
         }
     }
@@ -365,18 +428,7 @@ impl<'a> IsoParser<'a> {
             Some(_) => {
                 let seconds = self.parse_two_digits()?;
                 let nanoseconds = match self.advance_if(|&c| c == b'.' || c == b',') {
-                    Some(_) => {
-                        let (digits, count) = self.parse_up_to_n_digits::<9>();
-                        if count == 0 {
-                            // 12:34:56. is invalid (and incomplete...)
-                            return Err(ParseError::UnexpectedNonDigit);
-                        }
-                        let mut ns = 0;
-                        for (index, value) in digits.iter().enumerate() {
-                            ns += *value as u32 * POW10[8 - index];
-                        }
-                        ns
-                    }
+                    Some(_) => self.parse_nanoseconds()?,
                     None => 0,
                 };
                 (seconds, nanoseconds)

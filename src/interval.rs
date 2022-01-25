@@ -10,6 +10,9 @@ use crate::{utils::divrem, Date, DateTime, Time, TimeZone, UtcOffset};
 #[cfg(feature = "formatting")]
 use crate::isoformat::{IsoFormatPrecision, ToIsoFormat};
 
+#[cfg(feature = "parsing")]
+use crate::isoformat::{FromIsoFormat, IsoParser};
+
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
 pub(crate) const NANOS_PER_HOUR: u64 = 60 * NANOS_PER_MIN;
@@ -786,5 +789,199 @@ impl ToIsoFormat for Interval {
     /// corresponding unit is negative.
     fn to_iso_format(&self) -> String {
         self.to_string()
+    }
+}
+
+#[cfg(feature = "parsing")]
+impl FromIsoFormat for Interval {
+    /// Parses an ISO-8601 formatted string to an [`Interval`].
+    ///
+    /// The syntax accepted by this function deviated from the actual ISO-8601 standard
+    /// since it accepts negative numbers. The base syntax accepted is something similar
+    /// to `PnYnMnDTnHnMn.nS`.
+    ///
+    /// The string can start with an optional sign, denoted by the ASCII negative or positive symbol.
+    /// If negative, the whole period is negated. The accepted units are `Y`, `M`, `D`, `H`, and `S`.
+    /// They must be in uppercase. Up to 9 digits of precision are supported by all units except years,
+    /// which must be up to 5 digits. Note that fractions are only supported in the seconds position.
+    ///
+    /// Some example strings:
+    ///
+    /// - `PT15M` (15 minutes)
+    /// - `PT20.5S` (20.5 seconds)
+    /// - `P10Y2M3DT10S` (10 years, 2 months, 3 days, and 10 seconds).
+    /// - `-P30D` (-30 days)
+    /// - `P-30D` (-30 days)
+    /// - `-P-30DT30S` (30 days and -30 seconds).
+    ///
+    fn from_iso_format(s: &str) -> Result<Self, crate::ParseError> {
+        let mut parser = IsoParser::new(s);
+        let negative = parser.parse_sign();
+        parser.expect(b'P')?;
+        let mut time_units = parser.advance_if_equal(b'T').is_some();
+        let mut parsed_once = false;
+        let mut result = Self::ZERO;
+
+        // This parser technically accepts repeated units when it shouldn't be possible
+        // e.g. P10M30M
+        // This is a defect but it makes the parser "simpler". Hopefully in the future
+        // these can be fixed.
+
+        loop {
+            match parser.peek() {
+                Some(b'T') => {
+                    if time_units {
+                        return Err(crate::ParseError::UnexpectedNonDigit);
+                    }
+                    time_units = true;
+                    parser.advance();
+                }
+                None => {
+                    if parsed_once {
+                        break;
+                    } else {
+                        return Err(crate::ParseError::UnexpectedEnd);
+                    }
+                }
+                _ => {}
+            }
+
+            let value = parser.parse_i32()?;
+            match parser.advance() {
+                Some(b'Y') => {
+                    if time_units {
+                        return Err(crate::ParseError::UnexpectedChar('Y'));
+                    }
+                    result.years = i16::try_from(value)?;
+                }
+                Some(b'M') => {
+                    if time_units {
+                        result.minutes = value as i64;
+                    } else {
+                        result.months = value;
+                    }
+                }
+                Some(b'D') => {
+                    if time_units {
+                        return Err(crate::ParseError::UnexpectedChar('D'));
+                    }
+                    result.days = value;
+                }
+                Some(b'H') => {
+                    if !time_units {
+                        return Err(crate::ParseError::UnexpectedChar('H'));
+                    }
+                    result.hours = value;
+                }
+                Some(b'S') => {
+                    if !time_units {
+                        return Err(crate::ParseError::UnexpectedChar('S'));
+                    }
+                    result.seconds = value as i64;
+                }
+                Some(b'.') => {
+                    if !time_units {
+                        return Err(crate::ParseError::UnexpectedChar('.'));
+                    }
+
+                    let mut nanos = i32::try_from(parser.parse_nanoseconds()?)?;
+                    parser.expect(b'S')?;
+
+                    // Expect end of string
+                    if let Some(c) = parser.advance() {
+                        return Err(crate::ParseError::UnexpectedChar(c as char));
+                    }
+
+                    if value < 0 {
+                        nanos = -nanos;
+                    }
+                    result.nanoseconds = nanos as i64;
+                    result.seconds = value as i64;
+                    break;
+                }
+                Some(b) => return Err(crate::ParseError::UnexpectedChar(b as char)),
+                None => return Err(crate::ParseError::UnexpectedEnd),
+            }
+            parsed_once = true;
+        }
+
+        Ok(if negative { -result } else { result })
+    }
+}
+
+#[cfg(feature = "parsing")]
+impl FromIsoFormat for core::time::Duration {
+    /// Parses an ISO-8601 formatted string to an [`std::time::Duration`].
+    ///
+    /// The base syntax accepted is something similar to `PTnHnMn.nS`.
+    /// Unlike the syntax accepted by [`Interval`] this does not accept
+    /// negative numbers since [`std::time::Duration`] does not allow negative
+    /// durations. Likewise, since duration deals only in time units then the corresponding
+    /// date units such as day, month, and year are unsupported.
+    ///
+    /// The accepted units are `H`, `M`, and `S`. They must be in uppercase. Up to 9 digits of precision
+    /// are supported by all units. Note that fractions are only supported in the seconds position.
+    ///
+    /// Some example strings:
+    ///
+    /// - `PT15M` (15 minutes)
+    /// - `PT20.5S` (20.5 seconds)
+    /// - `PT10H` (10 hours)
+    /// - `PT6H30M20.5S` (6 hours, 30 minutes, 20.5 seconds)
+    ///
+    fn from_iso_format(s: &str) -> Result<Self, crate::ParseError> {
+        let mut parser = IsoParser::new(s);
+        parser.expect(b'P')?;
+        parser.expect(b'T')?;
+        let mut total_seconds = 0;
+        let mut nanoseconds = 0;
+        let mut parsed_units = [false, false, false];
+
+        loop {
+            if parser.peek().is_none() {
+                if parsed_units.iter().any(|f| *f) {
+                    break;
+                } else {
+                    return Err(crate::ParseError::UnexpectedEnd);
+                }
+            }
+            let value = parser.parse_u32()?;
+            match parser.advance() {
+                Some(b'M') => {
+                    if parsed_units[1] {
+                        return Err(crate::ParseError::UnexpectedChar('M'));
+                    }
+                    total_seconds += value as u64 * 60;
+                    parsed_units[1] = true;
+                }
+                Some(b'S') => {
+                    if parsed_units[2] {
+                        return Err(crate::ParseError::UnexpectedChar('S'));
+                    }
+                    total_seconds += value as u64;
+                    parsed_units[2] = true;
+                }
+                Some(b'H') => {
+                    if parsed_units[0] {
+                        return Err(crate::ParseError::UnexpectedChar('H'));
+                    }
+                    total_seconds += value as u64 * 3600;
+                    parsed_units[0] = true;
+                }
+                Some(b'.') => {
+                    nanoseconds = parser.parse_nanoseconds()?;
+                    parser.expect(b'S')?;
+                    if let Some(c) = parser.advance() {
+                        return Err(crate::ParseError::UnexpectedChar(c as char));
+                    }
+                    total_seconds += value as u64;
+                    break;
+                }
+                Some(c) => return Err(crate::ParseError::UnexpectedChar(c as char)),
+                None => return Err(crate::ParseError::UnexpectedEnd),
+            }
+        }
+
+        Ok(core::time::Duration::new(total_seconds, nanoseconds))
     }
 }
