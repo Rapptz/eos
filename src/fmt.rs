@@ -66,15 +66,19 @@
 //! |   `%I`    | Hour (12-hour clock) as a zero-padded number.[^1]        | 01, 02, ..., 12                  |
 //! |   `%p`    | The time meridian (am or pm).                            | AM, PM                           |
 //! |   `%M`    | Minute as a zero-padded number.[^1]                      | 00, 01, ..., 59                  |
-//! |   `%S`    | Second as a zero-padded number.[^1]                      | 00, 01, ..., 59                  |
-//! |   `%f`    | Nanoseconds as a zero-padded number.[^1]                 | 0000000, 0000001, ..., 2000000   |
+//! |   `%S`    | Second as a zero-padded number.[^1][^2]                  | 00, 01, ..., 59                  |
+//! |   `%f`    | Nanoseconds as a zero-padded number.[^1][^3]             | 0000000, 0000001, ..., 999999999 |
 //! |   `%z`    | UTC offset as `±HHMM[SS]` or empty.                      | +0000, -0500, +102340, ...       |
 //! |   `%o`    | UTC offset as `±HH:MM[:SS]` or empty.                    | +00:00, -05:00, +10:23:40, ...   |
-//! |   `%Z`    | Timezone name or empty.[^2]                              | UTC, EST, ...                    |
+//! |   `%Z`    | Timezone name or empty.[^4]                              | UTC, EST, ...                    |
 //! |   `%%`    | The literal `%` character.                               | %                                |
 //!
 //! [^1]: Supports modifiers.
-//! [^2]: Unsupported when parsing
+//! [^2]: This is leap second aware so `60` is possible.
+//! [^3]: This is since the last whole second. This means the value will never be higher than `999_999_999`.
+//!       Anything above that value is rolled over to the seconds value.
+//!
+//! [^4]: Unsupported when parsing
 //!
 //! ### Modifiers
 //!
@@ -1122,8 +1126,21 @@ where
                     }
                 }
                 FormatSpecKind::Minute => pad_number(f, self.time.minute(), spec.padding, 2)?,
-                FormatSpecKind::Second => pad_number(f, self.time.second(), spec.padding, 2)?,
-                FormatSpecKind::Nanosecond => pad_number(f, self.time.nanosecond(), spec.padding, 7)?,
+                FormatSpecKind::Second => {
+                    let second = if self.time.nanosecond() >= 1_000_000_000 {
+                        self.time.second() + 1
+                    } else {
+                        self.time.second()
+                    };
+                    pad_number(f, second, spec.padding, 2)?
+                },
+                FormatSpecKind::Nanosecond => {
+                    let mut ns = self.time.nanosecond();
+                    if ns >= 1_000_000_000 {
+                        ns -= 1_000_000_000;
+                    }
+                    pad_number(f, ns, spec.padding, 7)?
+                },
                 FormatSpecKind::Escape => f.write_char('%')?,
                 // Unsupported
                 _ => continue,
@@ -1205,8 +1222,21 @@ where
                     }
                 }
                 FormatSpecKind::Minute => pad_number(f, self.dt.minute(), spec.padding, 2)?,
-                FormatSpecKind::Second => pad_number(f, self.dt.second(), spec.padding, 2)?,
-                FormatSpecKind::Nanosecond => pad_number(f, self.dt.nanosecond(), spec.padding, 7)?,
+                FormatSpecKind::Second => {
+                    let second = if self.dt.nanosecond() >= 1_000_000_000 {
+                        self.dt.second() + 1
+                    } else {
+                        self.dt.second()
+                    };
+                    pad_number(f, second, spec.padding, 2)?
+                },
+                FormatSpecKind::Nanosecond => {
+                    let mut ns = self.dt.nanosecond();
+                    if ns >= 1_000_000_000 {
+                        ns -= 1_000_000_000;
+                    }
+                    pad_number(f, ns, spec.padding, 7)?
+                },
                 FormatSpecKind::UtcOffset => {
                     let offset = self.dt.timezone().offset(self.dt.date(), self.dt.time());
                     offset.fmt(f)?
