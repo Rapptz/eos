@@ -12,6 +12,7 @@ pub mod macros;
 #[cfg(any(feature = "formatting", feature = "parsing"))]
 pub mod fmt;
 
+mod builder;
 mod date;
 mod datetime;
 mod error;
@@ -23,6 +24,7 @@ mod time;
 mod timezone;
 mod utils;
 
+pub use builder::Builder;
 pub use date::{Date, IsoWeekDate, Weekday};
 pub use datetime::DateTime;
 pub use error::Error;
