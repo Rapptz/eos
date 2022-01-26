@@ -21,7 +21,7 @@ use std::time::SystemTime;
 use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 
 #[cfg(feature = "parsing")]
-use crate::fmt::{FromIsoFormat, IsoParser, ParseError};
+use crate::fmt::{FromIsoFormat, ParseError, Parser};
 
 /// An ISO 8601 combined date and time component.
 ///
@@ -117,7 +117,7 @@ impl DateTime<UtcOffset> {
     /// [RFC 3339]: https://datatracker.ietf.org/doc/html/rfc3339
     #[cfg(feature = "parsing")]
     pub fn from_rfc3339(s: &str) -> Result<Self, ParseError> {
-        let mut parser = IsoParser::new(s);
+        let mut parser = Parser::new(s);
         let year = parser.parse_year()?;
         parser.expect(b'-')?;
         let month = parser.parse_month()?;
@@ -808,7 +808,7 @@ impl FromIsoFormat for DateTime<UtcOffset> {
     /// Note that strict ISO-8601 compliance would forbid the seconds component and would
     /// make the `:` optional. This function does not currently accept such syntax.
     fn from_iso_format(s: &str) -> Result<Self, ParseError> {
-        let mut parser = IsoParser::new(s);
+        let mut parser = Parser::new(s);
         let date = parser.parse_date()?;
         parser.expect(b'T')?;
         let time = parser.parse_time()?;

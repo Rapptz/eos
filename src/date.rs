@@ -16,7 +16,7 @@ use crate::sys::localtime::get_local_time_components;
 use crate::fmt::ToIsoFormat;
 
 #[cfg(feature = "parsing")]
-use crate::fmt::{FromIsoFormat, IsoParser, ParseError};
+use crate::fmt::{FromIsoFormat, ParseError, Parser};
 
 /// An enum representing the different weekdays.
 ///
@@ -717,7 +717,7 @@ impl FromIsoFormat for Date {
     /// - `±YYYYY-Www-D` (e.g. `2012-W10-1`)
     /// - `±YYYYY-DDD` (e.g. `2021-048`)
     fn from_iso_format(s: &str) -> Result<Self, ParseError> {
-        let mut parser = IsoParser::new(s);
+        let mut parser = Parser::new(s);
         parser.parse_date()
     }
 }
@@ -754,7 +754,7 @@ impl FromIsoFormat for IsoWeekDate {
     /// - `±YYYYY-Www` (e.g. `2012-W10`)
     /// - `±YYYYY-Www-D` (e.g. `2012-W10-1`)
     fn from_iso_format(s: &str) -> Result<Self, ParseError> {
-        let mut parser = IsoParser::new(s);
+        let mut parser = Parser::new(s);
         let year = parser.parse_year()?;
         parser.expect(b'-')?;
         parser.expect(b'W')?;

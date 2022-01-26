@@ -11,7 +11,7 @@ use crate::{utils::divrem, Date, DateTime, Time, TimeZone, UtcOffset};
 use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 
 #[cfg(feature = "parsing")]
-use crate::fmt::{FromIsoFormat, IsoParser, ParseError};
+use crate::fmt::{FromIsoFormat, ParseError, Parser};
 
 pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
@@ -815,7 +815,7 @@ impl FromIsoFormat for Interval {
     /// - `-P-30DT30S` (30 days and -30 seconds).
     ///
     fn from_iso_format(s: &str) -> Result<Self, ParseError> {
-        let mut parser = IsoParser::new(s);
+        let mut parser = Parser::new(s);
         let negative = parser.parse_sign();
         parser.expect(b'P')?;
         let mut time_units = parser.advance_if_equal(b'T').is_some();
@@ -930,7 +930,7 @@ impl FromIsoFormat for core::time::Duration {
     /// - `PT6H30M20.5S` (6 hours, 30 minutes, 20.5 seconds)
     ///
     fn from_iso_format(s: &str) -> Result<Self, ParseError> {
-        let mut parser = IsoParser::new(s);
+        let mut parser = Parser::new(s);
         parser.expect(b'P')?;
         parser.expect(b'T')?;
         let mut total_seconds = 0;

@@ -13,7 +13,7 @@ use core::{
 use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 
 #[cfg(feature = "parsing")]
-use crate::fmt::{FromIsoFormat, IsoParser, ParseError};
+use crate::fmt::{FromIsoFormat, ParseError, Parser};
 
 /// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
 ///
@@ -405,7 +405,7 @@ impl FromIsoFormat for Time {
     /// Notably, formats *without* the colon are not allowed despite being part of the
     /// ISO-8601 standard.
     fn from_iso_format(s: &str) -> Result<Self, ParseError> {
-        let mut parser = IsoParser::new(s);
+        let mut parser = Parser::new(s);
         parser.parse_time()
     }
 }

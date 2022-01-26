@@ -49,29 +49,32 @@
 //!
 //! | Specifier | Meaning                                                  | Example                          |
 //! |:---------:|:---------------------------------------------------------|:---------------------------------|
-//! |   `%a`    | Abbreviated weekday name                                 | Sun, Mon, ..., Sat               |
-//! |   `%A`    | Full weekday name                                        | Sunday, Monday, ..., Saturday    |
+//! |   `%a`    | Abbreviated weekday name.                                | Sun, Mon, ..., Sat               |
+//! |   `%A`    | Full weekday name.                                       | Sunday, Monday, ..., Saturday    |
 //! |   `%w`    | Weekday as a number where 0 is Sunday and 6 is Saturday. | 0, 1, ... 6                      |
-//! |   `%u`    | Weekday as a number where 1 is Monday and 7 is Saturday  | 1, 2, ... 7                      |
-//! |   `%d`    | Day of the month as a zero-padded number                 | 01, 02, ..., 31                  |
-//! |   `%j`    | Ordinal day of the year as a zero-padded number          | 001, 002, ..., 365               |
-//! |   `%b`    | Abbreviated month name                                   | Jan, Feb, ..., Dec               |
-//! |   `%B`    | Full month name                                          | January, February, ..., December |
-//! |   `%m`    | Month as a zero-padded number                            | 01, 02, ..., 12                  |
-//! |   `%Y`    | Year as a zero-padded number                             | 0001, 0002, ..., 32767           |
-//! |   `%y`    | Same as `%Y` but with explicit sign                      | -0001, 0000, ..., +32767         |
-//! |   `%G`    | ISO 8601 week calendar year as a zero-padded number      | 0001, 0002, ..., 32767           |
-//! |   `%V`    | ISO 8601 week as a zero-padded number                    | 01, 02, ..., 53                  |
-//! |   `%H`    | Hour (24-hour clock) as a zero-padded number             | 00, 01, ..., 23                  |
-//! |   `%I`    | Hour (12-hour clock) as a zero-padded number             | 01, 02, ..., 12                  |
-//! |   `%p`    | The time meridian (am or pm)                             | AM, PM                           |
-//! |   `%M`    | Minute as a zero-padded number                           | 00, 01, ..., 59                  |
-//! |   `%S`    | Second as a zero-padded number                           | 00, 01, ..., 59                  |
-//! |   `%f`    | Nanoseconds as a zero-padded number                      | 0000000, 0000001, ..., 2000000   |
-//! |   `%z`    | UTC offset as `±HHMM[SS]` or empty                       | +0000, -0500, +102340, ...       |
-//! |   `%o`    | UTC offset as `±HH:MM[:SS]` or empty                     | +00:00, -05:00, +10:23:40, ...   |
-//! |   `%Z`    | Timezone name or empty                                   | UTC, EST, ...                    |
+//! |   `%u`    | Weekday as a number where 1 is Monday and 7 is Saturday. | 1, 2, ... 7                      |
+//! |   `%d`    | Day of the month as a zero-padded number.[^1]            | 01, 02, ..., 31                  |
+//! |   `%j`    | Ordinal day of the year as a zero-padded number.[^1]     | 001, 002, ..., 365               |
+//! |   `%b`    | Abbreviated month name.                                  | Jan, Feb, ..., Dec               |
+//! |   `%B`    | Full month name.                                         | January, February, ..., December |
+//! |   `%m`    | Month as a zero-padded number.[^1]                       | 01, 02, ..., 12                  |
+//! |   `%Y`    | Year as a zero-padded number.[^1]                        | 0001, 0002, ..., 32767           |
+//! |   `%y`    | Same as `%Y` but with explicit sign.[^1]                 | -0001, 0000, ..., +32767         |
+//! |   `%G`    | ISO 8601 week calendar year as a zero-padded number.[^1] | 0001, 0002, ..., 32767           |
+//! |   `%V`    | ISO 8601 week as a zero-padded number.[^1]               | 01, 02, ..., 53                  |
+//! |   `%H`    | Hour (24-hour clock) as a zero-padded number.[^1]        | 00, 01, ..., 23                  |
+//! |   `%I`    | Hour (12-hour clock) as a zero-padded number.[^1]        | 01, 02, ..., 12                  |
+//! |   `%p`    | The time meridian (am or pm).                            | AM, PM                           |
+//! |   `%M`    | Minute as a zero-padded number.[^1]                      | 00, 01, ..., 59                  |
+//! |   `%S`    | Second as a zero-padded number.[^1]                      | 00, 01, ..., 59                  |
+//! |   `%f`    | Nanoseconds as a zero-padded number.[^1]                 | 0000000, 0000001, ..., 2000000   |
+//! |   `%z`    | UTC offset as `±HHMM[SS]` or empty.                      | +0000, -0500, +102340, ...       |
+//! |   `%o`    | UTC offset as `±HH:MM[:SS]` or empty.                    | +00:00, -05:00, +10:23:40, ...   |
+//! |   `%Z`    | Timezone name or empty.[^2]                              | UTC, EST, ...                    |
 //! |   `%%`    | The literal `%` character.                               | %                                |
+//!
+//! [^1]: Supports modifiers.
+//! [^2]: Unsupported when parsing
 //!
 //! ### Modifiers
 //!
@@ -83,6 +86,11 @@
 //! |   `#`    | Use no padding at all                    | `%#d` outputs 1, 2, ..., 31   |
 //! |   `_`    | Use spaces for padding instead of zeroes | `%#d` outputs ` 1`, ` 2`, ... |
 //!
+//! ### Parsing Behaviour
+//!
+//! When parsing, the default without specifiers requires that certain digits must be zero-padded.
+//! For example, using `%y` to parse `1` would fail since it expects zero-padded digits to represent the year.
+//! However, using `%#y` is fine. This applies to every specifier that can be modified.
 //!
 //! [strftime]: https://en.cppreference.com/w/cpp/chrono/c/strftime
 //! [`java.time`]: https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
@@ -236,12 +244,9 @@ impl ToIsoFormat for core::time::Duration {
     }
 }
 
-/// A parser to parse ISO-8601 like strings.
-///
-/// This assumes that the string is entirely ASCII (which it should be).
-/// Anything outside of the ASCII range would return an appropriate error anyway.
+/// A parser to parse date time strings.
 #[cfg(feature = "parsing")]
-pub(crate) struct IsoParser<'a> {
+pub(crate) struct Parser<'a> {
     bytes: Peekable<Bytes<'a>>,
 }
 
@@ -256,7 +261,7 @@ enum OrdinalMonthResult {
 const POW10: [u32; 9] = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
 
 #[cfg(feature = "parsing")]
-impl<'a> IsoParser<'a> {
+impl<'a> Parser<'a> {
     pub(crate) fn new(s: &'a str) -> Self {
         Self {
             bytes: s.bytes().peekable(),
@@ -1278,21 +1283,21 @@ mod tests {
 
     #[test]
     fn test_parse_year() {
-        let mut parser = IsoParser::new("2012-02-13");
+        let mut parser = Parser::new("2012-02-13");
         assert_eq!(parser.parse_year(), Ok(2012));
         assert_eq!(parser.advance(), Some(b'-'));
 
-        let mut parser = IsoParser::new("-2012-02-13");
+        let mut parser = Parser::new("-2012-02-13");
         assert_eq!(parser.parse_year(), Ok(-2012));
         assert_eq!(parser.advance(), Some(b'-'));
 
-        let mut parser = IsoParser::new("-45678-02-13");
+        let mut parser = Parser::new("-45678-02-13");
         assert_eq!(parser.parse_year(), Err(ParseError::OutOfBounds));
 
-        let mut parser = IsoParser::new("234");
+        let mut parser = Parser::new("234");
         assert_eq!(parser.parse_year(), Err(ParseError::UnexpectedEnd));
 
-        let mut parser = IsoParser::new("234a");
+        let mut parser = Parser::new("234a");
         assert_eq!(parser.parse_year(), Err(ParseError::UnexpectedNonDigit));
     }
 }
