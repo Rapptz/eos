@@ -704,8 +704,8 @@ pub enum FormatSpecKind<'a> {
     Hour,
     /// The numerical 12-hour clock (`%I`)
     Hour12,
-    /// The time meridian (`%p`)
-    Meridian,
+    /// The time meridiem (`%p`)
+    Meridiem,
     /// The numerical minute (`%M`)
     Minute,
     /// The numerical second (`%S`)
@@ -739,7 +739,7 @@ fn parse_directive(directive: u8) -> Result<FormatSpecKind<'static>, Error> {
         b'V' => Ok(FormatSpecKind::IsoWeek),
         b'H' => Ok(FormatSpecKind::Hour),
         b'I' => Ok(FormatSpecKind::Hour12),
-        b'p' => Ok(FormatSpecKind::Meridian),
+        b'p' => Ok(FormatSpecKind::Meridiem),
         b'M' => Ok(FormatSpecKind::Minute),
         b'S' => Ok(FormatSpecKind::Second),
         b'f' => Ok(FormatSpecKind::Nanosecond),
@@ -1120,7 +1120,7 @@ where
                         pad_number(f, h - 12, spec.padding, 2)?;
                     }
                 }
-                FormatSpecKind::Meridian => {
+                FormatSpecKind::Meridiem => {
                     if self.time.hour() >= 12 {
                         f.write_str("PM")?
                     } else {
@@ -1216,7 +1216,7 @@ where
                         pad_number(f, h - 12, spec.padding, 2)?;
                     }
                 }
-                FormatSpecKind::Meridian => {
+                FormatSpecKind::Meridiem => {
                     if self.dt.hour() >= 12 {
                         f.write_str("PM")?
                     } else {

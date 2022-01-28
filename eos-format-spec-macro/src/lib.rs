@@ -48,7 +48,7 @@ fn parse_directive(directive: u8) -> Result<&'static str, String> {
         b'V' => Ok("eos::fmt::FormatSpecKind::IsoWeek"),
         b'H' => Ok("eos::fmt::FormatSpecKind::Hour"),
         b'I' => Ok("eos::fmt::FormatSpecKind::Hour12"),
-        b'p' => Ok("eos::fmt::FormatSpecKind::Meridian"),
+        b'p' => Ok("eos::fmt::FormatSpecKind::Meridiem"),
         b'M' => Ok("eos::fmt::FormatSpecKind::Minute"),
         b'S' => Ok("eos::fmt::FormatSpecKind::Second"),
         b'f' => Ok("eos::fmt::FormatSpecKind::Nanosecond"),

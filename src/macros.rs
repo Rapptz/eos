@@ -21,7 +21,7 @@ pub use const_assert;
 #[macro_export]
 #[rustfmt::skip]
 #[cfg(feature = "macros")]
-macro_rules! __meridian_parser {
+macro_rules! __meridiem_parser {
     (am) => { true };
     (AM) => { true };
     (Am) => { true };
@@ -29,13 +29,13 @@ macro_rules! __meridian_parser {
     (PM) => { false };
     (Pm) => { false };
     ($t:tt+) => {{
-        core::panic!("meridian must be one of `am`, `AM`, `Am`, `pm`, `PM`, or `Pm`")
+        core::panic!("meridiem must be one of `am`, `AM`, `Am`, `pm`, `PM`, or `Pm`")
     }};
 }
 
 #[doc(hidden)]
 #[cfg(feature = "macros")]
-pub use __meridian_parser;
+pub use __meridiem_parser;
 
 #[doc(hidden)]
 #[macro_export]
@@ -91,7 +91,7 @@ macro_rules! time {
         $crate::Time::__new_unchecked_from_macro(HOURS, MINUTES, SECONDS)
     }};
 
-    ($hours:literal:$minutes:literal$(:$seconds:literal)? $meridian:ident) => {{
+    ($hours:literal:$minutes:literal$(:$seconds:literal)? $meridiem:ident) => {{
         #[allow(clippy::zero_prefixed_literal)]
         const HOURS: u8 = $hours;
         #[allow(clippy::zero_prefixed_literal)]
@@ -101,8 +101,8 @@ macro_rules! time {
         $crate::macros::const_assert!(HOURS <= 12, "hours must be less than 13");
         $crate::macros::const_assert!(MINUTES <= 59, "minutes must be less than 60");
         $crate::macros::const_assert!(SECONDS <= 59, "seconds must be less than 60");
-        const MERIDIAN: bool = $crate::macros::__meridian_parser!($meridian);
-        if MERIDIAN {
+        const MERIDIEM: bool = $crate::macros::__meridiem_parser!($meridiem);
+        if MERIDIEM {
             $crate::Time::__new_unchecked_from_macro(if HOURS == 12 { 0 } else { HOURS }, MINUTES, SECONDS)
         } else {
             $crate::Time::__new_unchecked_from_macro(if HOURS == 12 { 12 } else { HOURS + 12 }, MINUTES, SECONDS)
@@ -289,32 +289,32 @@ macro_rules! utc_offset {
 macro_rules! datetime {
     (
         $year:tt-$month:tt-$day:tt
-        $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridian:ident)?
+        $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridiem:ident)?
         -$off_hours:literal$(:$off_minutes:literal$(:$off_seconds:literal)?)?
     ) => {{
         const DATE: $crate::Date = $crate::date!($year-$month-$day);
-        const TIME: $crate::Time = $crate::time!($hours:$minutes$(:$seconds)? $($meridian)?);
+        const TIME: $crate::Time = $crate::time!($hours:$minutes$(:$seconds)? $($meridiem)?);
         const OFFSET: $crate::UtcOffset = $crate::utc_offset!(-$off_hours$(:$off_minutes$(:$off_seconds)?)?);
         $crate::__create_offset_datetime_from_macro(DATE, TIME, OFFSET)
     }};
 
     (
         $year:tt-$month:tt-$day:tt
-        $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridian:ident)?
+        $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridiem:ident)?
         $(+)?$off_hours:literal$(:$off_minutes:literal$(:$off_seconds:literal)?)?
     ) => {{
         const DATE: $crate::Date = $crate::date!($year-$month-$day);
-        const TIME: $crate::Time = $crate::time!($hours:$minutes$(:$seconds)? $($meridian)?);
+        const TIME: $crate::Time = $crate::time!($hours:$minutes$(:$seconds)? $($meridiem)?);
         const OFFSET: $crate::UtcOffset = $crate::utc_offset!($off_hours$(:$off_minutes$(:$off_seconds)?)?);
         $crate::__create_offset_datetime_from_macro(DATE, TIME, OFFSET)
     }};
 
     (
         $year:tt-$month:tt-$day:tt
-        $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridian:ident)?
+        $hours:tt:$minutes:tt$(:$seconds:tt)? $($meridiem:ident)?
     ) => {{
         const DATE: $crate::Date = $crate::date!($year-$month-$day);
-        const TIME: $crate::Time = $crate::time!($hours:$minutes$(:$seconds)? $($meridian)?);
+        const TIME: $crate::Time = $crate::time!($hours:$minutes$(:$seconds)? $($meridiem)?);
         $crate::DateTime::__new_utc_unchecked_from_macro(DATE, TIME)
     }};
 }
