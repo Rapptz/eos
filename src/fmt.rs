@@ -47,48 +47,41 @@
 //! with the library or legacy reasons. For example, the libc `%y` and `%C` don't make
 //! sense since the range of data used in this library are larger than the ones in `<time.h>`.
 //!
-//! | Specifier | Meaning                                                  | Example                          |
-//! |:---------:|:---------------------------------------------------------|:---------------------------------|
-//! |   `%a`    | Abbreviated weekday name.                                | Sun, Mon, ..., Sat               |
-//! |   `%A`    | Full weekday name.                                       | Sunday, Monday, ..., Saturday    |
-//! |   `%w`    | Weekday as a number where 0 is Sunday and 6 is Saturday. | 0, 1, ... 6                      |
-//! |   `%u`    | Weekday as a number where 1 is Monday and 7 is Saturday. | 1, 2, ... 7                      |
-//! |   `%d`    | Day of the month as a zero-padded number.[^1]            | 01, 02, ..., 31                  |
-//! |   `%j`    | Ordinal day of the year as a zero-padded number.[^1]     | 001, 002, ..., 365               |
-//! |   `%b`    | Abbreviated month name.                                  | Jan, Feb, ..., Dec               |
-//! |   `%B`    | Full month name.                                         | January, February, ..., December |
-//! |   `%m`    | Month as a zero-padded number.[^1]                       | 01, 02, ..., 12                  |
-//! |   `%Y`    | Year as a zero-padded number.[^1]                        | 0001, 0002, ..., 32767           |
-//! |   `%y`    | Same as `%Y` but with explicit sign.[^1]                 | -0001, 0000, ..., +32767         |
-//! |   `%G`    | ISO 8601 week calendar year as a zero-padded number.[^1] | 0001, 0002, ..., 32767           |
-//! |   `%V`    | ISO 8601 week as a zero-padded number.[^1]               | 01, 02, ..., 53                  |
-//! |   `%H`    | Hour (24-hour clock) as a zero-padded number.[^1]        | 00, 01, ..., 23                  |
-//! |   `%I`    | Hour (12-hour clock) as a zero-padded number.[^1]        | 01, 02, ..., 12                  |
-//! |   `%p`    | The time meridian (am or pm).                            | AM, PM                           |
-//! |   `%M`    | Minute as a zero-padded number.[^1]                      | 00, 01, ..., 59                  |
-//! |   `%S`    | Second as a zero-padded number.[^1][^2]                  | 00, 01, ..., 59                  |
-//! |   `%f`    | Nanoseconds as a zero-padded number.[^1][^3]             | 0000000, 0000001, ..., 999999999 |
-//! |   `%z`    | UTC offset as `±HHMM[SS]` or empty.                      | +0000, -0500, +102340, ...       |
-//! |   `%o`    | UTC offset as `±HH:MM[:SS]` or empty.                    | +00:00, -05:00, +10:23:40, ...   |
-//! |   `%Z`    | Timezone name or empty.[^4]                              | UTC, EST, ...                    |
-//! |   `%%`    | The literal `%` character.                               | %                                |
-//!
-//! [^1]: Supports modifiers.
-//! [^2]: This is leap second aware so `60` is possible.
-//! [^3]: This is since the last whole second. This means the value will never be higher than `999_999_999`.
-//!       Anything above that value is rolled over to the seconds value.
-//!
-//! [^4]: Unsupported when parsing
+//! | Specifier | Meaning                                                         | Example                          |
+//! |:---------:|:----------------------------------------------------------------|:---------------------------------|
+//! |   `%a`    | Abbreviated weekday name.                                       | Sun, Mon, ..., Sat               |
+//! |   `%A`    | Full weekday name.                                              | Sunday, Monday, ..., Saturday    |
+//! |   `%w`    | Weekday as a number where 0 is Sunday and 6 is Saturday.        | 0, 1, ... 6                      |
+//! |   `%u`    | Weekday as a number where 1 is Monday and 7 is Saturday.        | 1, 2, ... 7                      |
+//! |   `%d`    | Day of the month as a zero-padded number.[^1]                   | 01, 02, ..., 31                  |
+//! |   `%j`    | Ordinal day of the year as a zero-padded number.[^1][^6]        | 001, 002, ..., 365               |
+//! |   `%b`    | Abbreviated month name.                                         | Jan, Feb, ..., Dec               |
+//! |   `%B`    | Full month name.                                                | January, February, ..., December |
+//! |   `%m`    | Month as a zero-padded number.[^1]                              | 01, 02, ..., 12                  |
+//! |   `%Y`    | Year as a zero-padded number.[^1]                               | 0001, 0002, ..., 32767           |
+//! |   `%y`    | Same as `%Y` but with explicit sign.[^1]                        | -0001, 0000, ..., +32767         |
+//! |   `%G`    | ISO 8601 week calendar year as a zero-padded number.[^1][^5]    | 0001, 0002, ..., 32767           |
+//! |   `%V`    | ISO 8601 week as a zero-padded number.[^1][^5]                  | 01, 02, ..., 53                  |
+//! |   `%H`    | Hour (24-hour clock) as a zero-padded number.[^1]               | 00, 01, ..., 23                  |
+//! |   `%I`    | Hour (12-hour clock) as a zero-padded number.[^1]               | 01, 02, ..., 12                  |
+//! |   `%p`    | The time meridiem (am or pm).                                   | AM, PM                           |
+//! |   `%M`    | Minute as a zero-padded number.[^1]                             | 00, 01, ..., 59                  |
+//! |   `%S`    | Second as a zero-padded number.[^1][^2]                         | 00, 01, ..., 59                  |
+//! |   `%f`    | Nanoseconds as a zero-padded number.[^1][^3]                    | 0000000, 0000001, ..., 999999999 |
+//! |   `%z`    | UTC offset as `±HHMM[SS]` or empty.                             | +0000, -0500, +102340, ...       |
+//! |   `%o`    | UTC offset as `±HH:MM[:SS]` or empty.                           | +00:00, -05:00, +10:23:40, ...   |
+//! |   `%Z`    | Timezone name or empty.[^4]                                     | UTC, EST, ...                    |
+//! |   `%%`    | The literal `%` character.                                      | %                                |
 //!
 //! ### Modifiers
 //!
 //! Directives that are zero-padded support so called modifiers that help modify the formatting behavior.
 //! These help change the formatting from zero-padding to either space or no padding. They *must* follow the `%` sign.
 //!
-//! | Modifier | Meaning                                  | Example                       |
-//! |:--------:|:-----------------------------------------|:------------------------------|
-//! |   `#`    | Use no padding at all                    | `%#d` outputs 1, 2, ..., 31   |
-//! |   `_`    | Use spaces for padding instead of zeroes | `%#d` outputs ` 1`, ` 2`, ... |
+//! | Modifier | Meaning                                      | Example                       |
+//! |:--------:|:---------------------------------------------|:------------------------------|
+//! |   `#`    | Use no padding at all                        | `%#d` outputs 1, 2, ..., 31   |
+//! |   `_`    | Use spaces for padding instead of zeroes     | `%_d` outputs ` 1`, ` 2`, ... |
 //!
 //! ### Parsing Behaviour
 //!
@@ -96,10 +89,19 @@
 //! For example, using `%y` to parse `1` would fail since it expects zero-padded digits to represent the year.
 //! However, using `%#y` is fine. This applies to every specifier that can be modified.
 //!
+//! [^1]: Supports modifiers. During parsing, modifiers are ignored and zero-padding is optional.
+//! [^2]: This is leap second aware so `60` is possible.
+//! [^3]: This is since the last whole second. This means the value will never be higher than `999_999_999`.
+//!       Anything above that value is rolled over to the seconds value.
+//!
+//! [^4]: Unsupported when parsing. Usage will return a [`ParseError`].
+//! [^5]: This is only used in calculating during parsing if used together.
+//! [^6]: If provided with a year then this will be used for calculations.
+//!
 //! [strftime]: https://en.cppreference.com/w/cpp/chrono/c/strftime
 //! [`java.time`]: https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
 
-use crate::{utils::divmod, Date, DateTime, Time, TimeZone};
+use crate::{utils::divmod, Date, DateTime, Time, TimeZone, Weekday};
 use core::{fmt::Write, iter::Peekable, str::Bytes};
 
 /// Represents an error that occurs during parsing a string to the specified
