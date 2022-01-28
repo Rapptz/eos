@@ -118,6 +118,8 @@ pub enum ParseError {
     UnexpectedChar(char),
     /// The parser expected a digit but did not find one
     UnexpectedNonDigit,
+    /// The parser found an unsupported directive or modifier.
+    UnsupportedSpecifier,
     /// A value was out of bounds (such as a year, month, day, etc.)
     ///
     /// To prevent the enum from bloating up these are all consolidated into one variant.
@@ -134,6 +136,7 @@ impl core::fmt::Display for ParseError {
             }
             ParseError::UnexpectedNonDigit => f.write_str("expected a digit but did not find one"),
             ParseError::OutOfBounds => f.write_str("a unit was out of bounds"),
+            ParseError::UnsupportedSpecifier => f.write_str("unsupported format or specifier found"),
         }
     }
 }
@@ -367,6 +370,29 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses up to N digits, returning the number being represented.
+    ///
+    /// This is mainly used for parsing between 2-3 digits without leading zeroes.
+    pub(crate) fn parse_u16<const N: usize>(&mut self) -> Result<u16, ParseError> {
+        let mut read_any: bool = false;
+        let mut n: u16 = 0;
+        for _ in 0..N {
+            match self.advance_if(u8::is_ascii_digit) {
+                Some(c) => {
+                    n = n * 10 + (c as u8 - b'0') as u16;
+                    read_any = true;
+                }
+                None => break,
+            }
+        }
+
+        if read_any {
+            Ok(n)
+        } else {
+            Err(ParseError::UnexpectedNonDigit)
+        }
+    }
+
     /// Parses up to 9 digits, returning the number being represented.
     ///
     /// If the number is too large to fit in an u32 then it errors out.
@@ -394,6 +420,18 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[inline]
+    pub(crate) fn expect_str(&mut self, expected: &[u8]) -> Result<(), ParseError> {
+        for byte in expected {
+            match self.advance() {
+                Some(b) if b == *byte => continue,
+                Some(b) => return Err(ParseError::UnexpectedChar(b as char)),
+                None => return Err(ParseError::UnexpectedEnd),
+            }
+        }
+        Ok(())
+    }
+
     /// Parses an optional ± and returns whether the value is negative.
     pub(crate) fn parse_sign(&mut self) -> bool {
         match self.peek() {
@@ -406,6 +444,22 @@ impl<'a> Parser<'a> {
                 true
             }
             _ => false,
+        }
+    }
+
+    /// Parses a required ± and returns whether the value is negative.
+    pub(crate) fn parse_required_sign(&mut self) -> Result<bool, ParseError> {
+        match self.peek() {
+            Some(b'+') => {
+                self.bytes.next();
+                Ok(false)
+            }
+            Some(b'-') => {
+                self.bytes.next();
+                Ok(true)
+            }
+            Some(c) => Err(ParseError::UnexpectedChar(c as char)),
+            None => Err(ParseError::UnexpectedEnd),
         }
     }
 
@@ -633,6 +687,350 @@ impl<'a> FormatSpec<'a> {
             kind: FormatSpecKind::Raw(s),
             padding: FormatSpecPadding::Empty,
         }
+    }
+
+    #[cfg(feature = "parsing")]
+    pub(crate) fn parse_into(
+        &self,
+        builder: &mut crate::Builder<crate::UtcOffset>,
+        parser: &mut Parser,
+    ) -> Result<(), ParseError> {
+        match self.kind {
+            FormatSpecKind::Raw(x) => {
+                parser.expect_str(x.as_bytes())?;
+            }
+            FormatSpecKind::AbbreviatedWeekday => {
+                // Mon, Tue, Wed, Thu, Fri, Sat, Sun
+                match parser.advance() {
+                    Some(b'M') => {
+                        parser.expect_str(b"on")?;
+                        builder.weekday(Weekday::Monday);
+                    }
+                    Some(b'T') => match parser.advance() {
+                        Some(b'u') => {
+                            parser.expect(b'e')?;
+                            builder.weekday(Weekday::Tuesday);
+                        }
+                        Some(b'h') => {
+                            parser.expect(b'u')?;
+                            builder.weekday(Weekday::Thursday);
+                        }
+                        Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                        None => return Err(ParseError::UnexpectedEnd),
+                    },
+                    Some(b'W') => {
+                        parser.expect_str(b"ed")?;
+                        builder.weekday(Weekday::Wednesday);
+                    }
+                    Some(b'F') => {
+                        parser.expect_str(b"ri")?;
+                        builder.weekday(Weekday::Friday);
+                    }
+                    Some(b'S') => match parser.advance() {
+                        Some(b'a') => {
+                            parser.expect(b't')?;
+                            builder.weekday(Weekday::Saturday);
+                        }
+                        Some(b'u') => {
+                            parser.expect(b'n')?;
+                            builder.weekday(Weekday::Sunday);
+                        }
+                        Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                        None => return Err(ParseError::UnexpectedEnd),
+                    },
+                    Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                    None => return Err(ParseError::UnexpectedEnd),
+                }
+            }
+            FormatSpecKind::FullWeekday => {
+                // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+                match parser.advance() {
+                    Some(b'M') => {
+                        parser.expect_str(b"onday")?;
+                        builder.weekday(Weekday::Monday);
+                    }
+                    Some(b'T') => match parser.advance() {
+                        Some(b'u') => {
+                            parser.expect_str(b"esday")?;
+                            builder.weekday(Weekday::Tuesday);
+                        }
+                        Some(b'h') => {
+                            parser.expect_str(b"ursday")?;
+                            builder.weekday(Weekday::Thursday);
+                        }
+                        Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                        None => return Err(ParseError::UnexpectedEnd),
+                    },
+                    Some(b'W') => {
+                        parser.expect_str(b"ednesday")?;
+                        builder.weekday(Weekday::Wednesday);
+                    }
+                    Some(b'F') => {
+                        parser.expect_str(b"riday")?;
+                        builder.weekday(Weekday::Friday);
+                    }
+                    Some(b'S') => match parser.advance() {
+                        Some(b'a') => {
+                            parser.expect_str(b"turday")?;
+                            builder.weekday(Weekday::Saturday);
+                        }
+                        Some(b'u') => {
+                            parser.expect_str(b"nday")?;
+                            builder.weekday(Weekday::Sunday);
+                        }
+                        Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                        None => return Err(ParseError::UnexpectedEnd),
+                    },
+                    Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                    None => return Err(ParseError::UnexpectedEnd),
+                }
+            }
+            FormatSpecKind::Weekday => {
+                let digit = parser.parse_digit()?;
+                let weekday = match digit {
+                    0 => Weekday::Sunday,
+                    1 => Weekday::Monday,
+                    2 => Weekday::Tuesday,
+                    3 => Weekday::Wednesday,
+                    4 => Weekday::Thursday,
+                    5 => Weekday::Friday,
+                    6 => Weekday::Saturday,
+                    _ => return Err(ParseError::OutOfBounds),
+                };
+                builder.weekday(weekday);
+            }
+            FormatSpecKind::IsoWeekday => {
+                let digit = parser.parse_digit()?;
+                let weekday = match digit {
+                    1 => Weekday::Monday,
+                    2 => Weekday::Tuesday,
+                    3 => Weekday::Wednesday,
+                    4 => Weekday::Thursday,
+                    5 => Weekday::Friday,
+                    6 => Weekday::Saturday,
+                    7 => Weekday::Sunday,
+                    _ => return Err(ParseError::OutOfBounds),
+                };
+                builder.weekday(weekday);
+            }
+            FormatSpecKind::Day => {
+                let day = parser.parse_u16::<2>()? as u8;
+                builder.day(day);
+            }
+            FormatSpecKind::Ordinal => {
+                let ordinal = parser.parse_u16::<3>()?;
+                builder.ordinal(ordinal);
+            }
+            FormatSpecKind::AbbreviatedMonth => {
+                // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
+                match parser.advance() {
+                    Some(b'J') => match parser.advance() {
+                        Some(b'a') => {
+                            parser.expect(b'n')?;
+                            builder.month(1);
+                        }
+                        Some(b'u') => {
+                            match parser.advance() {
+                                Some(b'n') => builder.month(6),
+                                Some(b'l') => builder.month(7),
+                                Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                                None => return Err(ParseError::UnexpectedEnd),
+                            };
+                        }
+                        Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                        None => return Err(ParseError::UnexpectedEnd),
+                    },
+                    Some(b'F') => {
+                        parser.expect_str(b"eb")?;
+                        builder.month(2);
+                    }
+                    Some(b'M') => {
+                        parser.expect(b'a')?;
+                        match parser.advance() {
+                            Some(b'r') => builder.month(3),
+                            Some(b'y') => builder.month(5),
+                            Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                            None => return Err(ParseError::UnexpectedEnd),
+                        };
+                    }
+                    Some(b'A') => {
+                        parser.expect_str(b"ug")?;
+                        builder.month(8);
+                    }
+                    Some(b'S') => {
+                        parser.expect_str(b"ep")?;
+                        builder.month(9);
+                    }
+                    Some(b'O') => {
+                        parser.expect_str(b"ct")?;
+                        builder.month(10);
+                    }
+                    Some(b'N') => {
+                        parser.expect_str(b"ov")?;
+                        builder.month(11);
+                    }
+                    Some(b'D') => {
+                        parser.expect_str(b"ec")?;
+                        builder.month(12);
+                    }
+                    Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                    None => return Err(ParseError::UnexpectedEnd),
+                }
+            }
+            FormatSpecKind::FullMonth => {
+                // January, February, March, April, May, June, July, August, September, October, November, December
+                match parser.advance() {
+                    Some(b'J') => match parser.advance() {
+                        Some(b'a') => {
+                            parser.expect_str(b"nuary")?;
+                            builder.month(1);
+                        }
+                        Some(b'u') => {
+                            match parser.advance() {
+                                Some(b'n') => {
+                                    parser.expect(b'e')?;
+                                    builder.month(6);
+                                }
+                                Some(b'l') => {
+                                    parser.expect(b'y')?;
+                                    builder.month(7);
+                                }
+                                Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                                None => return Err(ParseError::UnexpectedEnd),
+                            };
+                        }
+                        Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                        None => return Err(ParseError::UnexpectedEnd),
+                    },
+                    Some(b'F') => {
+                        parser.expect_str(b"ebruary")?;
+                        builder.month(2);
+                    }
+                    Some(b'M') => {
+                        parser.expect(b'a')?;
+                        match parser.advance() {
+                            Some(b'r') => {
+                                parser.expect_str(b"ch")?;
+                                builder.month(3);
+                            }
+                            Some(b'y') => {
+                                builder.month(5);
+                            }
+                            Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                            None => return Err(ParseError::UnexpectedEnd),
+                        };
+                    }
+                    Some(b'A') => {
+                        parser.expect_str(b"ugust")?;
+                        builder.month(8);
+                    }
+                    Some(b'S') => {
+                        parser.expect_str(b"eptember")?;
+                        builder.month(9);
+                    }
+                    Some(b'O') => {
+                        parser.expect_str(b"ctober")?;
+                        builder.month(10);
+                    }
+                    Some(b'N') => {
+                        parser.expect_str(b"ovember")?;
+                        builder.month(11);
+                    }
+                    Some(b'D') => {
+                        parser.expect_str(b"ecember")?;
+                        builder.month(12);
+                    }
+                    Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                    None => return Err(ParseError::UnexpectedEnd),
+                }
+            }
+            FormatSpecKind::Month => {
+                let month = parser.parse_u16::<2>()? as u8;
+                builder.month(month);
+            }
+            FormatSpecKind::Year | FormatSpecKind::SignedYear | FormatSpecKind::IsoWeekYear => {
+                let negative = parser.parse_sign();
+                let year = i16::try_from(parser.parse_u16::<5>()?)?;
+                builder.year(if negative { -year } else { year });
+            }
+            FormatSpecKind::IsoWeek => {
+                let iso_week = parser.parse_u16::<2>()? as u8;
+                builder.iso_week(iso_week);
+            }
+            FormatSpecKind::Hour | FormatSpecKind::Hour12 => {
+                let hour = parser.parse_u16::<2>()? as u8;
+                builder.hour(hour);
+            }
+            FormatSpecKind::Meridiem => match parser.advance() {
+                Some(b'a' | b'A') => match parser.advance() {
+                    Some(b'm' | b'M') => {
+                        builder.am();
+                    }
+                    Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                    None => return Err(ParseError::UnexpectedEnd),
+                },
+                Some(b'p' | b'P') => match parser.advance() {
+                    Some(b'm' | b'M') => {
+                        builder.pm();
+                    }
+                    Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                    None => return Err(ParseError::UnexpectedEnd),
+                },
+                Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                None => return Err(ParseError::UnexpectedEnd),
+            },
+            FormatSpecKind::Minute => {
+                let minute = parser.parse_u16::<2>()? as u8;
+                builder.minute(minute);
+            }
+            FormatSpecKind::Second => {
+                let second = parser.parse_u16::<2>()? as u8;
+                builder.second(second);
+            }
+            FormatSpecKind::Nanosecond => {
+                let nanos = parser.parse_nanoseconds()?;
+                builder.nanosecond(nanos);
+            }
+            FormatSpecKind::UtcOffset => {
+                // [+-]HH:MM[:SS]?
+                let negative = parser.parse_required_sign()?;
+                let hour = parser.parse_two_digits()? as i8;
+                parser.expect(b':')?;
+                let minute = parser.parse_two_digits()? as i8;
+                let seconds = if parser.advance_if_equal(b':').is_some() {
+                    parser.parse_two_digits()? as i8
+                } else {
+                    0
+                };
+                let offset = crate::UtcOffset::from_hms(hour, minute, seconds).map_err(|_| ParseError::OutOfBounds)?;
+                if negative {
+                    builder.timezone = -offset;
+                } else {
+                    builder.timezone = offset;
+                }
+            }
+            FormatSpecKind::UtcOffsetBrief => {
+                // [+-]HHMM[SS]?
+                let negative = parser.parse_required_sign()?;
+                let hour = parser.parse_two_digits()? as i8;
+                let minute = parser.parse_two_digits()? as i8;
+                let seconds = match parser.peek() {
+                    Some(c) if c.is_ascii_digit() => parser.parse_two_digits()? as i8,
+                    _ => 0,
+                };
+                let offset = crate::UtcOffset::from_hms(hour, minute, seconds).map_err(|_| ParseError::OutOfBounds)?;
+                if negative {
+                    builder.timezone = -offset;
+                } else {
+                    builder.timezone = offset;
+                }
+            }
+            FormatSpecKind::ZoneName => return Err(ParseError::UnsupportedSpecifier),
+            FormatSpecKind::Escape => {
+                parser.expect(b'%')?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -955,28 +1353,28 @@ where
 }
 
 #[cfg(feature = "formatting")]
-fn abbreviated_weekday(weekday: crate::Weekday) -> &'static str {
+fn abbreviated_weekday(weekday: Weekday) -> &'static str {
     match weekday {
-        crate::Weekday::Monday => "Mon",
-        crate::Weekday::Tuesday => "Tue",
-        crate::Weekday::Wednesday => "Wed",
-        crate::Weekday::Thursday => "Thu",
-        crate::Weekday::Friday => "Fri",
-        crate::Weekday::Saturday => "Sat",
-        crate::Weekday::Sunday => "Sun",
+        Weekday::Monday => "Mon",
+        Weekday::Tuesday => "Tue",
+        Weekday::Wednesday => "Wed",
+        Weekday::Thursday => "Thu",
+        Weekday::Friday => "Fri",
+        Weekday::Saturday => "Sat",
+        Weekday::Sunday => "Sun",
     }
 }
 
 #[cfg(feature = "formatting")]
-fn full_weekday(weekday: crate::Weekday) -> &'static str {
+fn full_weekday(weekday: Weekday) -> &'static str {
     match weekday {
-        crate::Weekday::Monday => "Monday",
-        crate::Weekday::Tuesday => "Tuesday",
-        crate::Weekday::Wednesday => "Wednesday",
-        crate::Weekday::Thursday => "Thursday",
-        crate::Weekday::Friday => "Friday",
-        crate::Weekday::Saturday => "Saturday",
-        crate::Weekday::Sunday => "Sunday",
+        Weekday::Monday => "Monday",
+        Weekday::Tuesday => "Tuesday",
+        Weekday::Wednesday => "Wednesday",
+        Weekday::Thursday => "Thursday",
+        Weekday::Friday => "Friday",
+        Weekday::Saturday => "Saturday",
+        Weekday::Sunday => "Sunday",
     }
 }
 
@@ -1135,14 +1533,14 @@ where
                         self.time.second()
                     };
                     pad_number(f, second, spec.padding, 2)?
-                },
+                }
                 FormatSpecKind::Nanosecond => {
                     let mut ns = self.time.nanosecond();
                     if ns >= 1_000_000_000 {
                         ns -= 1_000_000_000;
                     }
                     pad_number(f, ns, spec.padding, 7)?
-                },
+                }
                 FormatSpecKind::Escape => f.write_char('%')?,
                 // Unsupported
                 _ => continue,
@@ -1231,14 +1629,14 @@ where
                         self.dt.second()
                     };
                     pad_number(f, second, spec.padding, 2)?
-                },
+                }
                 FormatSpecKind::Nanosecond => {
                     let mut ns = self.dt.nanosecond();
                     if ns >= 1_000_000_000 {
                         ns -= 1_000_000_000;
                     }
                     pad_number(f, ns, spec.padding, 7)?
-                },
+                }
                 FormatSpecKind::UtcOffset => {
                     let offset = self.dt.timezone().offset(self.dt.date(), self.dt.time());
                     offset.fmt(f)?

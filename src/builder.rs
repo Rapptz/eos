@@ -28,7 +28,7 @@ where
     minute: u8,
     second: u8,
     nanosecond: u32,
-    timezone: Tz,
+    pub(crate) timezone: Tz,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -177,6 +177,13 @@ where
         self
     }
 
+    pub(crate) fn fix_leap_seconds(&mut self) {
+        if self.second == 60 {
+            self.second -= 1;
+            self.nanosecond += 1_000_000_000;
+        }
+    }
+
     /// Sets the timezone.
     ///
     /// This does *not* do any time modification.
@@ -257,14 +264,14 @@ where
                 } else {
                     self.hour
                 }
-            },
+            }
             Some(AmPm::Pm) => {
                 if self.hour == 12 {
                     12
                 } else {
                     self.hour + 12
                 }
-            },
+            }
             None => self.hour,
         };
 

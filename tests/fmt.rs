@@ -1,6 +1,6 @@
 use eos::{
     date, datetime,
-    fmt::{FormatSpec, FormatSpecKind},
+    fmt::{format_spec, FormatSpec, FormatSpecKind},
     format_dt, time, utc_offset, DateTime, Utc,
 };
 
@@ -132,6 +132,82 @@ fn test_datetime_rfc3339_roundtrip() {
                 let dt = date.at(time).with_timezone(offset);
                 let out = dt.to_rfc3339().to_string();
                 assert_eq!(DateTime::from_rfc3339(&out).unwrap(), dt);
+            }
+        }
+    }
+}
+
+#[test]
+fn test_datetime_from_spec() -> Result<(), eos::fmt::ParseError> {
+    assert_eq!(
+        DateTime::parse_from_spec("2005-12-12 10:10:40.123456", format_spec!("%Y-%m-%d %H:%M:%S.%f"))?,
+        datetime!(2005-12-12 10:10:40).with_microsecond(123456).unwrap()
+    );
+    assert_eq!(
+        DateTime::parse_from_spec("2020-W10-1", format_spec!("%G-W%V-%u"))?,
+        datetime!(2020-03-02 00:00:00)
+    );
+    assert_eq!(
+        DateTime::parse_from_spec(
+            "2020-02-12T12:34:56.123456-05:00",
+            format_spec!("%Y-%m-%dT%H:%M:%S.%f%o")
+        )?,
+        datetime!(2020-02-12 12:34:56 -05:00).with_microsecond(123456).unwrap()
+    );
+    assert_eq!(
+        DateTime::parse_from_spec(
+            "Fri January 28 2022 at 1:15 AM",
+            format_spec!("%a %B %d %Y at %I:%M %p")
+        )?,
+        datetime!(2022-01-28 1:15 am)
+    );
+    Ok(())
+}
+
+#[test]
+fn test_datetime_format_parse_roundtrip() {
+    let dates = [
+        date!(0001 - 01 - 01),
+        date!(1990 - 01 - 01),
+        date!(2005 - 11 - 12),
+        date!(2012 - 02 - 29),
+        date!(2022 - 01 - 25),
+    ];
+
+    let times = [
+        time!(00:00:00),
+        time!(05:06:07),
+        time!(05:06:07).with_microsecond(123456).unwrap(),
+        time!(12:30:40),
+        time!(12:34:56).with_microsecond(789101).unwrap(),
+    ];
+
+    let offsets = [
+        utc_offset!(00:00),
+        utc_offset!(-05:00),
+        utc_offset!(04:00),
+        utc_offset!(12:45),
+        utc_offset!(-10:00),
+    ];
+
+    // To test roundtrip we need to ensure that *every* field is transmitted
+    // otherwise there's a loss of information
+    let specs = [
+        &format_spec!("%G-W%V-%u %H:%M:%S.%f%z")[..],
+        &format_spec!("%a %B %d %Y at %I:%M:%S.%f %p %o")[..],
+        &format_spec!("%Y-%j %H:%M:%S.%f%z")[..],
+        &format_spec!("hello %Y-%m-%d %H:%M:%S.%f%o")[..],
+    ];
+
+    for date in dates {
+        for time in times {
+            for offset in offsets {
+                let dt = date.at(time).with_timezone(offset);
+                for spec in specs {
+                    let string = dt.format(spec).to_string();
+                    let parsed = DateTime::parse_from_spec(&string, spec).unwrap();
+                    assert_eq!(parsed, dt);
+                }
             }
         }
     }

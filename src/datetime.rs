@@ -164,6 +164,35 @@ impl DateTime<UtcOffset> {
             timezone: offset,
         })
     }
+
+    /// Parses a [`DateTime`] with a given slice of [`crate::fmt::FormatSpec`].
+    ///
+    /// Check the [`crate::fmt`] module for more information.
+    ///
+    /// ```
+    /// use eos::{datetime, DateTime, fmt::format_spec};
+    ///
+    /// let input = "2022-09-14 1:00 PM";
+    /// let dt = DateTime::parse_from_spec(input, format_spec!("%Y-%m-%d %I:%M %p"));
+    /// assert!(dt.is_ok());
+    /// assert_eq!(dt?, datetime!(2022-09-14 13:00 +00:00));
+    /// # Ok::<_, eos::fmt::ParseError>(())
+    /// ```
+    #[cfg(feature = "parsing")]
+    pub fn parse_from_spec<'a, T, S>(s: T, spec: S) -> Result<Self, ParseError>
+    where
+        T: AsRef<str>,
+        S: AsRef<[crate::fmt::FormatSpec<'a>]>,
+    {
+        let spec = spec.as_ref();
+        let mut parser = Parser::new(s.as_ref());
+        let mut builder = crate::Builder::new().timezone(UtcOffset::UTC);
+        for s in spec {
+            s.parse_into(&mut builder, &mut parser)?;
+        }
+        builder.fix_leap_seconds();
+        builder.build().map_err(|_| ParseError::OutOfBounds)
+    }
 }
 
 impl<Tz> DateTime<Tz>
@@ -815,7 +844,7 @@ impl FromIsoFormat for DateTime<UtcOffset> {
         let offset = if let None | Some(b'Z') = parser.peek() {
             UtcOffset::UTC
         } else {
-            let negative = parser.parse_sign();
+            let negative = parser.parse_required_sign()?;
             let hours = parser.parse_two_digits()? as i8;
             if hours > 23 {
                 return Err(ParseError::OutOfBounds);
