@@ -1,7 +1,7 @@
 use crate::{
     gregorian::{
         date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, find_iso_week_start_epoch,
-        is_leap_year, iso_week_start_epoch_from_year, iso_weeks_in_year, weekday_from_days, DAYS_BEFORE_MONTH,
+        is_leap_year, iso_week_start_epoch_from_year, iso_weeks_in_year, weekday_from_days,
     },
     utils::{divrem, ensure_in_range},
     DateTime, Error, Interval, Time, Utc,
@@ -617,6 +617,8 @@ impl Date {
     /// assert_eq!(Date::from_ordinal(1992, 62), Ok(date!(1992-3-2))); // leap year
     /// assert!(Date::from_ordinal(2013, 366).is_err()); // not a leap year
     /// assert_eq!(Date::from_ordinal(2012, 366), Ok(date!(2012-12-31)));
+    /// assert_eq!(Date::from_ordinal(2012, 59), Ok(date!(2012-2-28)));
+    /// assert_eq!(Date::from_ordinal(2012, 60), Ok(date!(2012-2-29)));
     /// assert_eq!(Date::from_ordinal(2001, 246), Ok(date!(2001-9-3)));
     /// # Ok::<_, eos::Error>(())
     /// ```
@@ -626,14 +628,9 @@ impl Date {
             return Err(Error::OutOfRange);
         }
 
-        let month = DAYS_BEFORE_MONTH.iter().position(|p| *p > ordinal).unwrap_or(13) - 1;
-        let offset = month > 2 && is_leap_year(year);
-        let day = ordinal - DAYS_BEFORE_MONTH[month] - offset as u16;
-        Ok(Self {
-            year,
-            month: month as u8,
-            day: day as u8,
-        })
+        let epoch = date_to_epoch_days(year, 1, 1) - 1 + ordinal as i32;
+        let (year, month, day) = date_from_epoch_days(epoch);
+        Ok(Self { year, month, day })
     }
 }
 
