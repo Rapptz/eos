@@ -23,11 +23,18 @@ where
     ordinal: Option<u16>,
     iso_week: Option<u8>,
     weekday: Option<Weekday>,
+    meridiem: Option<AmPm>,
     hour: u8,
     minute: u8,
     second: u8,
     nanosecond: u32,
     timezone: Tz,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum AmPm {
+    Am,
+    Pm,
 }
 
 impl Builder<crate::Utc> {
@@ -40,6 +47,7 @@ impl Builder<crate::Utc> {
             ordinal: None,
             iso_week: None,
             weekday: None,
+            meridiem: None,
             hour: 0,
             minute: 0,
             second: 0,
@@ -110,6 +118,20 @@ where
         self
     }
 
+    /// Sets the time to use 12-hour clock in `AM`.
+    #[inline]
+    pub fn am(&mut self) -> &mut Self {
+        self.meridiem = Some(AmPm::Am);
+        self
+    }
+
+    /// Sets the time to use 12-hour clock in `PM`.
+    #[inline]
+    pub fn pm(&mut self) -> &mut Self {
+        self.meridiem = Some(AmPm::Pm);
+        self
+    }
+
     /// Sets the time to the given minute.
     ///
     /// This does *not* do any bound checking. The final build step does.
@@ -170,6 +192,7 @@ where
             ordinal: self.ordinal,
             iso_week: self.iso_week,
             weekday: self.weekday,
+            meridiem: self.meridiem,
             hour: self.hour,
             minute: self.minute,
             second: self.second,
@@ -220,10 +243,32 @@ where
 
     /// Builds the final [`Time`] with the given components.
     ///
+    /// If either [`am`] or [`pm`] are called then the time is assumed to be in
+    /// 12-hour clock with a range of `1..=12`. If they're not called then 24-hour time
+    /// is assumed.
+    ///
     /// If the components represent an invalid time then an [`Error`]
     /// is returned.
     pub fn build_time(&self) -> Result<Time, Error> {
-        Time::new(self.hour, self.minute, self.second)?.with_nanosecond(self.nanosecond)
+        let hour = match self.meridiem {
+            Some(AmPm::Am) => {
+                if self.hour == 12 {
+                    0
+                } else {
+                    self.hour
+                }
+            },
+            Some(AmPm::Pm) => {
+                if self.hour == 12 {
+                    12
+                } else {
+                    self.hour + 12
+                }
+            },
+            None => self.hour,
+        };
+
+        Time::new(hour, self.minute, self.second)?.with_nanosecond(self.nanosecond)
     }
 }
 
