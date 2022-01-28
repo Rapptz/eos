@@ -1,4 +1,4 @@
-use crate::{Date, DateTime, Error, Time, TimeZone};
+use crate::{Date, DateTime, Error, IsoWeekDate, Time, TimeZone, Weekday};
 
 /// A builder to construct a [`Date`], [`Time`], or [`DateTime`] instance.
 ///
@@ -17,9 +17,12 @@ pub struct Builder<Tz>
 where
     Tz: TimeZone,
 {
-    year: i16,
+    year: Option<i16>,
     month: u8,
     day: u8,
+    ordinal: Option<u16>,
+    iso_week: Option<u8>,
+    weekday: Option<Weekday>,
     hour: u8,
     minute: u8,
     second: u8,
@@ -31,9 +34,12 @@ impl Builder<crate::Utc> {
     /// Creates a new [`Builder`] with a UTC timezone.
     pub const fn new() -> Self {
         Self {
-            year: 1970,
+            year: None,
             month: 1,
             day: 1,
+            ordinal: None,
+            iso_week: None,
+            weekday: None,
             hour: 0,
             minute: 0,
             second: 0,
@@ -51,7 +57,7 @@ where
     ///
     /// This does *not* do any bound checking. The final build step does.
     pub fn year(&mut self, year: i16) -> &mut Self {
-        self.year = year;
+        self.year = Some(year);
         self
     }
 
@@ -68,6 +74,30 @@ where
     /// This does *not* do any bound checking. The final build step does.
     pub fn day(&mut self, day: u8) -> &mut Self {
         self.day = day;
+        self
+    }
+
+    /// Sets the date to the given weekday.
+    ///
+    /// This does *not* do any bound checking. The final build step does.
+    pub fn weekday(&mut self, weekday: Weekday) -> &mut Self {
+        self.weekday = Some(weekday);
+        self
+    }
+
+    /// Sets the date to the given ISO week.
+    ///
+    /// This does *not* do any bound checking. The final build step does.
+    pub fn iso_week(&mut self, iso_week: u8) -> &mut Self {
+        self.iso_week = Some(iso_week);
+        self
+    }
+
+    /// Sets the date to the given ordinal day.
+    ///
+    /// This does *not* do any bound checking. The final build step does.
+    pub fn ordinal(&mut self, ordinal: u16) -> &mut Self {
+        self.ordinal = Some(ordinal);
         self
     }
 
@@ -137,6 +167,9 @@ where
             year: self.year,
             month: self.month,
             day: self.day,
+            ordinal: self.ordinal,
+            iso_week: self.iso_week,
+            weekday: self.weekday,
             hour: self.hour,
             minute: self.minute,
             second: self.second,
@@ -164,10 +197,25 @@ where
 
     /// Builds the final [`Date`] with the given components.
     ///
+    /// A date is built with the following priority:
+    ///
+    /// 1. If an ordinal and year is given, then calculate it using that.
+    /// 2. If an ISO week and year is given, then calculate using Monday as the weekday.
+    /// 3. If an ISO week, weekday, and year is given then calculate using that.
+    /// 4. Calculate the date using the provided values or with their defaults.
+    ///
     /// If the components represent an invalid date then an [`Error`]
     /// is returned.
     pub fn build_date(&self) -> Result<Date, Error> {
-        Date::new(self.year, self.month, self.day)
+        if let Some((ordinal, year)) = self.ordinal.zip(self.year) {
+            Date::from_ordinal(year, ordinal)
+        } else if let Some((week, year)) = self.iso_week.zip(self.year) {
+            let weekday = self.weekday.unwrap_or(Weekday::Monday);
+            let iso_week = IsoWeekDate::new(year, week, weekday)?;
+            Ok(Date::from(iso_week))
+        } else {
+            Date::new(self.year.unwrap_or(1970), self.month, self.day)
+        }
     }
 
     /// Builds the final [`Time`] with the given components.
@@ -188,6 +236,28 @@ mod tests {
         let dt = Builder::new().month(12).day(31).year(2022).build()?;
         assert_eq!(dt.date(), &Date::new(2022, 12, 31)?);
         assert_eq!(dt.time(), &Time::MIDNIGHT);
+        Ok(())
+    }
+
+    #[test]
+    fn test_ordinal_construction() -> Result<(), Error> {
+        let dt = Builder::new().year(2020).ordinal(60).build()?;
+        assert_eq!(dt.date(), &Date::new(2020, 2, 29)?);
+        assert_eq!(dt.time(), &Time::MIDNIGHT);
+        Ok(())
+    }
+
+    #[test]
+    fn test_iso_week_construction() -> Result<(), Error> {
+        let date = Builder::new()
+            .year(2020)
+            .weekday(Weekday::Wednesday)
+            .iso_week(30)
+            .build_date()?;
+
+        assert_eq!(date.year(), 2020);
+        assert_eq!(date.month(), 7);
+        assert_eq!(date.day(), 22);
         Ok(())
     }
 }
