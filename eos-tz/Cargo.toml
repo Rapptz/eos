@@ -17,4 +17,5 @@ categories = ["date-and-time"]
 bundled = ["eos-tzdata"]
 
 [dependencies]
-eos-tzdata = { path = "../eos-tzdata", optional = true }
+eos-tzdata = { version = "2021.5.0", path = "../eos-tzdata", optional = true }
+eos = { version = "0.1.0", path = ".." }

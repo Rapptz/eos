@@ -1,8 +1,12 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}
+#![allow(clippy::manual_range_contains)]
+
+pub(crate) mod error;
+mod posix;
+pub(crate) mod reader;
+pub(crate) mod timestamp;
+mod timezone;
+mod transitions;
+
+pub use error::ParseError;
+pub use posix::PosixTimeZone;
+pub use timezone::TimeZone;
