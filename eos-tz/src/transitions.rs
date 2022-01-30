@@ -1,6 +1,6 @@
 use eos::UtcOffset;
 
-use crate::{posix::PosixTimeZone, timestamp::NaiveTimestamp};
+use crate::timestamp::NaiveTimestamp;
 
 /// Represents a transition type in the TZif data.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -10,51 +10,47 @@ pub(crate) struct TransitionType {
     pub(crate) abbr: String,
 }
 
-/// Represents a transition in a timezone.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Represents a transition of a timezone.
+///
+/// This includes data like a range of time when a time zone applies.
+/// Along with a name and whether there's a DST correction being done.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Transition {
-    pub(crate) at: NaiveTimestamp,
-    pub(crate) type_idx: usize,
-    pub(crate) local: NaiveTimestamp,
-    pub(crate) to: NaiveTimestamp,
-    pub(crate) fix: i32,
+    /// The index that points to the name of the time zone if it falls at this interval.
+    pub(crate) name_idx: usize,
+    /// The UTC start time that the time zone will start.
+    ///
+    /// This could be NaiveTimestamp::MIN to extend to the beginning of time.
+    pub(crate) start: NaiveTimestamp,
+    /// The UTC end time that the time zone will end.
+    pub(crate) end: NaiveTimestamp,
+    /// The UTC offset that applies to the timezone if it falls at this interval.
     pub(crate) offset: UtcOffset,
 }
 
 impl Transition {
-    pub(crate) fn new(
-        at: NaiveTimestamp,
-        type_idx: usize,
-        ttype: &TransitionType,
-        prev: Option<&TransitionType>,
-    ) -> Self {
-        let (local, fix) = match prev {
-            Some(prev) => (NaiveTimestamp(at.0 + prev.offset as i64), ttype.offset - prev.offset),
-            None => (NaiveTimestamp(at.0 + ttype.offset as i64), 0),
-        };
-        Self {
-            at,
-            type_idx,
-            local,
-            to: NaiveTimestamp(local.0 + fix as i64),
-            fix,
-            // TZif guarantees that the range is valid
-            offset: UtcOffset::from_seconds(ttype.offset).unwrap(),
-        }
+    /// Returns `true` if the *local* timestamp is within this zone interval.
+    #[inline]
+    pub(crate) fn contains(&self, ts: NaiveTimestamp) -> bool {
+        self.start <= ts && ts <= self.end
     }
 
-    pub(crate) fn is_ambiguous(&self, ts: NaiveTimestamp) -> bool {
-        self.to <= ts && ts < self.local
+    /// Returns the start time the time zone starts in local time.
+    #[inline]
+    pub(crate) fn start_at_local(&self) -> NaiveTimestamp {
+        let seconds = self.offset.total_seconds();
+        NaiveTimestamp::from_seconds(self.start.0.saturating_sub(seconds as i64))
     }
 
-    pub(crate) fn is_imaginary(&self, ts: NaiveTimestamp) -> bool {
-        self.local <= ts && ts < self.to
+    /// Returns the end time the time zone starts in local time.
+    #[inline]
+    pub(crate) fn end_at_local(&self) -> NaiveTimestamp {
+        let seconds = self.offset.total_seconds();
+        NaiveTimestamp::from_seconds(self.end.0.saturating_sub(seconds as i64))
     }
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Transitions {
-    pub(crate) data: Vec<Transition>,
-    pub(crate) types: Vec<TransitionType>,
-    pub(crate) posix: Option<PosixTimeZone>,
+    #[inline]
+    pub(crate) fn contains_in_local(&self, ts: NaiveTimestamp) -> bool {
+        self.start_at_local() <= ts && ts <= self.end_at_local()
+    }
 }

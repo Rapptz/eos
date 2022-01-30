@@ -2,21 +2,20 @@ use std::io::{Read, Seek};
 
 use crate::{
     error::ParseError,
+    posix::PosixTimeZone,
     reader::parse_tzif,
     timestamp::NaiveTimestamp,
-    transitions::{Transition, Transitions},
+    transitions::{Transition, TransitionType},
 };
 
 /// Represents an IANA database backed timezone.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimeZone {
     id: String,
-    transitions: Transitions,
+    transitions: Vec<Transition>,
+    ttypes: Vec<TransitionType>,
+    posix: Option<PosixTimeZone>,
 }
-
-/// This is essentially (current, previous_transition)
-/// The previous transition could not be found!
-pub(crate) type TransitionPair<'a> = (&'a Transition, Option<&'a Transition>);
 
 impl TimeZone {
     /// Loads a [`TimeZone`] from a reader that points to a TZif file and the
@@ -29,12 +28,31 @@ impl TimeZone {
     /// When using an in-memory stream such as raw bytes, you will need to
     /// wrap the type into an [`std::io::Cursor`] to allow it to be seekable.
     ///
-    /// If a parser error happens then [`ParserError`] is returned.
+    /// If a parser error happens then [`ParseError`] is returned.
     ///
     /// Note that the time zone identifier *must* be valid, for example `America/New_York`.
     pub fn load<R: Read + Seek>(reader: R, id: String) -> Result<Self, ParseError> {
-        let transitions = parse_tzif(reader)?;
-        Ok(Self { id, transitions })
+        let (transitions, ttypes, posix) = parse_tzif(reader)?;
+        Ok(Self {
+            id,
+            transitions,
+            ttypes,
+            posix,
+        })
+    }
+
+    /// Loads a [`TimeZone`] from the internal bundled copy of the TZif files.
+    ///
+    /// Unlike the [`zone`] macro, this allows querying with a runtime string.
+    #[cfg(feature = "bundled")]
+    pub fn bundled(zone: &str) -> Result<Self, ParseError> {
+        match eos_tzdata::locate_tzif(zone) {
+            Some(bytes) => Self::load(std::io::Cursor::new(bytes), zone.to_owned()),
+            None => Err(ParseError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "could not locate time zone",
+            ))),
+        }
     }
 
     // todo: TimeZone::locate(...)
@@ -45,26 +63,26 @@ impl TimeZone {
         self.id.as_str()
     }
 
-    pub(crate) fn lookup_transition<'a>(&'a self, ts: &NaiveTimestamp, utc: bool) -> Option<TransitionPair<'a>> {
-        let key: fn(&Transition) -> NaiveTimestamp = if utc { |trans| trans.at } else { |trans| trans.to };
-        let idx = match self.transitions.data.binary_search_by_key(ts, key) {
-            Ok(idx) => {
-                // We need to get the latest prior to the given timestamp
-                // That means if we're exactly at the boundary then the transition we're looking for
-                // is the next one
-                idx + 1
-            }
-            Err(idx) => idx,
-        };
-
-        if idx == 0 {
-            self.transitions.data.get(idx).map(|f| (f, None))
+    pub(crate) fn get_transition(&self, ts: NaiveTimestamp, utc: bool) -> Option<&Transition> {
+        let key: fn(&Transition) -> NaiveTimestamp = if utc {
+            |trans| trans.start
         } else {
-            self.transitions
-                .data
-                .get(idx)
-                .map(|f| (f, self.transitions.data.get(idx - 1)))
-        }
+            |trans| trans.start_at_local()
+        };
+        let idx = match self.transitions.binary_search_by_key(&ts, key) {
+            Ok(idx) => idx,
+            Err(idx) => {
+                if idx != self.transitions.len() {
+                    // The first entry in the transition list is always extended until
+                    // the beginning of time. The remaining ones start based off of the previous
+                    // end value. This offset by 1 means that we take the one that we actually care about.
+                    idx - 1
+                } else {
+                    idx
+                }
+            }
+        };
+        self.transitions.get(idx)
     }
 }
 
@@ -100,43 +118,28 @@ pub use zone;
 impl eos::TimeZone for TimeZone {
     fn name(&self, date: &eos::Date, time: &eos::Time) -> Option<String> {
         let ts = NaiveTimestamp::new(date, time);
-        match self.lookup_transition(&ts, false) {
-            None => match &self.transitions.posix {
-                None => None, // this shouldn't happen but...
+        match self.get_transition(ts, false) {
+            None => match &self.posix {
+                // See below
+                None => None,
                 Some(posix) => posix.name(date, time),
             },
-            Some((trans, prev)) => {
-                match prev {
-                    Some(p) if ts < trans.local => {
-                        // This could use some ambiguous handling..
-                        let ttype = &self.transitions.types[p.type_idx];
-                        Some(ttype.abbr.clone())
-                    }
-                    _ => {
-                        let ttype = &self.transitions.types[trans.type_idx];
-                        Some(ttype.abbr.clone())
-                    }
-                }
-            }
+            Some(trans) => self.ttypes.get(trans.name_idx).map(|ttype| ttype.abbr.clone()),
         }
     }
 
     fn offset(&self, date: &eos::Date, time: &eos::Time) -> eos::UtcOffset {
         let ts = NaiveTimestamp::new(date, time);
-        match self.lookup_transition(&ts, false) {
-            None => match &self.transitions.posix {
-                None => eos::UtcOffset::UTC, // this shouldn't happen but...
+        match self.get_transition(ts, false) {
+            None => match &self.posix {
+                // According to RFC 8536 having no transition *and* no POSIX
+                // string at the end means the time is unspecified. Since this
+                // is undefined behaviour territory, just return a plausible value,
+                // which in this case is the *last* transition's offset value.
+                None => self.transitions.last().map(|t| t.offset).unwrap_or_default(),
                 Some(posix) => posix.offset(date, time),
             },
-            Some((trans, prev)) => {
-                match prev {
-                    Some(p) if ts < trans.local => {
-                        // This could use some ambiguous handling..
-                        p.offset
-                    }
-                    _ => trans.offset,
-                }
-            }
+            Some(trans) => trans.offset,
         }
     }
 
@@ -144,27 +147,18 @@ impl eos::TimeZone for TimeZone {
     where
         Self: Sized,
     {
-        let mut ts = NaiveTimestamp::new(utc.date(), utc.time());
-        match self.lookup_transition(&ts, true) {
-            None => match &self.transitions.posix {
+        let ts = NaiveTimestamp::new(utc.date(), utc.time());
+        match self.get_transition(ts, true) {
+            None => match &self.posix {
                 None => utc.with_timezone(self),
                 Some(posix) => {
                     posix.shift_utc(&mut utc);
                     utc.with_timezone(self)
                 }
             },
-            Some((trans, prev)) => {
-                match prev {
-                    Some(p) if ts < trans.at => {
-                        let ttype = &self.transitions.types[p.type_idx];
-                        ts.0 += ttype.offset as i64;
-                    }
-                    _ => {
-                        let ttype = &self.transitions.types[trans.type_idx];
-                        ts.0 += ttype.offset as i64;
-                    }
-                }
-                ts.to_utc().with_timezone(self)
+            Some(trans) => {
+                utc.shift(trans.offset);
+                utc.with_timezone(self)
             }
         }
     }
@@ -177,6 +171,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(feature = "bundled")]
     fn test_name() {
         let dt = eos::Local::now().unwrap();
         println!("{:?}", &dt);

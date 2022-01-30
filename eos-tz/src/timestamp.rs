@@ -33,6 +33,11 @@ impl From<i64> for NaiveTimestamp {
 }
 
 impl NaiveTimestamp {
+    /// Denotes the minimum possible NaiveTimestamp.
+    ///
+    /// This is usually used to represent the beginning of time.
+    pub(crate) const MIN: Self = Self::from_seconds(i64::MIN);
+
     /// Creates a new [`NaiveTimestamp`] from the given date and time.
     pub(crate) const fn new(date: &eos::Date, time: &eos::Time) -> Self {
         let ts = date.days_since_epoch() as i64 * 86400

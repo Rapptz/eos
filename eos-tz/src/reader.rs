@@ -9,8 +9,10 @@ use crate::{
     error::ParseError,
     posix::PosixTimeZone,
     timestamp::NaiveTimestamp,
-    transitions::{Transition, TransitionType, Transitions},
+    transitions::{Transition, TransitionType},
 };
+
+pub(crate) type ZoneInfo = (Vec<Transition>, Vec<TransitionType>, Option<PosixTimeZone>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Header {
@@ -166,7 +168,10 @@ impl Header {
         }
     }
 
-    fn get_transitions<R: Read + Seek>(&self, reader: &mut R) -> Result<Transitions, ParseError> {
+    fn get_zone_info<R: Read + Seek>(
+        &self,
+        reader: &mut R,
+    ) -> Result<ZoneInfo, ParseError> {
         let trans = if self.version == 1 {
             self.read_transitions_32(reader)?
         } else {
@@ -196,28 +201,36 @@ impl Header {
 
         let mut transitions: Vec<Transition> = Vec::with_capacity(trans.len());
         for (trans, idx) in trans.iter().zip(idxs.iter()) {
-            let prev = transitions.last().map(|p| ttypes.get(p.type_idx)).flatten();
-            let idx = *idx as usize;
-            let ttype = &ttypes[idx];
-            let transition = Transition::new(NaiveTimestamp(*trans), idx, ttype, prev);
-            transitions.push(transition);
+            // Assume a list of transitions...
+            // 1896-01-13T22:31:26Z 1933-04-30T12:30:00Z 1933-05-21T21:30:00Z
+            // 1942-02-09T12:30:00Z 1945-08-14T23:00:00Z 1945-09-30T11:30:00Z
+            // 1947-06-08T12:30:00Z
+            // These represent "end" times of the transition.
+            // The previous element represents the "start".
+            let start = transitions.last().map(|t| t.end).unwrap_or(NaiveTimestamp::MIN);
+            let end = NaiveTimestamp::from_seconds(*trans);
+            let ttype = &ttypes[*idx as usize];
+            transitions.push(Transition {
+                name_idx: *idx as usize,
+                start,
+                end,
+                offset: eos::UtcOffset::from_seconds(ttype.offset).map_err(|_| ParseError::InvalidOffset)?,
+            })
         }
 
-        Ok(Transitions {
-            data: transitions,
-            types: ttypes,
-            posix,
-        })
+        Ok((transitions, ttypes, posix))
     }
 }
 
-pub(crate) fn parse_tzif<R: Read + Seek>(mut reader: R) -> Result<Transitions, ParseError> {
+pub(crate) fn parse_tzif<R: Read + Seek>(
+    mut reader: R,
+) -> Result<ZoneInfo, ParseError> {
     let mut header = Header::from_reader(&mut reader)?;
     if header.version == 1 {
-        header.get_transitions(&mut reader)
+        header.get_zone_info(&mut reader)
     } else {
         reader.seek(SeekFrom::Current(header.version_one_length()))?;
         header = Header::from_reader(&mut reader)?;
-        header.get_transitions(&mut reader)
+        header.get_zone_info(&mut reader)
     }
 }
