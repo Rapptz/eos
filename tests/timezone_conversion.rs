@@ -47,11 +47,11 @@ impl AmericanTimeZone {
 }
 
 impl TimeZone for AmericanTimeZone {
-    fn name(&self, date: &Date, time: &Time) -> Option<String> {
+    fn name(&self, date: &Date, time: &Time) -> Option<&str> {
         if self.is_dst(date, time) {
-            Some(String::from(self.name))
+            Some(self.name)
         } else {
-            Some(String::from(self.dst_name))
+            Some(self.dst_name)
         }
     }
 

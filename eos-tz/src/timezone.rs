@@ -116,7 +116,7 @@ macro_rules! zone {
 pub use zone;
 
 impl eos::TimeZone for TimeZone {
-    fn name(&self, date: &eos::Date, time: &eos::Time) -> Option<String> {
+    fn name(&self, date: &eos::Date, time: &eos::Time) -> Option<&str> {
         let ts = NaiveTimestamp::new(date, time);
         match self.get_transition(ts, false) {
             None => match &self.posix {
@@ -124,7 +124,7 @@ impl eos::TimeZone for TimeZone {
                 None => None,
                 Some(posix) => posix.name(date, time),
             },
-            Some(trans) => self.ttypes.get(trans.name_idx).map(|ttype| ttype.abbr.clone()),
+            Some(trans) => self.ttypes.get(trans.name_idx).map(|ttype| ttype.abbr.as_str()),
         }
     }
 

@@ -205,16 +205,16 @@ impl PosixTimeZone {
 }
 
 impl eos::TimeZone for PosixTimeZone {
-    fn name(&self, date: &eos::Date, time: &Time) -> Option<String> {
+    fn name(&self, date: &eos::Date, time: &Time) -> Option<&str> {
         match &self.dst {
             Some(dst) => {
                 if dst.is_active(date, time) {
-                    Some(dst.abbr.clone())
+                    Some(dst.abbr.as_str())
                 } else {
-                    Some(self.std_abbr.clone())
+                    Some(self.std_abbr.as_str())
                 }
             }
-            None => Some(self.std_abbr.clone()),
+            None => Some(self.std_abbr.as_str()),
         }
     }
 

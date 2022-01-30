@@ -91,8 +91,13 @@ impl LocalTime {
     }
 
     #[cfg(feature = "alloc")]
-    pub(crate) fn name(&self) -> Option<String> {
-        self.name.clone()
+    pub(crate) fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    #[cfg(not(feature = "alloc"))]
+    pub(crate) fn name(&self) -> Option<&str> {
+        None
     }
 }
 

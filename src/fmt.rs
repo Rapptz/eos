@@ -1653,7 +1653,7 @@ where
                 }
                 FormatSpecKind::ZoneName => {
                     if let Some(name) = self.dt.timezone().name(self.dt.date(), self.dt.time()) {
-                        f.write_str(name.as_str())?;
+                        f.write_str(name)?;
                     }
                 }
                 FormatSpecKind::Escape => f.write_char('%')?,

@@ -9,6 +9,10 @@ use crate::{Date, DateTime, Time, Utc, UtcOffset};
 pub(crate) struct LocalTime {
     info: TIME_ZONE_INFORMATION,
     is_dst: bool,
+    #[cfg(feature = "alloc")]
+    std_name: Option<String>,
+    #[cfg(feature = "alloc")]
+    dst_name: Option<String>,
 }
 
 #[repr(C)]
@@ -41,6 +45,17 @@ struct TIME_ZONE_INFORMATION {
     DaylightBias: i32,
 }
 
+#[cfg(feature = "alloc")]
+fn windows_utf16_to_utf8(s: &[u16]) -> Option<String> {
+    // Find the first "null terminator byte"
+    let null = s.iter().position(|&p| p == 0).unwrap_or(s.len());
+    if null == 0 {
+        None
+    } else {
+        String::from_utf16(&s[0..null]).ok()
+    }
+}
+
 #[link(name = "kernel32")]
 extern "system" {
     fn GetTimeZoneInformation(lpTimeZoneInformation: *mut TIME_ZONE_INFORMATION) -> u32;
@@ -60,10 +75,23 @@ impl LocalTime {
 
         // SAFETY: at this point, the WinAPI returned without errors
         let tzinfo = unsafe { tzinfo.assume_init() };
-        Ok(Self {
-            info: tzinfo,
-            is_dst: code == 2,
-        })
+        #[cfg(feature = "alloc")]
+        {
+            Ok(Self {
+                std_name: windows_utf16_to_utf8(&tzinfo.StandardName),
+                dst_name: windows_utf16_to_utf8(&tzinfo.DaylightName),
+                info: tzinfo,
+                is_dst: code == 2,
+            })
+        }
+
+        #[cfg(not(feature = "alloc"))]
+        {
+            Ok(Self {
+                info: tzinfo,
+                is_dst: code == 2,
+            })
+        }
     }
 
     pub(crate) fn offset(&self) -> UtcOffset {
@@ -87,20 +115,17 @@ impl LocalTime {
     }
 
     #[cfg(feature = "alloc")]
-    pub(crate) fn name(&self) -> Option<String> {
-        let bytes = if self.is_dst {
-            self.info.DaylightName
+    pub(crate) fn name(&self) -> Option<&str> {
+        if self.is_dst {
+            self.dst_name.as_deref()
         } else {
-            self.info.StandardName
-        };
-
-        // Find the first "null terminator byte"
-        let null = bytes.iter().position(|&p| p == 0).unwrap_or(bytes.len());
-        if null == 0 {
-            None
-        } else {
-            String::from_utf16(&bytes[0..null]).ok()
+            self.std_name.as_deref()
         }
+    }
+
+    #[cfg(not(feature = "alloc"))]
+    pub(crate) fn name(&self) -> Option<&str> {
+        None
     }
 }
 

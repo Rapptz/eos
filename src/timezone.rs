@@ -1,9 +1,6 @@
 #[cfg(feature = "localtime")]
 use crate::sys::localtime;
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-
 use crate::{utils::ensure_in_range, Date, DateTime, Error, Time};
 
 /// Represents an offset from UTC.
@@ -277,8 +274,7 @@ pub trait TimeZone: Clone {
     /// Returns the name of the timezone at a given date and time.
     ///
     /// The `date` and `time` parameters represent the local date time.
-    #[cfg(feature = "alloc")]
-    fn name(&self, _date: &Date, _time: &Time) -> Option<String> {
+    fn name(&self, _date: &Date, _time: &Time) -> Option<&str> {
         None
     }
 
@@ -315,8 +311,8 @@ pub struct Utc;
 
 impl TimeZone for Utc {
     #[cfg(feature = "alloc")]
-    fn name(&self, _: &Date, _: &Time) -> Option<String> {
-        Some(String::from("UTC"))
+    fn name(&self, _: &Date, _: &Time) -> Option<&str> {
+        Some("UTC")
     }
 
     fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
@@ -415,8 +411,7 @@ impl Local {
 }
 
 impl TimeZone for Local {
-    #[cfg(feature = "alloc")]
-    fn name(&self, _: &Date, _: &Time) -> Option<String> {
+    fn name(&self, _: &Date, _: &Time) -> Option<&str> {
         self.0.name()
     }
 
