@@ -5,42 +5,66 @@ use std::{
 
 use eos::{
     gregorian::{date_to_epoch_days, days_in_month, is_leap_year, weekday_difference, weekday_from_days},
-    time, utc_offset, Time, UtcOffset,
+    utc_offset, Time, UtcOffset,
 };
 
-use crate::error::ParseError;
+use crate::{error::ParseError, timestamp::NaiveTimestamp};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum DstTransitionRule {
-    JulianDay(u16),
-    Day(u16),
-    Calendar { month: u8, n: u8, weekday: u8 },
+    JulianDay(u16, i64),
+    Day(u16, i64),
+    Calendar { month: u8, n: u8, weekday: u8, offset: i64 },
 }
 
 impl DstTransitionRule {
-    pub(crate) fn date_in(&self, year: i16) -> eos::Date {
+    /// Returns a new DstTransitionRule with a newly set number of seconds from midnight
+    /// local time.
+    fn with_offset(self, offset: i64) -> Self {
         match self {
-            Self::JulianDay(day) => {
+            Self::JulianDay(d, _) => Self::JulianDay(d, offset),
+            Self::Day(d, _) => Self::Day(d, offset),
+            Self::Calendar { month, n, weekday, .. } => Self::Calendar {
+                month,
+                n,
+                weekday,
+                offset,
+            },
+        }
+    }
+    pub(crate) fn timestamp_in_year(&self, year: i16) -> NaiveTimestamp {
+        match self {
+            Self::JulianDay(day, offset) => {
                 let d = if *day >= 59 && is_leap_year(year) {
                     day + 1
                 } else {
                     *day
                 };
-                // day is already range checked as part of the contract
-                eos::Date::from_ordinal(year, d).unwrap()
+                let epoch = date_to_epoch_days(year, 1, 1) as i64;
+                let seconds = (epoch - 1 + d as i64) * 86400 + offset;
+                NaiveTimestamp::from_seconds(seconds)
             }
-            Self::Day(day) => {
+            Self::Day(day, offset) => {
                 // day is already range checked as part of the contract
-                eos::Date::from_ordinal(year, *day).unwrap()
+                let epoch = date_to_epoch_days(year, 1, 1) as i64;
+                let seconds = (epoch - 1 + *day as i64) * 86400 + offset;
+                NaiveTimestamp::from_seconds(seconds)
             }
-            Self::Calendar { month, n, weekday } => {
+            Self::Calendar {
+                month,
+                n,
+                weekday,
+                offset,
+            } => {
                 let first_weekday = weekday_from_days(date_to_epoch_days(year, *month, 1));
                 let days_in_month = days_in_month(year, *month);
                 let mut day = weekday_difference(*weekday, first_weekday) + 1 + (n - 1) * 7;
                 if day > days_in_month {
                     day -= 7;
                 }
-                eos::Date::__new_unchecked_from_macro(year, *month, day)
+                let epoch = date_to_epoch_days(year, *month, day) as i64;
+                let seconds = epoch * 86400 + offset;
+                NaiveTimestamp::from_seconds(seconds)
             }
         }
     }
@@ -50,22 +74,18 @@ impl DstTransitionRule {
 pub(crate) struct DstTransitionInfo {
     abbr: String,
     offset: UtcOffset,
-    start_rule: DstTransitionRule,
-    start_time: Time,
-    end_rule: DstTransitionRule,
-    end_time: Time,
+    start: DstTransitionRule,
+    end: DstTransitionRule,
     base_offset: UtcOffset,
 }
 
 impl DstTransitionInfo {
     /// Returns true if DST is active
     pub(crate) fn is_active(&self, date: &eos::Date, time: &eos::Time) -> bool {
-        let dt = (date, time);
-        let start_date = self.start_rule.date_in(date.year());
-        let end_date = self.end_rule.date_in(date.year());
-        let start = (&start_date, &self.start_time);
-        let end = (&end_date, &self.end_time);
-        dt >= start && dt < end
+        let ts = NaiveTimestamp::new(date, time);
+        let start = self.start.timestamp_in_year(date.year());
+        let end = self.end.timestamp_in_year(date.year());
+        ts >= start && ts < end
     }
 }
 
@@ -119,19 +139,17 @@ impl PosixTimeZone {
                         Some(_) => parse_offset(&mut parser)?,
                         None => return Err(ParseError::InvalidPosixTz),
                     };
-                    let (start_rule, start_time) = parse_dst_transition_rule(&mut parser)?;
+                    let start = parse_dst_transition_rule(&mut parser)?;
                     if parser.next_if(|&x| x == ',').is_none() {
                         return Err(ParseError::InvalidPosixTz);
                     }
-                    let (end_rule, end_time) = parse_dst_transition_rule(&mut parser)?;
+                    let end = parse_dst_transition_rule(&mut parser)?;
                     let base_offset = offset.saturating_sub(std_offset);
                     Some(DstTransitionInfo {
                         abbr,
                         offset,
-                        start_rule,
-                        start_time,
-                        end_rule,
-                        end_time,
+                        start,
+                        end,
                         base_offset,
                     })
                 }
@@ -152,33 +170,23 @@ impl PosixTimeZone {
         }
     }
 
-    /// Return the transitions in UTC for the given year, if any.
-    pub(crate) fn transitions(&self, year: i16) -> Option<(eos::DateTime<eos::Utc>, eos::DateTime<eos::Utc>)> {
-        match &self.dst {
-            Some(dst) => {
-                let start_date = dst.start_rule.date_in(year);
-                let end_date = dst.end_rule.date_in(year);
-                let mut dst_on = dst.start_time.at(start_date);
-                let mut dst_off = dst.end_time.at(end_date);
-                dst_on.shift(-self.std_offset);
-                dst_off.shift(-dst.offset);
-                Some((dst_on, dst_off))
-            }
-            None => None,
-        }
-    }
-
     pub(crate) fn shift_utc(&self, utc: &mut eos::DateTime<eos::Utc>) {
         // TODO: This does not handle imaginary or ambiguous times
-        match self.dst.as_ref().zip(self.transitions(utc.year())) {
+        let ts = NaiveTimestamp::new(utc.date(), utc.time());
+        match self.dst.as_ref() {
             None => {
                 utc.shift(self.std_offset);
             }
-            Some((dst, (dst_on, dst_off))) => {
+            Some(dst) => {
+                let mut dst_on = dst.start.timestamp_in_year(utc.year());
+                let mut dst_off = dst.end.timestamp_in_year(utc.year());
+                dst_on.0 -= self.std_offset.total_seconds() as i64;
+                dst_off.0 -= dst.offset.total_seconds() as i64;
+
                 let is_dst = if dst_on < dst_off {
-                    dst_on <= *utc && *utc < dst_off
+                    dst_on <= ts && ts < dst_off
                 } else {
-                    !(dst_off <= *utc && *utc < dst_on)
+                    !(dst_off <= ts && ts < dst_on)
                 };
                 if is_dst {
                     utc.shift(dst.offset);
@@ -377,7 +385,7 @@ fn parse_offset(parser: &mut Parser) -> ParseResult<UtcOffset> {
     UtcOffset::from_seconds(seconds).map_err(|_| ParseError::InvalidOffset)
 }
 
-fn parse_time(parser: &mut Parser) -> ParseResult<Time> {
+fn parse_time(parser: &mut Parser) -> ParseResult<i64> {
     let hour = match parser.next() {
         Some(c) if c.is_ascii_digit() => match parser.next_if(char::is_ascii_digit) {
             Some(d) => (c as u8 - b'0') * 10 + (d as u8 - b'0'),
@@ -402,19 +410,19 @@ fn parse_time(parser: &mut Parser) -> ParseResult<Time> {
         None => 0u8,
     };
 
-    Time::new(hour, minute, second).map_err(|_| ParseError::InvalidPosixTz)
+    Ok(hour as i64 * 3600 + minute as i64 * 60 + second as i64)
 }
 
-fn parse_dst_transition_rule(parser: &mut Parser) -> ParseResult<(DstTransitionRule, Time)> {
+fn parse_dst_transition_rule(parser: &mut Parser) -> ParseResult<DstTransitionRule> {
     // date[/time]
     // date can be either (J\d{1,3}|\d{1,3}|M\d{1,2}.\d.\d)
-    let date = match parser.next() {
+    let rule = match parser.next() {
         Some('J') => {
             let day = parse_three_digit_number(parser)?;
             if day < 1 || day > 365 {
                 return Err(ParseError::InvalidPosixTz);
             }
-            DstTransitionRule::JulianDay(day)
+            DstTransitionRule::JulianDay(day, 0)
         }
         Some('M') => {
             let month = match parser.next() {
@@ -432,23 +440,29 @@ fn parse_dst_transition_rule(parser: &mut Parser) -> ParseResult<(DstTransitionR
                 return Err(ParseError::InvalidPosixTz);
             }
 
-            DstTransitionRule::Calendar { month, n, weekday }
+            DstTransitionRule::Calendar {
+                month,
+                n,
+                weekday,
+                offset: 0,
+            }
         }
         Some(c) if c.is_ascii_digit() => {
             let day = parse_three_digit_number(parser)?;
             if day > 365 {
                 return Err(ParseError::InvalidPosixTz);
             }
-            DstTransitionRule::Day(day)
+            DstTransitionRule::Day(day, 0)
         }
         _ => return Err(ParseError::InvalidPosixTz),
     };
 
-    let time = match parser.next_if(|&x| x == '/') {
+    let offset = match parser.next_if(|&x| x == '/') {
         Some(_) => parse_time(parser)?,
-        None => time!(02:00:00),
+        None => 7200,
     };
-    Ok((date, time))
+
+    Ok(rule.with_offset(offset))
 }
 
 impl FromStr for PosixTimeZone {
@@ -491,23 +505,23 @@ mod tests {
             assert_eq!(dst.abbr, "EDT");
             assert_eq!(dst.offset, utc_offset!(-04:00));
             assert_eq!(
-                dst.start_rule,
+                dst.start,
                 DstTransitionRule::Calendar {
                     month: 3,
                     n: 2,
-                    weekday: 0
+                    weekday: 0,
+                    offset: 7200,
                 }
             );
-            assert_eq!(dst.start_time, time!(02:00:00));
             assert_eq!(
-                dst.end_rule,
+                dst.end,
                 DstTransitionRule::Calendar {
                     month: 11,
                     n: 1,
-                    weekday: 0
+                    weekday: 0,
+                    offset: 7200
                 }
             );
-            assert_eq!(dst.end_time, time!(02:00:00));
         }
     }
 
@@ -524,23 +538,56 @@ mod tests {
             assert_eq!(dst.abbr, "AEDT");
             assert_eq!(dst.offset, utc_offset!(11:00));
             assert_eq!(
-                dst.start_rule,
+                dst.start,
                 DstTransitionRule::Calendar {
                     month: 10,
                     n: 1,
-                    weekday: 0
+                    weekday: 0,
+                    offset: 7200,
                 }
             );
-            assert_eq!(dst.start_time, time!(02:00:00));
             assert_eq!(
-                dst.end_rule,
+                dst.end,
                 DstTransitionRule::Calendar {
                     month: 4,
                     n: 1,
-                    weekday: 0
+                    weekday: 0,
+                    offset: 10800,
                 }
             );
-            assert_eq!(dst.end_time, time!(03:00:00));
+        }
+    }
+
+    #[test]
+    fn test_america_santiago() {
+        let result = PosixTimeZone::from_str("<-04>4<-03>,M9.1.6/24,M4.1.6/24");
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
+        assert_eq!(result.std_abbr, "-04");
+        assert_eq!(result.std_offset, utc_offset!(-4:00));
+        assert!(result.dst.is_some());
+        if let Some(dst) = &result.dst {
+            assert_eq!(dst.abbr, "-03");
+            assert_eq!(dst.offset, utc_offset!(-03:00));
+            assert_eq!(
+                dst.start,
+                DstTransitionRule::Calendar {
+                    month: 9,
+                    n: 1,
+                    weekday: 6,
+                    offset: 86400,
+                }
+            );
+            assert_eq!(
+                dst.end,
+                DstTransitionRule::Calendar {
+                    month: 4,
+                    n: 1,
+                    weekday: 6,
+                    offset: 86400,
+                }
+            );
         }
     }
 
