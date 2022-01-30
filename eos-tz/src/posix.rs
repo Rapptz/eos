@@ -136,11 +136,17 @@ impl PosixTimeZone {
                             parser.next();
                             std_offset.saturating_add(utc_offset!(01:00))
                         }
-                        Some(_) => parse_offset(&mut parser)?,
+                        Some(_) => {
+                            let offset = parse_offset(&mut parser)?;
+                            if parser.next_if_eq(&',').is_none() {
+                                return Err(ParseError::InvalidPosixTz);
+                            }
+                            offset
+                        },
                         None => return Err(ParseError::InvalidPosixTz),
                     };
                     let start = parse_dst_transition_rule(&mut parser)?;
-                    if parser.next_if(|&x| x == ',').is_none() {
+                    if parser.next_if_eq(&',').is_none() {
                         return Err(ParseError::InvalidPosixTz);
                     }
                     let end = parse_dst_transition_rule(&mut parser)?;
@@ -586,6 +592,39 @@ mod tests {
                     n: 1,
                     weekday: 6,
                     offset: 86400,
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn test_europe_dublin() {
+        let result = PosixTimeZone::from_str("IST-1GMT0,M10.5.0,M3.5.0/1");
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
+        assert_eq!(result.std_abbr, "IST");
+        assert_eq!(result.std_offset, utc_offset!(1:00));
+        assert!(result.dst.is_some());
+        if let Some(dst) = &result.dst {
+            assert_eq!(dst.abbr, "GMT");
+            assert_eq!(dst.offset, utc_offset!(00:00));
+            assert_eq!(
+                dst.start,
+                DstTransitionRule::Calendar {
+                    month: 10,
+                    n: 5,
+                    weekday: 0,
+                    offset: 7200,
+                }
+            );
+            assert_eq!(
+                dst.end,
+                DstTransitionRule::Calendar {
+                    month: 3,
+                    n: 5,
+                    weekday: 0,
+                    offset: 3600,
                 }
             );
         }
