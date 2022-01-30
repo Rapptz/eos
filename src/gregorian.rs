@@ -96,6 +96,12 @@ pub const fn date_from_epoch_days(mut days: i32) -> (i16, u8, u8) {
     (y, m as u8, d as u8)
 }
 
+/// The minimum allowed epoch days that this library supports.
+pub const MIN_EPOCH_DAYS: i32 = date_to_epoch_days(i16::MIN, 1, 1);
+
+/// The maximum allowed epoch days that this library supports.
+pub const MAX_EPOCH_DAYS: i32 = date_to_epoch_days(i16::MAX, 12, 31);
+
 /// Returns the weekday for December 31st of a given year
 ///
 /// Note that 0 is Sunday and 6 is Saturday.
