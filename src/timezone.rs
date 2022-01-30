@@ -8,7 +8,7 @@ use crate::{utils::ensure_in_range, Date, DateTime, Error, Time};
 
 /// Represents an offset from UTC.
 ///
-/// This struct can only store values up to ±23:59:59.
+/// This struct can only store values up to ±24:00:00.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UtcOffset {
     pub(crate) hours: i8,
@@ -25,16 +25,16 @@ impl Default for UtcOffset {
 impl UtcOffset {
     /// Returns the smallest possible [`UtcOffset`].
     pub const MIN: Self = Self {
-        hours: -23,
-        minutes: -59,
-        seconds: -59,
+        hours: -24,
+        minutes: 0,
+        seconds: 0,
     };
 
     /// Returns the largest possible [`UtcOffset`].
     pub const MAX: Self = Self {
-        hours: 23,
-        minutes: 59,
-        seconds: 59,
+        hours: 24,
+        minutes: 0,
+        seconds: 0,
     };
 
     /// Returns the [`UtcOffset`] representing UTC.
@@ -47,12 +47,8 @@ impl UtcOffset {
     #[doc(hidden)]
     #[cfg(feature = "macros")]
     #[inline]
-    pub const fn __new_unchecked_from_macro(hours: i8, minutes: i8, seconds: i8) -> Self {
-        Self {
-            hours,
-            minutes,
-            seconds,
-        }
+    pub const fn __new_unchecked_from_macro(seconds: i32) -> Self {
+        Self::from_seconds_unchecked(seconds)
     }
 
     /// Creates a new [`UtcOffset`] from the given number of hours, minutes, and seconds.
@@ -60,20 +56,21 @@ impl UtcOffset {
     /// The sign of all three components should match. If they do not, all components will
     /// have their signs flipped to match the `hour` sign.
     ///
-    /// The values must be within the range of ±23:59:59.
+    /// The values must be within the range of ±24:00:00.
     ///
     /// # Examples
     ///
     /// ```
     /// # use eos::UtcOffset;
-    /// assert!(UtcOffset::from_hms(24, 0, 0).is_err()); // invalid range
+    /// assert!(UtcOffset::from_hms(24, 1, 0).is_err()); // invalid range
+    /// assert!(UtcOffset::from_hms(24, 0, 0).is_ok());
     /// assert_eq!(UtcOffset::from_hms(23, 56, 59)?.into_hms(), (23, 56, 59));
     /// assert_eq!(UtcOffset::from_hms(0, 30, 0)?.into_hms(), (0, 30, 0));
     /// assert_eq!(UtcOffset::from_hms(0, -30, 30)?.into_hms(), (0, -30, -30));
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub const fn from_hms(hours: i8, mut minutes: i8, mut seconds: i8) -> Result<Self, Error> {
-        ensure_in_range!(hours, -23 => 23);
+        ensure_in_range!(hours, -24 => 24);
         ensure_in_range!(minutes, -59 => 59);
         ensure_in_range!(seconds, -59 => 59);
 
@@ -101,14 +98,12 @@ impl UtcOffset {
             }
         }
 
-        Ok(Self {
-            hours,
-            minutes,
-            seconds,
-        })
+        let seconds = hours as i32 * 3600 + minutes as i32 * 60 + seconds as i32;
+        Self::from_seconds(seconds)
     }
 
     /// Creates a new [`UtcOffset`] from a total number of seconds.
+    /// The value must be between `-86400..=86400`.
     ///
     /// # Examples
     ///
@@ -119,7 +114,7 @@ impl UtcOffset {
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub const fn from_seconds(seconds: i32) -> Result<Self, Error> {
-        ensure_in_range!(seconds, -86399 => 86399);
+        ensure_in_range!(seconds, -86400 => 86400);
         Ok(Self::from_seconds_unchecked(seconds))
     }
 
@@ -212,15 +207,15 @@ impl UtcOffset {
     /// let west = utc_offset!(-8:00);
     /// let far  = utc_offset!(18:00);
     ///
-    /// assert_eq!(far.saturating_sub(west), utc_offset!(23:59:59)); // 18 - -8 => 26
+    /// assert_eq!(far.saturating_sub(west), utc_offset!(24:00:00)); // 18 - -8 => 26
     /// assert_eq!(west.saturating_sub(east), utc_offset!(-3:00));
     /// ```
     #[inline]
     pub const fn saturating_sub(self, other: Self) -> Self {
         let seconds = self.total_seconds() - other.total_seconds();
-        if seconds <= -86399 {
+        if seconds <= -86400 {
             Self::MIN
-        } else if seconds >= 86399 {
+        } else if seconds >= 86400 {
             Self::MAX
         } else {
             Self::from_seconds_unchecked(seconds)
@@ -238,15 +233,15 @@ impl UtcOffset {
     ///
     /// assert_eq!(far.saturating_add(west), utc_offset!(10:00));
     /// assert_eq!(west.saturating_add(east), utc_offset!(-13:00));
-    /// assert_eq!(other.saturating_add(west), utc_offset!(-23:59:59));
+    /// assert_eq!(other.saturating_add(west), utc_offset!(-24:00:00));
     /// assert_eq!(other.saturating_add(east), utc_offset!(-23:00));
     /// ```
     #[inline]
     pub const fn saturating_add(self, other: Self) -> Self {
         let seconds = self.total_seconds() + other.total_seconds();
-        if seconds <= -86399 {
+        if seconds <= -86400 {
             Self::MIN
-        } else if seconds >= 86399 {
+        } else if seconds >= 86400 {
             Self::MAX
         } else {
             Self::from_seconds_unchecked(seconds)
@@ -446,7 +441,7 @@ mod tests {
     #[test]
     fn test_construction_ranges() {
         assert!(UtcOffset::from_hms(-32, 0, 0).is_err());
-        assert!(UtcOffset::from_hms(24, 0, 0).is_err());
+        assert!(UtcOffset::from_hms(24, 0, 0).is_ok());
         assert!(UtcOffset::from_hms(23, 60, 0).is_err());
         assert!(UtcOffset::from_hms(-23, -60, 0).is_err());
         assert!(UtcOffset::from_hms(-23, -60, -60).is_err());
@@ -454,8 +449,8 @@ mod tests {
 
         assert!(UtcOffset::from_hms(-5, 30, 0).is_ok());
 
-        assert!(UtcOffset::from_seconds(-86400).is_err());
-        assert!(UtcOffset::from_seconds(86400).is_err());
+        assert!(UtcOffset::from_seconds(-86400).is_ok());
+        assert!(UtcOffset::from_seconds(86400).is_ok());
         assert!(UtcOffset::from_seconds(3600).is_ok());
         assert!(UtcOffset::from_seconds(-3600).is_ok());
     }

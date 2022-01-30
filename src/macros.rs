@@ -186,11 +186,14 @@ macro_rules! utc_offset {
         #[allow(clippy::zero_prefixed_literal)]
         const SECONDS: i8 = $crate::macros::__expand_or_zero!($($($seconds)?)?);
 
-        $crate::macros::const_assert!(HOURS <= 23 && HOURS >= -23, "hours must be between [-23, 23]");
+        $crate::macros::const_assert!(HOURS <= 24 && HOURS >= -24, "hours must be between [-24, 24]");
         $crate::macros::const_assert!(MINUTES <= 59 && MINUTES >= 0, "minutes must be between [0, 59]");
         $crate::macros::const_assert!(SECONDS <= 59 && SECONDS >= 0, "seconds must be between [0, 59]");
 
-        $crate::UtcOffset::__new_unchecked_from_macro(-HOURS, -MINUTES, -SECONDS)
+        const TOTAL: i32 = -(HOURS as i32 * 3600 + MINUTES as i32 * 60 + SECONDS as i32);
+        $crate::macros::const_assert!(TOTAL <= 86400 && TOTAL >= -86400, "total seconds must be between [-86400, 86400]");
+
+        $crate::UtcOffset::__new_unchecked_from_macro(TOTAL)
     }};
 
     ($(+)?$hours:literal$(:$minutes:literal$(:$seconds:literal)?)?) => {{
@@ -201,15 +204,14 @@ macro_rules! utc_offset {
         #[allow(clippy::zero_prefixed_literal)]
         const SECONDS: i8 = $crate::macros::__expand_or_zero!($($($seconds)?)?);
 
-        $crate::macros::const_assert!(HOURS <= 23 && HOURS >= -23, "hours must be between [-23, 23]");
+        $crate::macros::const_assert!(HOURS <= 24 && HOURS >= -24, "hours must be between [-24, 24]");
         $crate::macros::const_assert!(MINUTES <= 59 && MINUTES >= 0, "minutes must be between [0, 59]");
         $crate::macros::const_assert!(SECONDS <= 59 && SECONDS >= 0, "seconds must be between [0, 59]");
 
-        if HOURS >= 0 {
-            $crate::UtcOffset::__new_unchecked_from_macro(HOURS, MINUTES, SECONDS)
-        } else {
-            $crate::UtcOffset::__new_unchecked_from_macro(HOURS, -MINUTES, -SECONDS)
-        }
+        const TOTAL: i32 = HOURS as i32 * 3600 + MINUTES as i32 * 60 + SECONDS as i32;
+        $crate::macros::const_assert!(TOTAL <= 86400 && TOTAL >= -86400, "total seconds must be between [-86400, 86400]");
+
+        $crate::UtcOffset::__new_unchecked_from_macro(TOTAL)
     }};
 }
 
