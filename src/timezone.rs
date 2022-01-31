@@ -127,6 +127,21 @@ impl UtcOffset {
         }
     }
 
+    /// Get the utc offset's hours.
+    pub const fn hours(&self) -> i8 {
+        self.hours
+    }
+
+    /// Get the utc offset's minutes.
+    pub const fn minutes(&self) -> i8 {
+        self.minutes
+    }
+
+    /// Get the utc offset's seconds.
+    pub const fn seconds(&self) -> i8 {
+        self.seconds
+    }
+
     /// Returns the total number of seconds this offset represents.
     ///
     /// # Example
