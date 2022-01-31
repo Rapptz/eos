@@ -1,4 +1,7 @@
-use eos::{DateTime, Interval, TimeZone, Utc};
+use eos::{
+    gregorian::{MAX_EPOCH_DAYS, MIN_EPOCH_DAYS},
+    DateTime, Interval, TimeZone, Utc,
+};
 
 /// Represents a naive Unix timestamp.
 ///
@@ -9,7 +12,7 @@ use eos::{DateTime, Interval, TimeZone, Utc};
 /// dealing with [`TimeZone`] calculations.
 ///
 /// To convert a [`DateTime`] into a [`NaiveTimestamp`], the [`From`] trait should be used.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub(crate) struct NaiveTimestamp(pub(crate) i64);
 
@@ -38,6 +41,10 @@ impl NaiveTimestamp {
     /// This is usually used to represent the beginning of time.
     pub(crate) const MIN: Self = Self::from_seconds(i64::MIN);
 
+    /// The minimum valid number of seconds
+    pub(crate) const MIN_VALID: i64 = MIN_EPOCH_DAYS as i64 * 86400;
+    pub(crate) const MAX_VALID: i64 = MAX_EPOCH_DAYS as i64 * 86400 + (23 * 3600) + (59 * 60) + 59;
+
     /// Creates a new [`NaiveTimestamp`] from the given date and time.
     pub(crate) const fn new(date: &eos::Date, time: &eos::Time) -> Self {
         let ts = date.days_since_epoch() as i64 * 86400
@@ -61,6 +68,18 @@ impl NaiveTimestamp {
     /// Converts the naive timestamp into a UTC [`DateTime`].
     pub(crate) fn to_utc(self) -> DateTime<Utc> {
         DateTime::UNIX_EPOCH + Interval::from_seconds(self.into_inner())
+    }
+}
+
+impl std::fmt::Debug for NaiveTimestamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Give the NaiveTimestamp some more important debugging information
+        // such as the UTC time
+        if self.0 >= Self::MIN_VALID && self.0 <= Self::MAX_VALID {
+            write!(f, "NaiveTimestamp({}, \"{}\")", &self.0, self.to_utc())
+        } else {
+            write!(f, "NaiveTimestamp({})", &self.0)
+        }
     }
 }
 

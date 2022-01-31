@@ -168,16 +168,13 @@ impl Header {
         }
     }
 
-    fn get_zone_info<R: Read + Seek>(
-        &self,
-        reader: &mut R,
-    ) -> Result<ZoneInfo, ParseError> {
-        let trans = if self.version == 1 {
+    fn get_zone_info<R: Read + Seek>(&self, reader: &mut R) -> Result<ZoneInfo, ParseError> {
+        let mut trans = if self.version == 1 {
             self.read_transitions_32(reader)?
         } else {
             self.read_transitions(reader)?
         };
-        let idxs = self.read_transition_indexes(reader)?;
+        let mut idxs = self.read_transition_indexes(reader)?;
         let ttypes = self.read_transition_types(reader)?;
 
         // TODO: leap seconds?
@@ -200,6 +197,37 @@ impl Header {
         };
 
         let mut transitions: Vec<Transition> = Vec::with_capacity(trans.len());
+
+        // Find first non-DST transition
+        // This inserts the timezone into our list of indices along with
+        // a sentinel value representing the end of time.
+        // This allows the ranges to be constructed in a way that's expected,
+        // for example, given Africa/Abidjan with a single transition point
+        // in 1912-01-01 00:00 this works out with the following math:
+        //
+        // trans: 1912-01-01 00:00
+        // idx: 1
+        // ttypes_before_idx: 0
+        //
+        // is modified into:
+        //
+        // trans: 1912-01-01 00:00, end
+        // idx: 0, 1
+        // -> [start, 1912-01-01 00:00) (0)
+        // -> [1912-01-01 00:00, end) (1)
+        match ttypes.iter().position(|t| !t.is_dst) {
+            Some(idx) => {
+                idxs.insert(0, idx as u8);
+                trans.push(i64::MAX); // end of time
+            }
+            None => {
+                if !ttypes.is_empty() {
+                    idxs.insert(0, 0);
+                    trans.push(i64::MAX); // end of time
+                }
+            }
+        }
+
         for (trans, idx) in trans.iter().zip(idxs.iter()) {
             // Assume a list of transitions...
             // 1896-01-13T22:31:26Z 1933-04-30T12:30:00Z 1933-05-21T21:30:00Z
@@ -222,9 +250,7 @@ impl Header {
     }
 }
 
-pub(crate) fn parse_tzif<R: Read + Seek>(
-    mut reader: R,
-) -> Result<ZoneInfo, ParseError> {
+pub(crate) fn parse_tzif<R: Read + Seek>(mut reader: R) -> Result<ZoneInfo, ParseError> {
     let mut header = Header::from_reader(&mut reader)?;
     if header.version == 1 {
         header.get_zone_info(&mut reader)

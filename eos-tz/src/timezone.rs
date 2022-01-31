@@ -78,7 +78,9 @@ impl TimeZone {
                     // end value. This offset by 1 means that we take the one that we actually care about.
                     idx - 1
                 } else {
-                    idx
+                    // If we're reaching the end of time transition then fall back to the POSIX
+                    // timezone
+                    return None;
                 }
             }
         };
@@ -172,11 +174,16 @@ mod tests {
 
     #[test]
     #[cfg(feature = "bundled")]
-    fn test_name() {
-        let dt = eos::Local::now().unwrap();
-        println!("{:?}", &dt);
-        let utc = datetime!(2007-3-11 8:00);
-        let tz = zone!("America/New_York");
-        println!("{:?}", utc.at(tz));
+    fn test_bundled_loading() {
+        use eos::TimeZone;
+
+        let dt = datetime!(1911-12-30 00:00);
+        let tz = zone!("Africa/Abidjan");
+        let name = tz.name(dt.date(), dt.time());
+        assert_eq!(name, Some("LMT"));
+
+        let tz = zone!("America/Santiago");
+        let dt = datetime!(2040-04-06 00:00);
+        assert_eq!(tz.name(dt.date(), dt.time()), Some("-03"));
     }
 }
