@@ -145,7 +145,7 @@ impl eos::TimeZone for TimeZone {
         }
     }
 
-    fn at(self, mut utc: eos::DateTime<eos::Utc>) -> eos::DateTime<Self>
+    fn convert_utc(self, mut utc: eos::DateTime<eos::Utc>) -> eos::DateTime<Self>
     where
         Self: Sized,
     {

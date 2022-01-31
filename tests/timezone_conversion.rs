@@ -63,7 +63,7 @@ impl TimeZone for AmericanTimeZone {
         }
     }
 
-    fn at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
+    fn convert_utc(self, mut utc: DateTime<Utc>) -> DateTime<Self>
     where
         Self: Sized,
     {
@@ -110,7 +110,7 @@ impl TimeZone for AlwaysEasternStandard {
         utc_offset!(-5:00)
     }
 
-    fn at(self, mut utc: DateTime<Utc>) -> DateTime<Self>
+    fn convert_utc(self, mut utc: DateTime<Utc>) -> DateTime<Self>
     where
         Self: Sized,
     {
@@ -125,7 +125,7 @@ const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 #[test]
 fn test_from_utc() -> Result<(), eos::Error> {
     for tz in [&EAST, &CENTRAL, &MOUNTAIN, &PACIFIC] {
-        let local = tz.at(DT);
+        let local = tz.convert_utc(DT);
         assert_eq!(
             local - DT.with_timezone(*tz),
             Interval::from(tz.offset(local.date(), local.time()))
@@ -134,7 +134,7 @@ fn test_from_utc() -> Result<(), eos::Error> {
     }
 
     let utc_now = Utc::now();
-    let east = EAST.at(utc_now);
+    let east = EAST.convert_utc(utc_now);
     assert_eq!(utc_now, east);
 
     /*
@@ -151,10 +151,10 @@ fn test_from_utc() -> Result<(), eos::Error> {
         if hour == 23 {
             expected = expected - 1.days();
         }
-        let got = EAST.at(start);
+        let got = EAST.convert_utc(start);
         assert_eq!(expected.with_timezone(EAST), got);
 
-        let got = AlwaysEasternStandard.at(start);
+        let got = AlwaysEasternStandard.convert_utc(start);
         let expected = (start + (-5).hours()).with_timezone(AlwaysEasternStandard);
         assert_eq!(expected, got);
 
@@ -167,10 +167,10 @@ fn test_from_utc() -> Result<(), eos::Error> {
     let mut start = DST_END_2021.with_hour(4)?;
     for hour in [0, 1, 1, 2, 3, 4] {
         let expected = start.with_hour(hour)?;
-        let got = EAST.at(start);
+        let got = EAST.convert_utc(start);
         assert_eq!(expected.with_timezone(EAST), got);
 
-        let got = AlwaysEasternStandard.at(start);
+        let got = AlwaysEasternStandard.convert_utc(start);
         let expected = (start + (-5).hours()).with_timezone(AlwaysEasternStandard);
         assert_eq!(expected, got);
 

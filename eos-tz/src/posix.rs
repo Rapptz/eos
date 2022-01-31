@@ -271,7 +271,7 @@ impl eos::TimeZone for PosixTimeZone {
         }
     }
 
-    fn at(self, mut utc: eos::DateTime<eos::Utc>) -> eos::DateTime<Self>
+    fn convert_utc(self, mut utc: eos::DateTime<eos::Utc>) -> eos::DateTime<Self>
     where
         Self: Sized,
     {
@@ -731,7 +731,7 @@ mod tests {
 
         let utc = Utc::now();
         // Unfortunately PosixTimeZone is *not* Copy which makes it awkward...
-        let current = tz.clone().at(utc);
+        let current = tz.clone().convert_utc(utc);
         assert_eq!(utc, current);
 
         /*
@@ -747,7 +747,7 @@ mod tests {
             if hour == 23 {
                 expected = expected - 1.days();
             }
-            let got = tz.clone().at(start);
+            let got = tz.clone().convert_utc(start);
             assert_eq!(expected.with_timezone(tz.clone()), got);
 
             start = start + 1.hours();
@@ -756,7 +756,7 @@ mod tests {
         let mut start = DST_END_2021.with_hour(4)?;
         for hour in [0, 1, 1, 2, 3, 4] {
             let expected = start.with_hour(hour)?;
-            let got = tz.clone().at(start);
+            let got = tz.clone().convert_utc(start);
             assert_eq!(expected.with_timezone(tz.clone()), got);
 
             start = start + 1.hours();

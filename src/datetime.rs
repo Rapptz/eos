@@ -437,7 +437,7 @@ where
     where
         OtherTz: TimeZone,
     {
-        timezone.at(self.into_utc())
+        timezone.convert_utc(self.into_utc())
     }
 
     /// Returns a new [`DateTime`] with the timezone component changed.
@@ -464,7 +464,7 @@ where
     where
         OtherTz: TimeZone,
     {
-        timezone.at(self.into_utc())
+        timezone.convert_utc(self.into_utc())
     }
 
     /// Returns the POSIX timestamp in seconds.
@@ -1080,7 +1080,7 @@ mod tests {
 
         let utc = datetime!(2021-12-31 00:00);
         let offset = utc_offset!(-5:00);
-        let left = offset.at(utc);
+        let left = offset.convert_utc(utc);
         assert_eq!(left, utc);
     }
 
