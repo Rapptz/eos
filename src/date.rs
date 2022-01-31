@@ -296,6 +296,7 @@ impl Date {
         DateTime {
             date: *self,
             time,
+            offset: crate::UtcOffset::UTC,
             timezone: Utc,
         }
     }

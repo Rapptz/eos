@@ -126,10 +126,7 @@ const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 fn test_from_utc() -> Result<(), eos::Error> {
     for tz in [&EAST, &CENTRAL, &MOUNTAIN, &PACIFIC] {
         let local = tz.convert_utc(DT);
-        assert_eq!(
-            local - DT.with_timezone(*tz),
-            Interval::from(tz.offset(local.date(), local.time()))
-        );
+        assert_eq!(local - DT.with_timezone(*tz), Interval::from(*local.offset()));
         assert_eq!(local, DT);
     }
 

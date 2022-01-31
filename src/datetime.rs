@@ -38,6 +38,7 @@ where
 {
     pub(crate) date: Date,
     pub(crate) time: Time,
+    pub(crate) offset: UtcOffset,
     pub(crate) timezone: Tz,
 }
 
@@ -45,7 +46,12 @@ where
 #[cfg(feature = "macros")]
 #[inline]
 pub const fn __create_offset_datetime_from_macro(date: Date, time: Time, timezone: UtcOffset) -> DateTime<UtcOffset> {
-    DateTime { date, time, timezone }
+    DateTime {
+        date,
+        time,
+        offset: timezone,
+        timezone,
+    }
 }
 
 impl DateTime<Utc> {
@@ -53,6 +59,7 @@ impl DateTime<Utc> {
     pub const UNIX_EPOCH: Self = Self {
         date: Date::UNIX_EPOCH,
         time: Time::MIDNIGHT,
+        offset: UtcOffset::UTC,
         timezone: Utc,
     };
 
@@ -70,6 +77,7 @@ impl DateTime<Utc> {
         Self {
             date,
             time,
+            offset: UtcOffset::UTC,
             timezone: Utc,
         }
     }
@@ -161,6 +169,7 @@ impl DateTime<UtcOffset> {
         Ok(Self {
             date,
             time,
+            offset,
             timezone: offset,
         })
     }
@@ -222,10 +231,15 @@ where
     /// # Ok::<_, eos::Error>(())
     /// ```
     pub fn new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
+        let date = Date::new(year, month, day)?;
+        let time = Time::MIDNIGHT;
+        let timezone = Tz::default();
+        let offset = timezone.offset(&date, &time);
         Ok(Self {
-            date: Date::new(year, month, day)?,
-            time: Time::MIDNIGHT,
-            timezone: Tz::default(),
+            date,
+            time,
+            offset,
+            timezone,
         })
     }
 }
@@ -252,9 +266,12 @@ where
     /// ```
     pub fn from_ordinal(year: i16, ordinal: u16, timezone: Tz) -> Result<Self, Error> {
         let date = Date::from_ordinal(year, ordinal)?;
+        let time = Time::MIDNIGHT;
+        let offset = timezone.offset(&date, &time);
         Ok(Self {
             date,
-            time: Time::MIDNIGHT,
+            time,
+            offset,
             timezone,
         })
     }
@@ -349,6 +366,11 @@ where
         &mut self.timezone
     }
 
+    /// Returns a reference to the [`UtcOffset`] this datetime currently resides in.
+    pub fn offset(&self) -> &UtcOffset {
+        &self.offset
+    }
+
     /// Compares two datetime instances that do not share a timezone.
     ///
     /// Due to [a limitation][bad-ord] with the Rust [`Ord`] trait, this cannot be implemented
@@ -360,10 +382,7 @@ where
     where
         OtherTz: TimeZone,
     {
-        let my_offset = self.timezone.offset(self.date(), self.time());
-        let other_offset = other.timezone.offset(other.date(), other.time());
-
-        if my_offset == other_offset {
+        if self.offset == other.offset {
             return (self.date, self.time).cmp(&(other.date, other.time));
         }
 
@@ -374,7 +393,7 @@ where
             // If the UTC offsets at that date resolve to the same one, then they're on the same
             // date and the calculation is correct
             let days = self.date().days_since_epoch() - other.date().days_since_epoch();
-            if my_offset == other_offset {
+            if self.offset == other.offset {
                 (days, true)
             } else {
                 // If they're not, then we need to take into consideration the time component.
@@ -383,7 +402,7 @@ where
                 // 24 hours, we can use this to our advantage because by the same virtue
                 // offsets are also only within 24 hour bounds, making this a rather simple
                 // second-wise addition
-                let delta_offsets = other_offset.total_seconds() - my_offset.total_seconds();
+                let delta_offsets = other.offset.total_seconds() - self.offset.total_seconds();
                 let seconds = self.time.total_seconds() - other.time.total_seconds() + delta_offsets;
 
                 let (d, s) = divmod!(seconds, 86_400);
@@ -421,7 +440,7 @@ where
 
     #[inline]
     pub(crate) fn into_utc(self) -> DateTime<Utc> {
-        let offset = self.timezone.offset(self.date(), self.time());
+        let offset = self.offset; // Copy value before moving
         let mut utc = self.with_timezone(Utc);
         utc.shift(-offset);
         utc
@@ -444,13 +463,16 @@ where
     ///
     /// This does *not* change the time and date to point to the new
     /// [`TimeZone`]. See [`DateTime::in_timezone`] for that behaviour.
+    /// Note that this will still change the internal UTC offset.
     pub fn with_timezone<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
     where
         OtherTz: TimeZone,
     {
+        let offset = timezone.offset(&self.date, &self.time);
         DateTime {
             date: self.date,
             time: self.time,
+            offset,
             timezone,
         }
     }
@@ -795,8 +817,7 @@ where
     Tz: TimeZone,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let offset = self.timezone.offset(&self.date, &self.time);
-        write!(f, "{}T{}{}", self.date, self.time, offset)
+        write!(f, "{}T{}{}", self.date, self.time, self.offset)
     }
 }
 
@@ -806,12 +827,11 @@ where
     Tz: TimeZone,
 {
     fn to_iso_format_with_precision(&self, precision: IsoFormatPrecision) -> String {
-        let offset = self.timezone.offset(&self.date, &self.time);
         let mut buffer = String::with_capacity(40);
         write!(&mut buffer, "{}", &self.date).expect("unexpected error when writing string");
         buffer.push('T');
         crate::time::fmt_iso_time(&mut buffer, &self.time, precision).expect("unexpected error when writing string");
-        write!(&mut buffer, "{}", offset).expect("unexpected error when writing string");
+        write!(&mut buffer, "{}", self.offset).expect("unexpected error when writing string");
         buffer
     }
 
@@ -888,6 +908,7 @@ impl FromIsoFormat for DateTime<UtcOffset> {
         Ok(Self {
             date,
             time,
+            offset,
             timezone: offset,
         })
     }
@@ -902,6 +923,7 @@ impl Add<Duration> for DateTime {
         Self {
             date,
             time,
+            offset: self.offset,
             timezone: self.timezone,
         }
     }
@@ -916,6 +938,7 @@ impl Sub<Duration> for DateTime {
         Self {
             date,
             time,
+            offset: self.offset,
             timezone: self.timezone,
         }
     }
@@ -985,6 +1008,7 @@ where
         Self {
             date,
             time,
+            offset: self.offset,
             timezone: self.timezone,
         }
     }
@@ -1013,6 +1037,7 @@ where
         Self {
             date,
             time,
+            offset: self.offset,
             timezone: self.timezone,
         }
     }

@@ -1637,13 +1637,9 @@ where
                     }
                     pad_number(f, ns, spec.padding, 7)?
                 }
-                FormatSpecKind::UtcOffset => {
-                    let offset = self.dt.timezone().offset(self.dt.date(), self.dt.time());
-                    offset.fmt(f)?
-                }
+                FormatSpecKind::UtcOffset => self.dt.offset().fmt(f)?,
                 FormatSpecKind::UtcOffsetBrief => {
-                    let offset = self.dt.timezone.offset(self.dt.date(), self.dt.time());
-                    let (hour, minute, second) = offset.into_hms();
+                    let (hour, minute, second) = self.dt.offset().into_hms();
                     let (minute, second) = (minute.abs(), second.abs());
                     if second > 0 {
                         write!(f, "{:+03}{:02}{:02}", hour, minute, second)?
@@ -1669,8 +1665,7 @@ where
     Tz: TimeZone,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let offset = self.dt.timezone().offset(self.dt.date(), self.dt.time());
-        let (h, m, _) = offset.into_hms();
+        let (h, m, _) = self.dt.offset().into_hms();
         let m = m.abs();
         let time = self.dt.time();
         let mut us = time.microsecond();

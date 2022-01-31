@@ -218,9 +218,11 @@ where
     pub fn build(&self) -> Result<DateTime<Tz>, Error> {
         let date = self.build_date()?;
         let time = self.build_time()?;
+        let offset = self.timezone.offset(&date, &time);
         Ok(DateTime {
             date,
             time,
+            offset,
             timezone: self.timezone.clone(),
         })
     }
