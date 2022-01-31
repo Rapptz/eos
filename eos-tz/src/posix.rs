@@ -1,4 +1,5 @@
 use std::{
+    fmt::Write,
     iter::Peekable,
     str::{Chars, FromStr},
 };
@@ -67,6 +68,41 @@ impl DstTransitionRule {
                 NaiveTimestamp::from_seconds(seconds)
             }
         }
+    }
+}
+
+fn display_time(f: &mut std::fmt::Formatter<'_>, offset: i64) -> std::fmt::Result {
+    let (hours, seconds) = (offset.div_euclid(3600), offset.rem_euclid(3600));
+    let (minutes, seconds) = (seconds.div_euclid(60), seconds.rem_euclid(60));
+    if minutes != 0 || seconds != 0 {
+        write!(f, "{}:{:02}:{:02}", hours, minutes, seconds)
+    } else {
+        write!(f, "{}", hours)
+    }
+}
+
+impl std::fmt::Display for DstTransitionRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            DstTransitionRule::JulianDay(d, offset) => {
+                write!(f, "J{}/", d)?;
+                display_time(f, *offset)?;
+            }
+            DstTransitionRule::Day(d, offset) => {
+                write!(f, "{}/", d)?;
+                display_time(f, *offset)?;
+            }
+            DstTransitionRule::Calendar {
+                month,
+                n,
+                weekday,
+                offset,
+            } => {
+                write!(f, "M{}.{}.{}/", month, n, weekday)?;
+                display_time(f, *offset)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -483,6 +519,55 @@ impl FromStr for PosixTimeZone {
     }
 }
 
+fn display_offset(f: &mut std::fmt::Formatter<'_>, offset: &UtcOffset) -> std::fmt::Result {
+    // Offsets are swapped in POSIX timezones.
+    // i.e. an offset of -5 UTC is represented as 5
+    let hours = -offset.hours();
+    let (minutes, seconds) = (offset.minutes().abs(), offset.seconds().abs());
+    if minutes != 0 || seconds != 0 {
+        write!(f, "{}:{:02}:{:02}", hours, minutes, seconds)
+    } else {
+        write!(f, "{}", hours)
+    }
+}
+
+impl std::fmt::Display for PosixTimeZone {
+    /// Converts the [`PosixTimeZone`] back into its original representation.
+    ///
+    /// Note that this does *not* roundtrip and makes no guarantee to do so.
+    /// It just returns a suitable display representing the original data
+    /// faithfully.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // std[offset[dst[offset],start[/time],end[/time]]]
+        if self.std_abbr.as_bytes().iter().any(|x| !x.is_ascii_alphabetic()) {
+            write!(f, "<{}>", &self.std_abbr)?;
+        } else {
+            f.write_str(self.std_abbr.as_str())?;
+        }
+        match &self.dst {
+            None => {
+                if !self.std_offset.is_utc() {
+                    display_offset(f, &self.std_offset)?;
+                }
+            }
+            Some(dst) => {
+                display_offset(f, &self.std_offset)?;
+                if dst.abbr.as_bytes().iter().any(|x| !x.is_ascii_alphabetic()) {
+                    write!(f, "<{}>", &dst.abbr)?;
+                } else {
+                    f.write_str(dst.abbr.as_str())?;
+                }
+                let default = self.std_offset.saturating_add(utc_offset!(01:00));
+                if dst.offset != default {
+                    display_offset(f, &dst.offset)?;
+                }
+                write!(f, ",{},{}", &dst.start, &dst.end)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use eos::{datetime, ext::IntervalLiteral, DateTime, TimeZone, Utc};
@@ -687,6 +772,17 @@ mod tests {
         assert!(posix.is_dst(dt.date(), dt.time()));
         let end = datetime!(2040-04-08 00:00);
         assert!(!posix.is_dst(end.date(), end.time()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_display_repr() -> Result<(), ParseError> {
+        let posix = PosixTimeZone::new("GMT5")?;
+        assert_eq!(posix.to_string(), "GMT5");
+        let posix = PosixTimeZone::new("<-04>4<-03>,M9.1.6/24,M4.1.6/24")?;
+        assert_eq!(posix.to_string(), "<-04>4<-03>,M9.1.6/24,M4.1.6/24");
+        let posix = PosixTimeZone::from_str("EST+5EDT,M3.2.0/2,M11.1.0/2")?;
+        assert_eq!(posix.to_string(), "EST5EDT,M3.2.0/2,M11.1.0/2");
         Ok(())
     }
 }
