@@ -143,7 +143,7 @@ impl DstTransitionInfo {
 /// use std::str::FromStr;
 ///
 /// let tz = PosixTimeZone::from_str("EST+5EDT,M3.2.0/2,M11.1.0/2")?;
-/// # Ok::<_, eos_tz::ParserError>(())
+/// # Ok::<_, eos_tz::ParseError>(())
 /// ```
 ///
 /// [Section 8.3]: https://pubs.opengroup.org/onlinepubs/9699919799/
