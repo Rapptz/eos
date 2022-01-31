@@ -85,7 +85,11 @@ impl DstTransitionInfo {
         let ts = NaiveTimestamp::new(date, time);
         let start = self.start.timestamp_in_year(date.year());
         let end = self.end.timestamp_in_year(date.year());
-        ts >= start && ts < end
+        if start < end {
+            start <= ts && ts < end
+        } else {
+            !(end <= ts && ts < start)
+        }
     }
 }
 
@@ -142,7 +146,7 @@ impl PosixTimeZone {
                                 return Err(ParseError::InvalidPosixTz);
                             }
                             offset
-                        },
+                        }
                         None => return Err(ParseError::InvalidPosixTz),
                     };
                     let start = parse_dst_transition_rule(&mut parser)?;
@@ -672,6 +676,17 @@ mod tests {
 
             start = start + 1.hours();
         }
+        Ok(())
+    }
+
+    #[test]
+    fn america_santiago_regression() -> Result<(), ParseError> {
+        let posix = PosixTimeZone::new("<-04>4<-03>,M9.1.6/24,M4.1.6/24")?;
+        // DST doesn't end until 2040-04-08 00:00
+        let dt = datetime!(2040-04-06 00:00);
+        assert!(posix.is_dst(dt.date(), dt.time()));
+        let end = datetime!(2040-04-08 00:00);
+        assert!(!posix.is_dst(end.date(), end.time()));
         Ok(())
     }
 }
