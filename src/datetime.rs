@@ -371,6 +371,11 @@ where
         &self.offset
     }
 
+    /// Returns the time zone name, if any.
+    pub fn tzname(&self) -> Option<&str> {
+        self.timezone.name(self.date(), self.time())
+    }
+
     /// Compares two datetime instances that do not share a timezone.
     ///
     /// Due to [a limitation][bad-ord] with the Rust [`Ord`] trait, this cannot be implemented
@@ -1115,5 +1120,10 @@ mod tests {
         assert_eq!(datetime!(1970-01-01 1:02:03).timestamp(), 3723);
         assert_eq!(datetime!(2022-01-02 20:38:45).timestamp(), 1641155925);
         assert_eq!(datetime!(2022-01-02 20:38:45 -5:00).timestamp(), 1641173925);
+    }
+
+    #[test]
+    fn test_tzname() {
+        assert_eq!(DateTime::UNIX_EPOCH.tzname(), Some("UTC"));
     }
 }
