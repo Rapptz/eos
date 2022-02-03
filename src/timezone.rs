@@ -551,6 +551,22 @@ pub trait TimeZone: Clone {
     where
         Self: Sized;
 
+    /// Resolves the given date and time to this time zone leniently.
+    ///
+    /// If the time cannot be represented in local time then the "gap"
+    /// is skipped and the time moves forward. If the time is ambiguous
+    /// then the earlier value is returned. This is equivalent to the
+    /// [`DateTimeResolution::lenient`] method.
+    ///
+    /// If more control is needed from this, consider using the
+    /// [`TimeZone::resolve`] method instead.
+    fn at(self, date: Date, time: Time) -> DateTime<Self>
+    where
+        Self: Sized,
+    {
+        self.resolve(date, time).lenient()
+    }
+
     /// Converts from a UTC [`DateTime`] to a datetime in this timezone.
     fn convert_utc(self, utc: DateTime<Utc>) -> DateTime<Self>
     where
