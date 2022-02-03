@@ -9,7 +9,7 @@
 use eos::{datetime, ext::IntervalLiteral, utc_offset, DateTime, TimeZone, Utc, UtcOffset};
 use eos_tz::zone;
 
-const TEST_DATA: [(&str, &[u8]); 11] = [
+const TEST_DATA: [(&str, &[u8]); 12] = [
     ("Africa/Abidjan", include_bytes!("Africa/Abidjan")),
     ("Africa/Casablanca", include_bytes!("Africa/Casablanca")),
     ("America/Los_Angeles", include_bytes!("America/Los_Angeles")),
@@ -19,6 +19,7 @@ const TEST_DATA: [(&str, &[u8]); 11] = [
     ("Europe/Dublin", include_bytes!("Europe/Dublin")),
     ("Europe/Lisbon", include_bytes!("Europe/Lisbon")),
     ("Europe/London", include_bytes!("Europe/London")),
+    ("Europe/Prague", include_bytes!("Europe/Prague")),
     ("Pacific/Kiritimati", include_bytes!("Pacific/Kiritimati")),
     ("UTC", include_bytes!("UTC")),
 ];
@@ -398,6 +399,7 @@ fn test_timezone_id_retrieval() {
     assert_eq!(zone!("Australia/Sydney").id(), "Australia/Sydney");
     assert_eq!(zone!("Asia/Tokyo").id(), "Asia/Tokyo");
     assert_eq!(zone!("Europe/Dublin").id(), "Europe/Dublin");
+    assert_eq!(zone!("Europe/Prague").id(), "Europe/Prague");
     assert_eq!(zone!("Europe/Lisbon").id(), "Europe/Lisbon");
     assert_eq!(zone!("Europe/London").id(), "Europe/London");
     assert_eq!(zone!("Pacific/Kiritimati").id(), "Pacific/Kiritimati");
@@ -437,4 +439,85 @@ fn test_unambiguous() {
             });
         }
     }
+}
+
+#[test]
+fn test_europe_prague_ambiguity() {
+    let zone = get_zone("Europe/Prague");
+
+    // DST start: 1946-05-06 2AM UTC+1 -> +1 hour (CET -> CEST)
+    // DST end: 1946-10-06 3AM UTC+2 -> -1 hour (CEST -> CET)
+    // DST start: 1946-12-01 3AM UTC+1 -> -1 hour (CET -> GMT)
+    // DST end: 1947-02-23 2AM UTC+0 -> +1 hour (GMT -> CET)
+    // TODO: test tznames
+
+    // Ambiguous
+    let local = datetime!(1946-12-01 2:30);
+    let resolve = zone.clone().resolve(*local.date(), *local.time());
+    assert!(resolve.is_ambiguous());
+    assert_eq!(resolve.clone().earlier().unwrap(), datetime!(1946-12-01 2:30 +01:00));
+    assert_eq!(resolve.clone().later().unwrap(), datetime!(1946-12-01 2:30 +00:00));
+    assert_eq!(resolve.lenient(), datetime!(1946-12-01 2:30 +01:00));
+
+    // Ambiguous again
+    let local = datetime!(1946-10-06 2:30);
+    let resolve = zone.clone().resolve(*local.date(), *local.time());
+    assert!(resolve.is_ambiguous());
+    assert_eq!(resolve.clone().earlier().unwrap(), datetime!(1946-10-06 2:30 +02:00));
+    assert_eq!(resolve.clone().later().unwrap(), datetime!(1946-10-06 2:30 +01:00));
+    assert_eq!(resolve.lenient(), datetime!(1946-10-06 2:30 +02:00));
+
+    // Missing
+    let local = datetime!(1947-02-23 2:30);
+    let resolve = zone.clone().resolve(*local.date(), *local.time());
+    assert!(resolve.is_missing());
+    assert!(resolve.clone().earlier().is_err());
+    assert!(resolve.clone().later().is_err());
+    assert_eq!(resolve.lenient(), datetime!(1947-02-23 3:30 am +01:00));
+
+    let local = datetime!(1946-05-06 2:30);
+    let resolve = zone.clone().resolve(*local.date(), *local.time());
+    assert!(resolve.is_missing());
+    assert!(resolve.clone().earlier().is_err());
+    assert!(resolve.clone().later().is_err());
+    assert_eq!(resolve.lenient(), datetime!(1946-05-06 3:30 am +02:00));
+
+    // Unambiguous
+    let local = datetime!(1946-10-06 4:00);
+    let resolve = zone.resolve(*local.date(), *local.time());
+    assert!(resolve.is_unambiguous());
+    assert_eq!(resolve.clone().earlier().unwrap(), datetime!(1946-10-06 4:00 +01:00));
+    assert_eq!(resolve.clone().later().unwrap(), datetime!(1946-10-06 4:00 +01:00));
+    assert_eq!(resolve.lenient(), datetime!(1946-10-06 4:00 +01:00));
+}
+
+#[test]
+fn test_america_los_angeles_historical() {
+    let zone = get_zone("America/Los_Angeles");
+
+    // Ambiguous
+    let local = datetime!(1991-10-27 1:30 am);
+    let resolve = zone.clone().resolve(*local.date(), *local.time());
+    assert!(resolve.is_ambiguous());
+    assert_eq!(resolve.clone().earlier().unwrap(), datetime!(1991-10-27 1:30 am -07:00));
+    assert_eq!(resolve.clone().later().unwrap(), datetime!(1991-10-27 1:30 am -08:00));
+    assert_eq!(resolve.lenient(), datetime!(1991-10-27 1:30 am -07:00));
+
+    // This is not ambiguous
+    let local = datetime!(1991-10-27 12:30 am);
+    let resolve = zone.clone().resolve(*local.date(), *local.time());
+    assert!(resolve.is_unambiguous());
+    assert_eq!(
+        resolve.clone().earlier().unwrap(),
+        datetime!(1991-10-27 12:30 am -07:00)
+    );
+    assert_eq!(resolve.lenient(), datetime!(1991-10-27 12:30 am -07:00));
+
+    // This is missing
+    let local = datetime!(1991-04-07 02:30 am);
+    let resolve = zone.resolve(*local.date(), *local.time());
+    assert!(resolve.is_missing());
+    assert!(resolve.clone().earlier().is_err());
+    assert!(resolve.clone().later().is_err());
+    assert_eq!(resolve.lenient(), datetime!(1991-04-07 03:30 am -07:00));
 }

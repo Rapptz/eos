@@ -65,9 +65,9 @@ impl TimeZone {
 
     pub(crate) fn get_transition(&self, ts: NaiveTimestamp, utc: bool) -> Option<&Transition> {
         let key: fn(&Transition) -> NaiveTimestamp = if utc {
-            |trans| trans.start
+            |trans| trans.utc_start
         } else {
-            |trans| trans.start_at_local()
+            |trans| trans.start
         };
         let idx = match self.transitions.binary_search_by_key(&ts, key) {
             Ok(idx) => idx,
@@ -169,7 +169,83 @@ impl eos::TimeZone for TimeZone {
     where
         Self: Sized,
     {
-        todo!()
+        let ts = NaiveTimestamp::new(&date, &time);
+        // Manually check transitions since we need to get the surrounding ones
+        let (prev, trans, next) = match self.transitions.binary_search_by_key(&ts, |t| t.start) {
+            Ok(idx) => (
+                self.transitions.get(idx - 1),
+                &self.transitions[idx],
+                self.transitions.get(idx + 1),
+            ),
+            Err(idx) if idx != self.transitions.len() => (
+                self.transitions.get(idx - 2),
+                &self.transitions[idx - 1],
+                Some(&self.transitions[idx]),
+            ),
+            Err(idx) => {
+                // If this transition is in the future then we fall back to the POSIX timezone
+                match &self.posix {
+                    Some(posix) => {
+                        let (kind, earlier, later) = posix.partial_resolution(&date, &time);
+                        return match kind {
+                            eos::DateTimeResolutionKind::Missing => {
+                                eos::DateTimeResolution::missing(date, time, earlier, later, self)
+                            }
+                            eos::DateTimeResolutionKind::Unambiguous => {
+                                eos::DateTimeResolution::unambiguous(date, time, earlier, self)
+                            }
+                            eos::DateTimeResolutionKind::Ambiguous => {
+                                eos::DateTimeResolution::ambiguous(date, time, earlier, later, self)
+                            }
+                        };
+                    }
+                    None => {
+                        // This is unspecified (as said above)
+                        // Return a garbage unambiguous time
+                        let offset = self.transitions.get(idx - 1).map(|t| t.offset).unwrap_or_default();
+                        return eos::DateTimeResolution::unambiguous(date, time, offset, self);
+                    }
+                };
+            }
+        };
+
+        // Europe/Prague had an interesting transition period with a negative DST offset.
+        // It can also serve as an example of a positive DST transition:
+        // DST start: 1946-05-06 2AM UTC+1 -> +1 hour (CET -> CEST)
+        // DST end: 1946-10-06 3AM UTC+2 -> -1 hour (CEST -> CET)
+        // DST start: 1946-12-01 3AM UTC+1 -> -1 hour (CET -> GMT)
+        // DST end: 1947-02-23 2AM UTC+0 -> +1 hour (GMT -> CET)
+
+        // At 1946-12-01 2:30 AM the time is ambiguous because it can either be
+        // before the transition (UTC+1) or after (UTC).
+        // In this code, `trans` is UTC+1 and `next` is UTC.
+        // At 1946-10-06 2:30 AM the time is ambiguous in the other direction
+        // since it can be before transition (UTC+2) or after (UTC+1).
+        // In that scenario, `trans` is UTC+2 and `next` is UTC+1
+        // Notice how in both of these cases, the transition before and after match.
+        // To check for ambiguity, we need to check whether the *next* transition has an ambiguity.
+
+        // Next is missing times. In the negative transition offset case there's
+        // 1947-02-23 2:30 AM where time goes from UTC -> UTC+1
+        // In this code `trans` is UTC+1 and `prev` is UTC
+        // There's also 1946-05-06 2:30 AM where it goes from UTC+1 -> UTC+2
+        // In that case `trans` is UTC+2 and `prev` is UTC+1
+        // To check for missing, we need to check whether the *current* transition is missing.
+
+        if let Some(next) = next {
+            if next.is_ambiguous(ts) {
+                return eos::DateTimeResolution::ambiguous(date, time, trans.offset, next.offset, self);
+            }
+        }
+        if trans.is_missing(ts) {
+            if let Some(prev) = prev {
+                return eos::DateTimeResolution::missing(date, time, prev.offset, trans.offset, self);
+            }
+        }
+
+        // Assume remaining cases are unambiguous
+        // Hopefully this holds.
+        eos::DateTimeResolution::unambiguous(date, time, trans.offset, self)
     }
 }
 
