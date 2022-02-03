@@ -173,16 +173,31 @@ impl eos::TimeZone for TimeZone {
         // Manually check transitions since we need to get the surrounding ones
         let (prev, trans, next) = match self.transitions.binary_search_by_key(&ts, |t| t.start) {
             Ok(idx) => (
-                self.transitions.get(idx - 1),
+                self.transitions.get(idx.wrapping_sub(1)),
                 &self.transitions[idx],
                 self.transitions.get(idx + 1),
             ),
             Err(idx) if idx != self.transitions.len() => (
-                self.transitions.get(idx - 2),
+                self.transitions.get(idx.wrapping_sub(2)),
                 &self.transitions[idx - 1],
                 Some(&self.transitions[idx]),
             ),
             Err(idx) => {
+                // There's a specific case where we're past the last transition and into the TZStr
+                // Yet simultaneously be within a gap because we're not actually done with the prior
+                // transition. So we need to check for that case, for example in Africa/Abidjan there are
+                // only two transitions:
+                // [start-of-time, 1912-01-01 00:00) UTC -00:16:08
+                // [1912-01-01 00:00, end-of-time) UTC +00:00:00
+                // Since 1912-01-01 00:01 is a gap period lingering from the +00:16:08 that needs to
+                // be accounted for, there needs to be a check for that here
+                if !self.transitions.is_empty() {
+                    let trans = &self.transitions[idx - 1];
+                    if trans.is_missing(ts) {
+                        let earlier = self.transitions[idx - 2].offset;
+                        return eos::DateTimeResolution::missing(date, time, earlier, trans.offset, self);
+                    }
+                }
                 // If this transition is in the future then we fall back to the POSIX timezone
                 match &self.posix {
                     Some(posix) => {

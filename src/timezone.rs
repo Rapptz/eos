@@ -471,6 +471,27 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
         }
     }
 
+    /// Converts into a pair representing the earlier and later time.
+    ///
+    /// The first element of the pair is the earlier date time that was
+    /// resolved, and the second element of the pair is the later date time
+    /// that was resolved.
+    pub fn into_pair(self) -> (DateTime<Tz>, DateTime<Tz>) {
+        let earlier = DateTime {
+            date: self.date,
+            time: self.time,
+            offset: self.earlier,
+            timezone: self.timezone.clone(),
+        };
+        let later = DateTime {
+            date: self.date,
+            time: self.time,
+            offset: self.later,
+            timezone: self.timezone,
+        };
+        (earlier, later)
+    }
+
     /// Returns a lenient date time that can represent this resolution.
     ///
     /// This allows retrieving a [`DateTime`] regardless of the resolution.

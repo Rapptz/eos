@@ -202,13 +202,13 @@ impl Header {
             Some((idx, ttype)) => {
                 let transition = Transition::new(i64::MIN, ttype, idx, None)?;
                 transitions.push(transition);
-            },
+            }
             None => {
                 if let Some(ttype) = ttypes.first() {
                     let transition = Transition::new(i64::MIN, ttype, 0, None)?;
                     transitions.push(transition);
                 }
-            },
+            }
         }
 
         for (trans, idx) in trans.iter().zip(idxs.iter()) {

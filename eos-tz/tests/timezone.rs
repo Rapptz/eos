@@ -78,6 +78,38 @@ impl ZoneTransition {
             offset_after,
         }
     }
+
+    fn is_fold(&self) -> bool {
+        self.offset_before.offset > self.offset_after.offset
+    }
+
+    fn is_gap(&self) -> bool {
+        self.offset_before.offset < self.offset_after.offset
+    }
+
+    fn delta_offset(&self) -> UtcOffset {
+        self.offset_after.offset.saturating_sub(self.offset_before.offset)
+    }
+
+    fn anomaly_start(&self) -> DateTime<Utc> {
+        if self.is_fold() {
+            let mut copy = self.transition;
+            copy.shift(self.delta_offset());
+            copy
+        } else {
+            self.transition
+        }
+    }
+
+    fn anomaly_end(&self) -> DateTime<Utc> {
+        if !self.is_fold() {
+            let mut copy = self.transition;
+            copy.shift(self.delta_offset());
+            copy
+        } else {
+            self.transition
+        }
+    }
 }
 
 const ONE_HOUR: UtcOffset = utc_offset!(+01:00);
@@ -421,7 +453,7 @@ fn test_unambiguous() {
         for transition in transitions {
             let before = transition.transition - 2.days();
             let after = transition.transition + 2.days();
-            trace_variables!(key, zone, before, after, transition, {
+            trace_variables!(key, before, after, transition, {
                 assert_eq!(
                     zone.name(before.date(), before.time()),
                     Some(transition.offset_before.name)
@@ -436,6 +468,162 @@ fn test_unambiguous() {
                     Some(transition.offset_after.name)
                 );
                 assert_eq!(zone.offset(after.date(), after.time()), transition.offset_after.offset);
+            });
+        }
+    }
+}
+
+#[test]
+fn test_ambiguous_times() {
+    for (key, transitions) in get_zonedump_data() {
+        let zone = get_zone(key);
+        for transition in transitions {
+            if !transition.is_fold() {
+                continue;
+            }
+
+            // Before the fold is unambiguous
+            let dt = transition.anomaly_start() - 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_unambiguous());
+                let resolved = resolve.earlier().unwrap();
+                assert_eq!(resolved.offset(), &transition.offset_before.offset);
+                // assert_eq!(resolved.tzname(), Some(transition.offset_before.name));
+            });
+
+            // At the fold is ambiguous
+            let dt = transition.anomaly_start();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_ambiguous());
+                let (before, after) = resolve.into_pair();
+                assert_eq!(before.offset(), &transition.offset_before.offset);
+                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(after.offset(), &transition.offset_after.offset);
+                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+            });
+
+            // During the fold is ambiguous
+            let dt = transition.anomaly_start() + 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_ambiguous());
+                let (before, after) = resolve.into_pair();
+                assert_eq!(before.offset(), &transition.offset_before.offset);
+                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(after.offset(), &transition.offset_after.offset);
+                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+            });
+
+            // Before the fold ends is ambiguous
+            let dt = transition.anomaly_end() - 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_ambiguous());
+                let (before, after) = resolve.into_pair();
+                assert_eq!(before.offset(), &transition.offset_before.offset);
+                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(after.offset(), &transition.offset_after.offset);
+                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+            });
+
+            // When the fold ends it's unambiguous
+            let dt = transition.anomaly_end();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_unambiguous());
+                let resolved = resolve.earlier().unwrap();
+                assert_eq!(resolved.offset(), &transition.offset_after.offset);
+                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
+            });
+
+            // After the fold ends it's still unambiguous
+            let dt = transition.anomaly_end() + 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_unambiguous());
+                let resolved = resolve.earlier().unwrap();
+                assert_eq!(resolved.offset(), &transition.offset_after.offset);
+                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
+            });
+        }
+    }
+}
+
+#[test]
+fn test_missing_times() {
+    for (key, transitions) in get_zonedump_data() {
+        let zone = get_zone(key);
+        for transition in transitions {
+            if !transition.is_gap() {
+                continue;
+            }
+
+            // Before the gap is unambiguous
+            let dt = transition.anomaly_start() - 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_unambiguous());
+                let resolved = resolve.earlier().unwrap();
+                assert_eq!(resolved.offset(), &transition.offset_before.offset);
+                // assert_eq!(resolved.tzname(), Some(transition.offset_before.name));
+            });
+
+            // At the gap is missing
+            let dt = transition.anomaly_start();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_missing());
+                let (before, after) = resolve.into_pair();
+                assert_eq!(before.offset(), &transition.offset_before.offset);
+                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(after.offset(), &transition.offset_after.offset);
+                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+            });
+
+            // During the gap is missing
+            let dt = transition.anomaly_start() + 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_missing());
+                let (before, after) = resolve.into_pair();
+                assert_eq!(before.offset(), &transition.offset_before.offset);
+                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(after.offset(), &transition.offset_after.offset);
+                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+            });
+
+            // Before the gap ends is missing
+            let dt = transition.anomaly_end() - 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_missing());
+                let (before, after) = resolve.into_pair();
+                assert_eq!(before.offset(), &transition.offset_before.offset);
+                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(after.offset(), &transition.offset_after.offset);
+                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+            });
+
+            // When the gap ends it's unambiguous
+            let dt = transition.anomaly_end();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_unambiguous());
+                let resolved = resolve.earlier().unwrap();
+                assert_eq!(resolved.offset(), &transition.offset_after.offset);
+                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
+            });
+
+            // After the gap ends it's still unambiguous
+            let dt = transition.anomaly_end() + 1.seconds();
+            trace_variables!(key, dt, transition, {
+                let resolve = zone.clone().resolve(*dt.date(), *dt.time());
+                assert!(resolve.is_unambiguous());
+                let resolved = resolve.earlier().unwrap();
+                assert_eq!(resolved.offset(), &transition.offset_after.offset);
+                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
             });
         }
     }
