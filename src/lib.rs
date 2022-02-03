@@ -30,7 +30,7 @@ pub use datetime::DateTime;
 pub use error::Error;
 pub use interval::Interval;
 pub use time::Time;
-pub use timezone::{Local, TimeZone, Utc, UtcOffset};
+pub use timezone::{DateTimeResolution, DateTimeResolutionKind, Local, TimeZone, Utc, UtcOffset};
 
 // Internal helper for the macro_rules
 #[doc(hidden)]

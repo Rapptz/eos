@@ -1,3 +1,5 @@
+use crate::{Date, Time};
+
 /// Represents all types of errors that can be encountered when using the library.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
@@ -6,6 +8,10 @@ pub enum Error {
     OutOfRange,
     /// Could not get the local time or timezone information
     NoLocalTime,
+    /// The [`DateTime`] cannot be represented.
+    ///
+    /// [`DateTime`]: crate::DateTime
+    SkippedDateTime(Date, Time),
 }
 
 impl core::fmt::Display for Error {
@@ -13,6 +19,7 @@ impl core::fmt::Display for Error {
         match self {
             Error::OutOfRange => f.write_str("value out of range"),
             Error::NoLocalTime => f.write_str("could not fetch local time or timezone"),
+            Error::SkippedDateTime(date, time) => write!(f, "{}T{} was skipped", date, time),
         }
     }
 }

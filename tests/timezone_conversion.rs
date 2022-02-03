@@ -2,7 +2,8 @@
 // https://github.com/python/cpython/blob/3.10/Lib/test/datetimetester.py
 
 use eos::{
-    datetime, ext::IntervalLiteral, utc_offset, Date, DateTime, Interval, Time, TimeZone, Utc, UtcOffset, Weekday,
+    datetime, ext::IntervalLiteral, utc_offset, Date, DateTime, DateTimeResolution, Interval, Time, TimeZone, Utc,
+    UtcOffset, Weekday,
 };
 
 fn this_or_next_sunday(date: Date) -> Date {
@@ -74,6 +75,28 @@ impl TimeZone for AmericanTimeZone {
         }
         utc.with_timezone(self)
     }
+
+    fn resolve(self, date: Date, time: Time) -> DateTimeResolution<Self>
+    where
+        Self: Sized,
+    {
+        let start = this_or_next_sunday(*DST_START.with_year(date.year()).date());
+        let end = this_or_next_sunday(*DST_END.with_year(date.year()).date());
+
+        let dst_offset = self.offset.saturating_add(utc_offset!(+01:00));
+        if date == end && time.hour() >= 1 && time.hour() < 2 {
+            // Ambiguous time because DST ended
+            // 2021-11-7 1:30 -04:00 <- earlier
+            // 2021-11-7 1:30 -05:00 <- later
+            DateTimeResolution::ambiguous(date, time, dst_offset, self.offset, self)
+        } else if date == start && time.hour() >= 2 && time.hour() < 3 {
+            // Impossible time because DST started (and time was skipped)
+            // In this cas
+            DateTimeResolution::missing(date, time, self.offset, dst_offset, self)
+        } else {
+            DateTimeResolution::unambiguous(date, time, self.offset(&date, &time), self)
+        }
+    }
 }
 
 const EAST: AmericanTimeZone = AmericanTimeZone {
@@ -116,6 +139,14 @@ impl TimeZone for AlwaysEasternStandard {
     {
         utc.shift(utc_offset!(-5:00));
         utc.with_timezone(self)
+    }
+
+    fn resolve(self, date: Date, time: Time) -> DateTimeResolution<Self>
+    where
+        Self: Sized,
+    {
+        // This is a bit weird so
+        DateTimeResolution::unambiguous(date, time, utc_offset!(-05:00), self)
     }
 }
 
@@ -176,5 +207,31 @@ fn test_from_utc() -> Result<(), eos::Error> {
 
         start = start + 1.hours();
     }
+    Ok(())
+}
+
+#[test]
+fn test_datetime_resolve() -> Result<(), eos::Error> {
+    let local = datetime!(2021-11-07 1:30 am);
+    let resolve = EAST.resolve(*local.date(), *local.time());
+    assert!(resolve.is_ambiguous());
+    assert_eq!(resolve.earlier()?, datetime!(2021-11-07 1:30 am -04:00));
+    assert_eq!(resolve.later()?, datetime!(2021-11-07 1:30 am -05:00));
+    assert_eq!(resolve.lenient(), datetime!(2021-11-07 1:30 am -04:00));
+
+    // This is not ambiguous
+    let unambiguous = datetime!(2021-11-07 12:30 am);
+    let resolve = EAST.resolve(*unambiguous.date(), *unambiguous.time());
+    assert!(resolve.is_unambiguous());
+    assert_eq!(resolve.earlier()?, datetime!(2021-11-07 12:30 am -04:00));
+    assert_eq!(resolve.lenient(), datetime!(2021-11-07 12:30 am -04:00));
+
+    // This is missing
+    let missing = datetime!(2021-03-14 02:30 am);
+    let resolve = EAST.resolve(*missing.date(), *missing.time());
+    assert!(resolve.is_missing());
+    assert!(resolve.earlier().is_err());
+    assert!(resolve.later().is_err());
+    assert_eq!(resolve.lenient(), datetime!(2021-03-14 03:30 am -04:00));
     Ok(())
 }

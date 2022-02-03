@@ -284,11 +284,230 @@ impl core::ops::Neg for UtcOffset {
     }
 }
 
+/// An enum representing the kind of [`DateTimeResolution`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DateTimeResolutionKind {
+    /// The local datetime does not occur at all in the target time zone. This usually happens
+    /// during DST transitions when clocks go forward. For example if the clock changed
+    /// from 1AM to 2AM then a time such as 1:30 AM does not exist and cannot be represented.
+    Missing,
+    /// The local datetime occurs unambiguously and can be represented.
+    Unambiguous,
+    /// The local datetime occurs twice in the target time zone.This usually happens
+    /// during a DST transition when clocks go backwards. For example, if the
+    /// clocks changed from 2AM to 1AM then 1:30 AM happened twice. Once before
+    /// the transition (the "earlier" time) and once after the transition (the "later" time).
+    Ambiguous,
+}
+
+/// The result of resolving a local time in one time zone to another time zone.
+/// This is returned from the [`TimeZone::resolve`] method. Most users should not
+/// be creating these types themselves unless they're making a timezone library with
+/// their own `resolve` implementation.
+///
+/// This allows you to differentiate between two moments in time where the local time
+/// is the same. These are called "ambiguous times". For example, 2 AM at November 7th 2021
+/// in most places in America was when clocks went backwards for one hour. In this case,
+/// a time such as 1:30 AM is ambiguous because it can either refer to 1:30 AM after the
+/// clocks have gone back an hour (Standard Time), or 1:30 AM before the clocks have
+/// gone back an hour (Daylight Savings Time).
+///
+/// In other words, when clocks are moved backwards in time, a [*fold*] is created.
+/// When clocks are moved forward, a *gap* is created. A local time that falls in the
+/// fold is an ambiguous time, while a local time that falls in the gap is called a missing
+/// time.
+///
+/// Likewise, this also allows you to handle the cases where a datetime cannot be represented
+/// in the given timezone.
+///
+/// [*fold*]: https://www.python.org/dev/peps/pep-0495/#terminology
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DateTimeResolution<Tz: TimeZone> {
+    date: Date,
+    time: Time,
+    timezone: Tz,
+    earlier: UtcOffset,
+    later: UtcOffset,
+    kind: DateTimeResolutionKind,
+}
+
+impl<Tz> core::marker::Copy for DateTimeResolution<Tz> where Tz: Copy + TimeZone {}
+
+impl<Tz: TimeZone> DateTimeResolution<Tz> {
+    /// Creates a new [`DateTimeResolution`] that's ambiguous within two separate offsets.
+    ///
+    /// Note that in this case the earlier offset is the one *before* the transition and
+    /// the after offset is the one *after* transition. Ergo, if the jump is UTC-4 -> UTC-5
+    /// then UTC-4 is "earlier" and UTC-5 is "later".
+    pub fn ambiguous(date: Date, time: Time, earlier: UtcOffset, later: UtcOffset, timezone: Tz) -> Self {
+        Self {
+            date,
+            time,
+            timezone,
+            earlier,
+            later,
+            kind: DateTimeResolutionKind::Ambiguous,
+        }
+    }
+
+    /// Creates a new [`DateTimeResolution`] that cannot be represented.
+    ///
+    /// Note that in this case the earlier offset is the one *before* the transition and
+    /// the after offset is the one *after* transition. Ergo, if the jump is UTC-5 -> UTC-4
+    /// then UTC-5 is "earlier" and UTC-4 is "later".
+    pub fn missing(date: Date, time: Time, earlier: UtcOffset, later: UtcOffset, timezone: Tz) -> Self {
+        Self {
+            date,
+            time,
+            timezone,
+            earlier,
+            later,
+            kind: DateTimeResolutionKind::Missing,
+        }
+    }
+
+    /// Creates a new [`DateTimeResolution`] that's is unambiguous.
+    pub fn unambiguous(date: Date, time: Time, offset: UtcOffset, timezone: Tz) -> Self {
+        Self {
+            date,
+            time,
+            timezone,
+            earlier: offset,
+            later: offset,
+            kind: DateTimeResolutionKind::Unambiguous,
+        }
+    }
+
+    /// Creates a new [`DateTimeResolution`] pointing to a new timezone.
+    pub fn with_timezone<OtherTz: TimeZone>(self, timezone: OtherTz) -> DateTimeResolution<OtherTz> {
+        DateTimeResolution {
+            date: self.date,
+            time: self.time,
+            timezone,
+            earlier: self.earlier,
+            later: self.later,
+            kind: self.kind,
+        }
+    }
+
+    /// Returns the associated [`DateResolutionKind`] for this resolution.
+    pub fn kind(&self) -> DateTimeResolutionKind {
+        self.kind
+    }
+
+    /// Returns a reference to the date time resolution's date.
+    pub fn date(&self) -> &Date {
+        &self.date
+    }
+
+    /// Returns a reference to the date time resolution's time.
+    pub fn time(&self) -> &Time {
+        &self.time
+    }
+
+    /// Returns a reference to the date time resolution's timezone.
+    pub fn timezone(&self) -> &Tz {
+        &self.timezone
+    }
+
+    /// Returns a reference to the date time resolution's earlier.
+    pub fn earlier_offset(&self) -> &UtcOffset {
+        &self.earlier
+    }
+
+    /// Returns a reference to the date time resolution's later.
+    pub fn later_offset(&self) -> &UtcOffset {
+        &self.later
+    }
+
+    /// Returns `true` if the date time resolution is [`Ambiguous`].
+    ///
+    /// [`Ambiguous`]: DateTimeResolutionKind::Ambiguous
+    pub fn is_ambiguous(&self) -> bool {
+        matches!(self.kind, DateTimeResolutionKind::Ambiguous)
+    }
+
+    /// Returns `true` if the date time resolution is [`Unambiguous`].
+    ///
+    /// [`Unambiguous`]: DateTimeResolutionKind::Unambiguous
+    pub fn is_unambiguous(&self) -> bool {
+        matches!(self.kind, DateTimeResolutionKind::Unambiguous)
+    }
+
+    /// Returns `true` if the date time resolution is [`Missing`].
+    ///
+    /// [`Missing`]: DateTimeResolutionKind::Missing
+    pub fn is_missing(&self) -> bool {
+        matches!(self.kind, DateTimeResolutionKind::Missing)
+    }
+
+    /// Returns the earlier date time that was resolved.
+    ///
+    /// If the date time was skipped then an [`Error`] is returned.
+    pub fn earlier(self) -> Result<DateTime<Tz>, Error> {
+        match self.kind {
+            DateTimeResolutionKind::Missing => Err(Error::SkippedDateTime(self.date, self.time)),
+            DateTimeResolutionKind::Unambiguous | DateTimeResolutionKind::Ambiguous => Ok(DateTime {
+                date: self.date,
+                time: self.time,
+                offset: self.earlier,
+                timezone: self.timezone,
+            }),
+        }
+    }
+
+    /// Returns the later date time that was resolved.
+    ///
+    /// If the date time was skipped then an [`Error`] is returned.
+    pub fn later(self) -> Result<DateTime<Tz>, Error> {
+        match self.kind {
+            DateTimeResolutionKind::Missing => Err(Error::SkippedDateTime(self.date, self.time)),
+            DateTimeResolutionKind::Unambiguous | DateTimeResolutionKind::Ambiguous => Ok(DateTime {
+                date: self.date,
+                time: self.time,
+                offset: self.later,
+                timezone: self.timezone,
+            }),
+        }
+    }
+
+    /// Returns a lenient date time that can represent this resolution.
+    ///
+    /// This allows retrieving a [`DateTime`] regardless of the resolution.
+    /// A missing datetime is forward shifted to skip the gap. In other words,
+    /// if 1:30 AM cannot be represented because 1AM was skipped into 2AM then 2:30AM
+    /// is returned. An ambiguous date time will resolve into the earlier date time,
+    /// or the one that happened first.
+    pub fn lenient(self) -> DateTime<Tz> {
+        match self.kind {
+            DateTimeResolutionKind::Missing => {
+                // UTC -5 -> UTC -4
+                // -4 - -5 => +1 (offset)
+                let mut as_utc = self.date.at(self.time);
+                let delta = self.later.saturating_sub(self.earlier);
+                as_utc.shift(delta);
+                DateTime {
+                    date: as_utc.date,
+                    time: as_utc.time,
+                    offset: self.later,
+                    timezone: self.timezone,
+                }
+            }
+            DateTimeResolutionKind::Unambiguous | DateTimeResolutionKind::Ambiguous => DateTime {
+                date: self.date,
+                time: self.time,
+                offset: self.earlier,
+                timezone: self.timezone,
+            },
+        }
+    }
+}
+
 /// A trait that defines timezone behaviour.
 pub trait TimeZone: Clone {
     /// Returns the name of the timezone at a given date and time.
     ///
-    /// The `date` and `time` parameters represent the local date time.
+    /// The `date` and `time` parameters represent the local date and time.
     fn name(&self, _date: &Date, _time: &Time) -> Option<&str> {
         None
     }
@@ -297,8 +516,19 @@ pub trait TimeZone: Clone {
     ///
     /// If DST is being observed then the offset must take that into account.
     ///
-    /// The `date` and `time` parameters represent the local date time.
+    /// The `date` and `time` parameters represent the local date and time.
     fn offset(&self, date: &Date, time: &Time) -> UtcOffset;
+
+    /// Resolves the given date and time to this time zone.
+    ///
+    /// The resolution could either be unambiguous, ambiguous, or missing
+    /// depending on when it falls. See the [`DateTimeResolution`] documentation
+    /// for more information.
+    ///
+    /// The `date` and `time` parameters represent the local date and time.
+    fn resolve(self, date: Date, time: Time) -> DateTimeResolution<Self>
+    where
+        Self: Sized;
 
     /// Converts from a UTC [`DateTime`] to a datetime in this timezone.
     fn convert_utc(self, utc: DateTime<Utc>) -> DateTime<Self>
@@ -309,6 +539,14 @@ pub trait TimeZone: Clone {
 impl TimeZone for UtcOffset {
     fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
         *self
+    }
+
+    fn resolve(self, date: Date, time: Time) -> DateTimeResolution<Self>
+    where
+        Self: Sized,
+    {
+        // This is always unambiguous
+        DateTimeResolution::unambiguous(date, time, self, self)
     }
 
     fn convert_utc(self, mut utc: DateTime<Utc>) -> DateTime<Self>
@@ -332,6 +570,14 @@ impl TimeZone for Utc {
 
     fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
         UtcOffset::UTC
+    }
+
+    fn resolve(self, date: Date, time: Time) -> DateTimeResolution<Self>
+    where
+        Self: Sized,
+    {
+        // This is always unambiguous
+        DateTimeResolution::unambiguous(date, time, UtcOffset::UTC, self)
     }
 
     fn convert_utc(self, utc: DateTime<Utc>) -> DateTime<Self>
@@ -432,6 +678,15 @@ impl TimeZone for Local {
 
     fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
         self.0.offset()
+    }
+
+    fn resolve(self, date: Date, time: Time) -> DateTimeResolution<Self>
+    where
+        Self: Sized,
+    {
+        // This is, unfortunately, always unambiguous
+        // This could probably be improved if the APIs allow for it
+        DateTimeResolution::unambiguous(date, time, self.0.offset(), self)
     }
 
     fn convert_utc(self, mut utc: DateTime<Utc>) -> DateTime<Self>

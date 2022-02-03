@@ -164,6 +164,13 @@ impl eos::TimeZone for TimeZone {
             }
         }
     }
+
+    fn resolve(self, date: eos::Date, time: eos::Time) -> eos::DateTimeResolution<Self>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
 }
 
 #[cfg(test)]

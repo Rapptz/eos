@@ -1,5 +1,4 @@
 use std::{
-    fmt::Write,
     iter::Peekable,
     str::{Chars, FromStr},
 };
@@ -242,6 +241,87 @@ impl PosixTimeZone {
             }
         }
     }
+
+    /// A "hack" to partially construct an eos::DateTimeResolution due to the lack of
+    /// Copy semantics in this type and how it requires moving the TimeZone type.
+    pub(crate) fn partial_resolution(
+        &self,
+        date: &eos::Date,
+        time: &eos::Time,
+    ) -> (eos::DateTimeResolutionKind, UtcOffset, UtcOffset) {
+        match &self.dst {
+            Some(dst) => {
+                let ts = NaiveTimestamp::new(date, time).into_inner();
+                // Ambiguous time if the offset is positive happens when DST ends,
+                // otherwise it happens when DST starts.
+                // On the other hand, when the offset is positive missing times happen
+                // when DST starts, otherwise when it ends.
+                // This can get pretty confusing, admittedly.
+                let dst_diff = dst.base_offset.total_seconds() as i64;
+                let end = dst.end.timestamp_in_year(date.year()).into_inner();
+                let start = dst.start.timestamp_in_year(date.year()).into_inner();
+                let is_dst = if start < end {
+                    start <= ts && ts < end
+                } else {
+                    !(end <= ts && ts < start)
+                };
+                if dst_diff > 0 {
+                    // Ambiguous:
+                    // if DST ends at 2AM and we go back 1 hour (positive offset)
+                    // then 1:30am >= (2am - 1hr) && 1:30am < 2am
+                    // Missing:
+                    // if DST starts 2AM and we go forward 1 hour (positive offset)
+                    // then 2:30am is missing
+                    // so: 2:30am >= 2AM && 2:30am < (2am + 1 hour)
+                    if (end - dst_diff) <= ts && ts < end {
+                        (eos::DateTimeResolutionKind::Ambiguous, dst.offset, self.std_offset)
+                    } else if start <= ts && ts < (start + dst_diff) {
+                        (eos::DateTimeResolutionKind::Missing, self.std_offset, dst.offset)
+                    } else if is_dst {
+                        (eos::DateTimeResolutionKind::Unambiguous, dst.offset, dst.offset)
+                    } else {
+                        (
+                            eos::DateTimeResolutionKind::Unambiguous,
+                            self.std_offset,
+                            self.std_offset,
+                        )
+                    }
+                } else {
+                    // Ambiguous
+                    // This is actually the opposite of the above
+                    // If DST starts at 1AM and we go back an hour (negative offset)
+                    // then if 12:30am is ambiguous because
+                    // (1am + -1hr) <= 12:30am && 12:30 am < 1am
+                    // The earlier time would be before DST starts (e.g. UTC+1) and the later time would
+                    // be the DST transition (e.g. UTC+0)
+                    // Missing:
+                    // If DST ends at 1AM and we go forward an hour (negative offset)
+                    // then 1:30AM is unrepresentable
+                    // so: 1:30 AM >= 1AM && 1:30AM < (1AM - -1hr)
+                    // Similar to above the "earlier" gap is the DST time (UTC+0) and the later time is
+                    // after DST ends (UTC+1).
+                    if (start + dst_diff) <= ts && ts < start {
+                        (eos::DateTimeResolutionKind::Ambiguous, self.std_offset, dst.offset)
+                    } else if end <= ts && ts < (end - dst_diff) {
+                        (eos::DateTimeResolutionKind::Missing, dst.offset, self.std_offset)
+                    } else if is_dst {
+                        (eos::DateTimeResolutionKind::Unambiguous, dst.offset, dst.offset)
+                    } else {
+                        (
+                            eos::DateTimeResolutionKind::Unambiguous,
+                            self.std_offset,
+                            self.std_offset,
+                        )
+                    }
+                }
+            }
+            None => (
+                eos::DateTimeResolutionKind::Unambiguous,
+                self.std_offset,
+                self.std_offset,
+            ),
+        }
+    }
 }
 
 impl eos::TimeZone for PosixTimeZone {
@@ -268,6 +348,20 @@ impl eos::TimeZone for PosixTimeZone {
                 }
             }
             None => self.std_offset,
+        }
+    }
+
+    fn resolve(self, date: eos::Date, time: Time) -> eos::DateTimeResolution<Self>
+    where
+        Self: Sized,
+    {
+        let (kind, earlier, later) = self.partial_resolution(&date, &time);
+        match kind {
+            eos::DateTimeResolutionKind::Missing => eos::DateTimeResolution::missing(date, time, earlier, later, self),
+            eos::DateTimeResolutionKind::Unambiguous => eos::DateTimeResolution::unambiguous(date, time, earlier, self),
+            eos::DateTimeResolutionKind::Ambiguous => {
+                eos::DateTimeResolution::ambiguous(date, time, earlier, later, self)
+            }
         }
     }
 
@@ -583,6 +677,12 @@ mod tests {
         assert_eq!(result.std_abbr, "UTC");
         assert_eq!(result.dst, None);
         assert_eq!(result.std_offset, UtcOffset::default());
+
+        // UTC times are always unambiguous
+        let dt = datetime!(2012-02-29 3:00 am);
+        let resolved = result.resolve(*dt.date(), *dt.time());
+        assert!(resolved.is_unambiguous());
+        assert_eq!(resolved.lenient(), dt);
     }
 
     #[test]
@@ -618,6 +718,31 @@ mod tests {
                 }
             );
         }
+
+        let local = datetime!(2021-11-07 1:30 am);
+        let resolve = result.clone().resolve(*local.date(), *local.time());
+        assert!(resolve.is_ambiguous());
+        assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2021-11-07 1:30 am -04:00));
+        assert_eq!(resolve.clone().later().unwrap(), datetime!(2021-11-07 1:30 am -05:00));
+        assert_eq!(resolve.lenient(), datetime!(2021-11-07 1:30 am -04:00));
+
+        // This is not ambiguous
+        let unambiguous = datetime!(2021-11-07 12:30 am);
+        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        assert!(resolve.is_unambiguous());
+        assert_eq!(
+            resolve.clone().earlier().unwrap(),
+            datetime!(2021-11-07 12:30 am -04:00)
+        );
+        assert_eq!(resolve.lenient(), datetime!(2021-11-07 12:30 am -04:00));
+
+        // This is missing
+        let missing = datetime!(2021-03-14 02:30 am);
+        let resolve = result.resolve(*missing.date(), *missing.time());
+        assert!(resolve.is_missing());
+        assert!(resolve.clone().earlier().is_err());
+        assert!(resolve.clone().later().is_err());
+        assert_eq!(resolve.lenient(), datetime!(2021-03-14 03:30 am -04:00));
     }
 
     #[test]
@@ -651,6 +776,28 @@ mod tests {
                 }
             );
         }
+
+        let local = datetime!(2022-04-03 2:30 am);
+        let resolve = result.clone().resolve(*local.date(), *local.time());
+        assert!(resolve.is_ambiguous());
+        assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-04-03 2:30 am +11:00));
+        assert_eq!(resolve.clone().later().unwrap(), datetime!(2022-04-03 2:30 am +10:00));
+        assert_eq!(resolve.lenient(), datetime!(2022-04-03 2:30 am +11:00));
+
+        // This is not ambiguous
+        let unambiguous = datetime!(2022-04-03 1:30 am);
+        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        assert!(resolve.is_unambiguous());
+        assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-04-03 1:30 am +11:00));
+        assert_eq!(resolve.lenient(), datetime!(2022-04-03 1:30 am +11:00));
+
+        // This is missing
+        let missing = datetime!(2021-10-03 02:30 am);
+        let resolve = result.resolve(*missing.date(), *missing.time());
+        assert!(resolve.is_missing());
+        assert!(resolve.clone().earlier().is_err());
+        assert!(resolve.clone().later().is_err());
+        assert_eq!(resolve.lenient(), datetime!(2021-10-03 03:30 am +11:00));
     }
 
     #[test]
@@ -684,6 +831,39 @@ mod tests {
                 }
             );
         }
+
+        // America/Santiago is a bit of a weird edge case
+        // DST begins at 2021-09-04 at 23:59:59 so essentially 2021-09-05 00:00
+        // and an hour was added making their offset go from -4 -> -3
+        // thus making 2021-09-05 00:00 -> 2021-09-05 00:59 unrepresentable
+        // DST ends at 2022-04-02 at 23:59:59 so again essentially 2022-04-03 00:00
+        // and it went back an hour so 23:00:00 to 00:00:00 is experienced again
+        // This means the ambiguous times are 2022-04-02 23:00:00 to 2022-04-03 00:00:00
+
+        let local = datetime!(2022-04-02 23:30:00);
+        let resolve = result.clone().resolve(*local.date(), *local.time());
+        assert!(resolve.is_ambiguous());
+        assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-04-02 23:30 -03:00));
+        assert_eq!(resolve.clone().later().unwrap(), datetime!(2022-04-02 23:30 -04:00));
+        assert_eq!(resolve.lenient(), datetime!(2022-04-02 23:30 -03:00));
+
+        // This is not ambiguous
+        let unambiguous = datetime!(2022-04-02 22:59:59);
+        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        assert!(resolve.is_unambiguous());
+        assert_eq!(
+            resolve.clone().earlier().unwrap(),
+            datetime!(2022-04-02 22:59:59 -03:00)
+        );
+        assert_eq!(resolve.lenient(), datetime!(2022-04-02 22:59:59 -03:00));
+
+        // This is missing
+        let missing = datetime!(2021-09-05 00:00);
+        let resolve = result.resolve(*missing.date(), *missing.time());
+        assert!(resolve.is_missing());
+        assert!(resolve.clone().earlier().is_err());
+        assert!(resolve.clone().later().is_err());
+        assert_eq!(resolve.lenient(), datetime!(2021-09-05 01:00 -03:00));
     }
 
     #[test]
@@ -717,6 +897,38 @@ mod tests {
                 }
             );
         }
+
+        // Europe/Dublin is unique in that it has a negative DST offset.
+        // DST begins in 2021-10-31 2AM and we go back an hour to 2021-10-31 1AM (UTC+1 -> UTC+0)
+        // DST ends at 2022-03-27 1AM and we go forward an hour to 2AM (UTC+0 -> UTC+1)
+        // This means the ambiguous ranges and missing ranges are different from
+        // your typical positive DST offset.
+        // 2021-10-31 1:30AM is ambiguous since the we experienced it with UTC+1 and again with UTC+0
+        // The earlier time would be 2021-10-31 1:30 AM UTC+1 and the later time would be UTC+0
+        // Meanwhile, 2022-03-27 1:30 AM is unrepresentable because we skipped to 2AM.
+        // The gap skip would mean that'd forward an hour so 2022-03-27 2:30 AM UTC+1
+
+        let local = datetime!(2021-10-31 01:30:00);
+        let resolve = result.clone().resolve(*local.date(), *local.time());
+        assert!(resolve.is_ambiguous());
+        assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2021-10-31 01:30 +01:00));
+        assert_eq!(resolve.clone().later().unwrap(), datetime!(2021-10-31 01:30 +00:00));
+        assert_eq!(resolve.lenient(), datetime!(2021-10-31 01:30 +01:00));
+
+        // This is not ambiguous
+        let unambiguous = datetime!(2022-03-27 00:00);
+        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        assert!(resolve.is_unambiguous());
+        assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-03-27 00:00 +00:00));
+        assert_eq!(resolve.lenient(), datetime!(2022-03-27 00:00 +00:00));
+
+        // This is missing
+        let missing = datetime!(2022-03-27 01:30);
+        let resolve = result.resolve(*missing.date(), *missing.time());
+        assert!(resolve.is_missing());
+        assert!(resolve.clone().earlier().is_err());
+        assert!(resolve.clone().later().is_err());
+        assert_eq!(resolve.lenient(), datetime!(2022-03-27 02:30 +01:00));
     }
 
     const DST_START_2021: DateTime = datetime!(2021-3-14 2:00 am);
