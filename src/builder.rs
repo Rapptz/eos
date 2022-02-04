@@ -210,21 +210,15 @@ where
 
     /// Builds the final [`DateTime`] with the given components.
     ///
-    /// If the components represent an invalid date or time then an [`Error`]
-    /// is returned.
+    /// If the components represent an invalid, missing, or ambiguous date time
+    /// then an [`Error`] is returned.
     ///
     /// To build a [`Date`], see [`Self::build_date`]. To build a [`Time`],
     /// see [`Self::build_time`].
     pub fn build(&self) -> Result<DateTime<Tz>, Error> {
         let date = self.build_date()?;
         let time = self.build_time()?;
-        let offset = self.timezone.offset(&date, &time);
-        Ok(DateTime {
-            date,
-            time,
-            offset,
-            timezone: self.timezone.clone(),
-        })
+        self.timezone.clone().at_exactly(date, time)
     }
 
     /// Builds the final [`Date`] with the given components.
