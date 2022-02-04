@@ -1,4 +1,5 @@
 use crate::{
+    timestamp::Timestamp,
     timezone::{Utc, UtcOffset},
     utils::divmod,
     Date, IsoWeekDate, Local, Time, TimeZone, Weekday,
@@ -482,20 +483,17 @@ where
         timezone.convert_utc(self.into_utc())
     }
 
-    /// Returns the POSIX timestamp in seconds.
-    pub fn timestamp(&self) -> i64 {
-        self.days_since_epoch() as i64 * 86400
+    /// Returns the UNIX timestamp.
+    pub fn timestamp(&self) -> Timestamp {
+        let seconds = self.days_since_epoch() as i64 * 86400
             + self.hour() as i64 * 3600
             + self.minute() as i64 * 60
             + self.second() as i64
             // This is deliberately subtracted
             // e.g. UTC-5 means we need to add +5 to get back to UTC.
-            - self.offset.total_seconds() as i64
-    }
+            - self.offset.total_seconds() as i64;
 
-    /// Returns the POSIX timestamp in milliseconds.
-    pub fn timestamp_millis(&self) -> i64 {
-        self.timestamp() * 1000 + self.millisecond() as i64
+        Timestamp::new(seconds, self.nanosecond())
     }
 
     pub(crate) fn add_months(mut self, months: i32) -> Self {
@@ -1110,10 +1108,13 @@ mod tests {
 
     #[test]
     fn test_timestamp() {
-        assert_eq!(datetime!(1970-01-01 00:00).timestamp(), 0);
-        assert_eq!(datetime!(1970-01-01 1:02:03).timestamp(), 3723);
-        assert_eq!(datetime!(2022-01-02 20:38:45).timestamp(), 1641155925);
-        assert_eq!(datetime!(2022-01-02 20:38:45 -5:00).timestamp(), 1641173925);
+        assert_eq!(datetime!(1970-01-01 00:00).timestamp().as_seconds(), 0);
+        assert_eq!(datetime!(1970-01-01 1:02:03).timestamp().as_seconds(), 3723);
+        assert_eq!(datetime!(2022-01-02 20:38:45).timestamp().as_seconds(), 1641155925);
+        assert_eq!(
+            datetime!(2022-01-02 20:38:45 -5:00).timestamp().as_seconds(),
+            1641173925
+        );
     }
 
     #[test]

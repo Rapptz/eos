@@ -21,6 +21,7 @@ pub mod gregorian;
 mod interval;
 pub(crate) mod sys;
 mod time;
+mod timestamp;
 mod timezone;
 mod utils;
 
@@ -30,6 +31,7 @@ pub use datetime::DateTime;
 pub use error::Error;
 pub use interval::Interval;
 pub use time::Time;
+pub use timestamp::Timestamp;
 pub use timezone::{DateTimeResolution, DateTimeResolutionKind, Local, TimeZone, Utc, UtcOffset};
 
 // Internal helper for the macro_rules
