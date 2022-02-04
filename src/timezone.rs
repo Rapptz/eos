@@ -1,7 +1,7 @@
 #[cfg(feature = "localtime")]
 use crate::sys::localtime;
 
-use crate::{utils::ensure_in_range, Date, DateTime, Error, Time};
+use crate::{utils::ensure_in_range, Date, DateTime, Error, Time, Timestamp};
 
 /// Represents an offset from UTC.
 ///
@@ -545,19 +545,15 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
 
 /// A trait that defines timezone behaviour.
 pub trait TimeZone: Clone {
-    /// Returns the name of the timezone at a given date and time.
-    ///
-    /// The `date` and `time` parameters represent the local date and time.
-    fn name(&self, _date: &Date, _time: &Time) -> Option<&str> {
+    /// Returns the name of the timezone at a given UNIX timestamp.
+    fn name(&self, _ts: Timestamp) -> Option<&str> {
         None
     }
 
-    /// Returns the UTC offset of the timezone at a given date and time.
+    /// Returns the UTC offset of the timezone at a given UNIX timestamp.
     ///
     /// If DST is being observed then the offset must take that into account.
-    ///
-    /// The `date` and `time` parameters represent the local date and time.
-    fn offset(&self, date: &Date, time: &Time) -> UtcOffset;
+    fn offset(&self, ts: Timestamp) -> UtcOffset;
 
     /// Resolves the given date and time to this time zone.
     ///
@@ -579,6 +575,8 @@ pub trait TimeZone: Clone {
     ///
     /// If more control is needed from this, consider using the
     /// [`TimeZone::resolve`] method instead.
+    ///
+    /// The `date` and `time` parameters represent the local date and time.
     fn at(self, date: Date, time: Time) -> DateTime<Self>
     where
         Self: Sized,
@@ -593,6 +591,8 @@ pub trait TimeZone: Clone {
     ///
     /// If more control is needed from this, consider using the
     /// [`TimeZone::resolve`] method instead.
+    ///
+    /// The `date` and `time` parameters represent the local date and time.
     fn at_exactly(self, date: Date, time: Time) -> Result<DateTime<Self>, Error>
     where
         Self: Sized,
@@ -607,7 +607,7 @@ pub trait TimeZone: Clone {
 }
 
 impl TimeZone for UtcOffset {
-    fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
+    fn offset(&self, _ts: Timestamp) -> UtcOffset {
         *self
     }
 
@@ -634,11 +634,11 @@ pub struct Utc;
 
 impl TimeZone for Utc {
     #[cfg(feature = "alloc")]
-    fn name(&self, _: &Date, _: &Time) -> Option<&str> {
+    fn name(&self, _ts: Timestamp) -> Option<&str> {
         Some("UTC")
     }
 
-    fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
+    fn offset(&self, _ts: Timestamp) -> UtcOffset {
         UtcOffset::UTC
     }
 
@@ -742,11 +742,11 @@ impl Local {
 }
 
 impl TimeZone for Local {
-    fn name(&self, _: &Date, _: &Time) -> Option<&str> {
+    fn name(&self, _ts: Timestamp) -> Option<&str> {
         self.0.name()
     }
 
-    fn offset(&self, _: &Date, _: &Time) -> UtcOffset {
+    fn offset(&self, _ts: Timestamp) -> UtcOffset {
         self.0.offset()
     }
 

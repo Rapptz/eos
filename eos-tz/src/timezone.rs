@@ -63,13 +63,8 @@ impl TimeZone {
         self.id.as_str()
     }
 
-    pub(crate) fn get_transition(&self, ts: NaiveTimestamp, utc: bool) -> Option<&Transition> {
-        let key: fn(&Transition) -> NaiveTimestamp = if utc {
-            |trans| trans.utc_start
-        } else {
-            |trans| trans.start
-        };
-        let idx = match self.transitions.binary_search_by_key(&ts, key) {
+    pub(crate) fn get_transition(&self, ts: NaiveTimestamp) -> Option<&Transition> {
+        let idx = match self.transitions.binary_search_by_key(&ts, |trans| trans.utc_start) {
             Ok(idx) => idx,
             Err(idx) => {
                 if idx != self.transitions.len() {
@@ -118,28 +113,26 @@ macro_rules! zone {
 pub use zone;
 
 impl eos::TimeZone for TimeZone {
-    fn name(&self, date: &eos::Date, time: &eos::Time) -> Option<&str> {
-        let ts = NaiveTimestamp::new(date, time);
-        match self.get_transition(ts, false) {
+    fn name(&self, ts: eos::Timestamp) -> Option<&str> {
+        match self.get_transition(ts.into()) {
             None => match &self.posix {
                 // See below
                 None => None,
-                Some(posix) => posix.name(date, time),
+                Some(posix) => posix.name(ts),
             },
             Some(trans) => self.ttypes.get(trans.name_idx).map(|ttype| ttype.abbr.as_str()),
         }
     }
 
-    fn offset(&self, date: &eos::Date, time: &eos::Time) -> eos::UtcOffset {
-        let ts = NaiveTimestamp::new(date, time);
-        match self.get_transition(ts, false) {
+    fn offset(&self, ts: eos::Timestamp) -> eos::UtcOffset {
+        match self.get_transition(ts.into()) {
             None => match &self.posix {
                 // According to RFC 8536 having no transition *and* no POSIX
                 // string at the end means the time is unspecified. Since this
                 // is undefined behaviour territory, just return a plausible value,
                 // which in this case is the *last* transition's offset value.
                 None => self.transitions.last().map(|t| t.offset).unwrap_or_default(),
-                Some(posix) => posix.offset(date, time),
+                Some(posix) => posix.offset(ts),
             },
             Some(trans) => trans.offset,
         }
@@ -149,8 +142,8 @@ impl eos::TimeZone for TimeZone {
     where
         Self: Sized,
     {
-        let ts = NaiveTimestamp::new(utc.date(), utc.time());
-        match self.get_transition(ts, true) {
+        let ts = utc.timestamp();
+        match self.get_transition(ts.into()) {
             None => match &self.posix {
                 None => utc.with_timezone(self),
                 Some(posix) => {
@@ -277,11 +270,11 @@ mod tests {
 
         let dt = datetime!(1911-12-30 00:00);
         let tz = zone!("Africa/Abidjan");
-        let name = tz.name(dt.date(), dt.time());
+        let name = tz.name(dt.timestamp());
         assert_eq!(name, Some("LMT"));
 
         let tz = zone!("America/Santiago");
         let dt = datetime!(2040-04-06 00:00);
-        assert_eq!(tz.name(dt.date(), dt.time()), Some("-03"));
+        assert_eq!(tz.name(dt.timestamp()), Some("-03"));
     }
 }

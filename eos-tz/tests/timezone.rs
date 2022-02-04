@@ -442,8 +442,8 @@ fn test_utc() {
     let utc = zone!("UTC");
     let dt = datetime!(2022-01-29 10:30);
 
-    assert_eq!(utc.name(dt.date(), dt.time()), Some("UTC"));
-    assert_eq!(utc.offset(dt.date(), dt.time()), eos::UtcOffset::UTC);
+    assert_eq!(utc.name(dt.timestamp()), Some("UTC"));
+    assert_eq!(utc.offset(dt.timestamp()), eos::UtcOffset::UTC);
 }
 
 #[test]
@@ -454,20 +454,11 @@ fn test_unambiguous() {
             let before = transition.transition - 2.days();
             let after = transition.transition + 2.days();
             trace_variables!(key, before, after, transition, {
-                assert_eq!(
-                    zone.name(before.date(), before.time()),
-                    Some(transition.offset_before.name)
-                );
-                assert_eq!(
-                    zone.offset(before.date(), before.time()),
-                    transition.offset_before.offset
-                );
+                assert_eq!(zone.name(before.timestamp()), Some(transition.offset_before.name));
+                assert_eq!(zone.offset(before.timestamp()), transition.offset_before.offset);
 
-                assert_eq!(
-                    zone.name(after.date(), after.time()),
-                    Some(transition.offset_after.name)
-                );
-                assert_eq!(zone.offset(after.date(), after.time()), transition.offset_after.offset);
+                assert_eq!(zone.name(after.timestamp()), Some(transition.offset_after.name));
+                assert_eq!(zone.offset(after.timestamp()), transition.offset_after.offset);
             });
         }
     }
@@ -489,7 +480,7 @@ fn test_ambiguous_times() {
                 assert!(resolve.is_unambiguous());
                 let resolved = resolve.earlier().unwrap();
                 assert_eq!(resolved.offset(), &transition.offset_before.offset);
-                // assert_eq!(resolved.tzname(), Some(transition.offset_before.name));
+                assert_eq!(resolved.tzname(), Some(transition.offset_before.name));
             });
 
             // At the fold is ambiguous
@@ -499,9 +490,9 @@ fn test_ambiguous_times() {
                 assert!(resolve.is_ambiguous());
                 let (before, after) = resolve.into_pair();
                 assert_eq!(before.offset(), &transition.offset_before.offset);
-                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(before.tzname(), Some(transition.offset_before.name));
                 assert_eq!(after.offset(), &transition.offset_after.offset);
-                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+                assert_eq!(after.tzname(), Some(transition.offset_after.name));
             });
 
             // During the fold is ambiguous
@@ -511,9 +502,9 @@ fn test_ambiguous_times() {
                 assert!(resolve.is_ambiguous());
                 let (before, after) = resolve.into_pair();
                 assert_eq!(before.offset(), &transition.offset_before.offset);
-                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(before.tzname(), Some(transition.offset_before.name));
                 assert_eq!(after.offset(), &transition.offset_after.offset);
-                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+                assert_eq!(after.tzname(), Some(transition.offset_after.name));
             });
 
             // Before the fold ends is ambiguous
@@ -523,9 +514,9 @@ fn test_ambiguous_times() {
                 assert!(resolve.is_ambiguous());
                 let (before, after) = resolve.into_pair();
                 assert_eq!(before.offset(), &transition.offset_before.offset);
-                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                assert_eq!(before.tzname(), Some(transition.offset_before.name));
                 assert_eq!(after.offset(), &transition.offset_after.offset);
-                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+                assert_eq!(after.tzname(), Some(transition.offset_after.name));
             });
 
             // When the fold ends it's unambiguous
@@ -535,7 +526,7 @@ fn test_ambiguous_times() {
                 assert!(resolve.is_unambiguous());
                 let resolved = resolve.earlier().unwrap();
                 assert_eq!(resolved.offset(), &transition.offset_after.offset);
-                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
+                assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
             });
 
             // After the fold ends it's still unambiguous
@@ -545,7 +536,7 @@ fn test_ambiguous_times() {
                 assert!(resolve.is_unambiguous());
                 let resolved = resolve.earlier().unwrap();
                 assert_eq!(resolved.offset(), &transition.offset_after.offset);
-                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
+                assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
             });
         }
     }
@@ -567,7 +558,7 @@ fn test_missing_times() {
                 assert!(resolve.is_unambiguous());
                 let resolved = resolve.earlier().unwrap();
                 assert_eq!(resolved.offset(), &transition.offset_before.offset);
-                // assert_eq!(resolved.tzname(), Some(transition.offset_before.name));
+                assert_eq!(resolved.tzname(), Some(transition.offset_before.name));
             });
 
             // At the gap is missing
@@ -575,11 +566,9 @@ fn test_missing_times() {
             trace_variables!(key, dt, transition, {
                 let resolve = zone.clone().resolve(*dt.date(), *dt.time());
                 assert!(resolve.is_missing());
-                let (before, after) = resolve.into_pair();
-                assert_eq!(before.offset(), &transition.offset_before.offset);
-                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                let after = resolve.lenient();
                 assert_eq!(after.offset(), &transition.offset_after.offset);
-                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+                assert_eq!(after.tzname(), Some(transition.offset_after.name));
             });
 
             // During the gap is missing
@@ -587,11 +576,9 @@ fn test_missing_times() {
             trace_variables!(key, dt, transition, {
                 let resolve = zone.clone().resolve(*dt.date(), *dt.time());
                 assert!(resolve.is_missing());
-                let (before, after) = resolve.into_pair();
-                assert_eq!(before.offset(), &transition.offset_before.offset);
-                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                let after = resolve.lenient();
                 assert_eq!(after.offset(), &transition.offset_after.offset);
-                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+                assert_eq!(after.tzname(), Some(transition.offset_after.name));
             });
 
             // Before the gap ends is missing
@@ -599,11 +586,9 @@ fn test_missing_times() {
             trace_variables!(key, dt, transition, {
                 let resolve = zone.clone().resolve(*dt.date(), *dt.time());
                 assert!(resolve.is_missing());
-                let (before, after) = resolve.into_pair();
-                assert_eq!(before.offset(), &transition.offset_before.offset);
-                // assert_eq!(before.tzname(), Some(transition.offset_before.name));
+                let after = resolve.lenient();
                 assert_eq!(after.offset(), &transition.offset_after.offset);
-                // assert_eq!(after.tzname(), Some(transition.offset_after.name));
+                assert_eq!(after.tzname(), Some(transition.offset_after.name));
             });
 
             // When the gap ends it's unambiguous
@@ -613,7 +598,7 @@ fn test_missing_times() {
                 assert!(resolve.is_unambiguous());
                 let resolved = resolve.earlier().unwrap();
                 assert_eq!(resolved.offset(), &transition.offset_after.offset);
-                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
+                assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
             });
 
             // After the gap ends it's still unambiguous
@@ -623,7 +608,7 @@ fn test_missing_times() {
                 assert!(resolve.is_unambiguous());
                 let resolved = resolve.earlier().unwrap();
                 assert_eq!(resolved.offset(), &transition.offset_after.offset);
-                // assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
+                assert_eq!(resolved.tzname(), Some(transition.offset_after.name));
             });
         }
     }
@@ -637,7 +622,20 @@ fn test_europe_prague_ambiguity() {
     // DST end: 1946-10-06 3AM UTC+2 -> -1 hour (CEST -> CET)
     // DST start: 1946-12-01 3AM UTC+1 -> -1 hour (CET -> GMT)
     // DST end: 1947-02-23 2AM UTC+0 -> +1 hour (GMT -> CET)
-    // TODO: test tznames
+
+    let names = [
+        (datetime!(1946-12-01 2:30 +01:00), "CET"),
+        (datetime!(1946-12-01 2:30 +00:00), "GMT"),
+        (datetime!(1946-10-06 2:30 +02:00), "CEST"),
+        (datetime!(1946-10-06 2:30 +01:00), "CET"),
+        (datetime!(1947-02-23 3:30 am +01:00), "CET"),
+        (datetime!(1946-05-06 3:30 am +02:00), "CEST"),
+        (datetime!(1946-10-06 4:00 +01:00), "CET"),
+    ];
+
+    for (dt, name) in names {
+        assert_eq!(zone.name(dt.timestamp()), Some(name));
+    }
 
     // Ambiguous
     let local = datetime!(1946-12-01 2:30);
@@ -682,6 +680,17 @@ fn test_europe_prague_ambiguity() {
 #[test]
 fn test_america_los_angeles_historical() {
     let zone = get_zone("America/Los_Angeles");
+
+    let names = [
+        (datetime!(1991-10-27 1:30 am -07:00), "PDT"),
+        (datetime!(1991-10-27 1:30 am -08:00), "PST"),
+        (datetime!(1991-10-27 12:30 am -07:00), "PDT"),
+        (datetime!(1991-04-07 03:30 am -07:00), "PDT"),
+    ];
+
+    for (dt, name) in names {
+        assert_eq!(zone.name(dt.timestamp()), Some(name));
+    }
 
     // Ambiguous
     let local = datetime!(1991-10-27 1:30 am);

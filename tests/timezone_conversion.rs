@@ -2,8 +2,8 @@
 // https://github.com/python/cpython/blob/3.10/Lib/test/datetimetester.py
 
 use eos::{
-    datetime, ext::IntervalLiteral, utc_offset, Date, DateTime, DateTimeResolution, Interval, Time, TimeZone, Utc,
-    UtcOffset, Weekday,
+    datetime, ext::IntervalLiteral, time, utc_offset, Date, DateTime, DateTimeResolution, Interval, Time, TimeZone,
+    Timestamp, Utc, UtcOffset, Weekday,
 };
 
 fn this_or_next_sunday(date: Date) -> Date {
@@ -28,36 +28,36 @@ struct AmericanTimeZone {
 }
 
 impl AmericanTimeZone {
-    fn is_dst(&self, date: &Date, time: &Time) -> bool {
-        let start = this_or_next_sunday(*DST_START.with_year(date.year()).date());
+    fn is_dst(&self, utc: &DateTime<Utc>) -> bool {
+        // Luckily it's not a hard task to convert these transitions into UTC.
+        // DST starts at 06:59:59 and DST ends at 05:59:59 and the date remains the same
+        let start = this_or_next_sunday(*DST_START.with_year(utc.year()).date());
         assert_eq!(start.weekday(), Weekday::Sunday);
         assert_eq!(start.month(), 3);
         assert!(start.day() > 7);
 
-        let end = this_or_next_sunday(*DST_END.with_year(date.year()).date());
+        let end = this_or_next_sunday(*DST_END.with_year(utc.year()).date());
         assert_eq!(end.weekday(), Weekday::Sunday);
         assert_eq!(end.month(), 11);
         assert!(end.day() <= 7);
 
-        let start_dt = (&start, DST_START.time());
-        let end_dt = (&end, DST_END.time());
-        let dt = (date, time);
-
-        dt >= start_dt && dt < end_dt
+        let start_utc = start.at(time!(7:00:00));
+        let end_utc = end.at(time!(6:00:00));
+        utc >= &start_utc && utc < &end_utc
     }
 }
 
 impl TimeZone for AmericanTimeZone {
-    fn name(&self, date: &Date, time: &Time) -> Option<&str> {
-        if self.is_dst(date, time) {
+    fn name(&self, ts: Timestamp) -> Option<&str> {
+        if self.is_dst(&ts.to_utc()) {
             Some(self.name)
         } else {
             Some(self.dst_name)
         }
     }
 
-    fn offset(&self, date: &Date, time: &Time) -> UtcOffset {
-        if self.is_dst(date, time) {
+    fn offset(&self, ts: Timestamp) -> UtcOffset {
+        if self.is_dst(&ts.to_utc()) {
             self.offset.saturating_add(utc_offset!(+01:00))
         } else {
             self.offset
@@ -68,11 +68,12 @@ impl TimeZone for AmericanTimeZone {
     where
         Self: Sized,
     {
-        // This doesn't deal with imaginary or ambiguous times
-        utc.shift(self.offset);
-        if self.is_dst(utc.date(), utc.time()) {
-            utc.shift(utc_offset!(+01:00));
-        }
+        let offset = if self.is_dst(&utc) {
+            self.offset.saturating_add(utc_offset!(+01:00))
+        } else {
+            self.offset
+        };
+        utc.shift(offset);
         utc.with_timezone(self)
     }
 
@@ -82,6 +83,9 @@ impl TimeZone for AmericanTimeZone {
     {
         let start = this_or_next_sunday(*DST_START.with_year(date.year()).date());
         let end = this_or_next_sunday(*DST_END.with_year(date.year()).date());
+        let start_dt = (&start, DST_START.time());
+        let end_dt = (&end, DST_END.time());
+        let dt = (&date, &time);
 
         let dst_offset = self.offset.saturating_add(utc_offset!(+01:00));
         if date == end && time.hour() >= 1 && time.hour() < 2 {
@@ -93,8 +97,10 @@ impl TimeZone for AmericanTimeZone {
             // Impossible time because DST started (and time was skipped)
             // In this cas
             DateTimeResolution::missing(date, time, self.offset, dst_offset, self)
+        } else if dt >= start_dt && dt < end_dt {
+            DateTimeResolution::unambiguous(date, time, dst_offset, self)
         } else {
-            DateTimeResolution::unambiguous(date, time, self.offset(&date, &time), self)
+            DateTimeResolution::unambiguous(date, time, self.offset, self)
         }
     }
 }
@@ -129,7 +135,7 @@ const DT: DateTime = datetime!(2021-12-31 00:00);
 struct AlwaysEasternStandard;
 
 impl TimeZone for AlwaysEasternStandard {
-    fn offset(&self, _date: &Date, _time: &Time) -> UtcOffset {
+    fn offset(&self, _ts: Timestamp) -> UtcOffset {
         utc_offset!(-5:00)
     }
 

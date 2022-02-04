@@ -368,7 +368,7 @@ where
 
     /// Returns the time zone name, if any.
     pub fn tzname(&self) -> Option<&str> {
-        self.timezone.name(self.date(), self.time())
+        self.timezone.name(self.timestamp())
     }
 
     /// Compares two datetime instances that do not share a timezone.

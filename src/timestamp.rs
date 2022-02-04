@@ -163,7 +163,13 @@ mod tests {
     fn test_to_utc() {
         assert_eq!(Timestamp::from_seconds(0).to_utc(), DateTime::UNIX_EPOCH);
         assert_eq!(Timestamp::from_seconds(3723).to_utc(), datetime!(1970-01-01 1:02:03));
-        assert_eq!(Timestamp::from_seconds(1641155925).to_utc(), datetime!(2022-01-02 20:38:45));
-        assert_eq!(Timestamp::from_seconds(1641173925).to_utc(), datetime!(2022-01-02 20:38:45 -5:00));
+        assert_eq!(
+            Timestamp::from_seconds(1641155925).to_utc(),
+            datetime!(2022-01-02 20:38:45)
+        );
+        assert_eq!(
+            Timestamp::from_seconds(1641173925).to_utc(),
+            datetime!(2022-01-02 20:38:45 -5:00)
+        );
     }
 }

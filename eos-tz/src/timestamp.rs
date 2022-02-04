@@ -69,6 +69,11 @@ impl NaiveTimestamp {
     pub(crate) fn to_utc(self) -> DateTime<Utc> {
         DateTime::UNIX_EPOCH + Interval::from_seconds(self.into_inner())
     }
+
+    // Turns a NaiveTimestamp into a eos::Timestamp from a UtcOffset
+    pub(crate) fn to_regular(self, offset: &eos::UtcOffset) -> eos::Timestamp {
+        eos::Timestamp::from_seconds(self.0 - offset.total_seconds() as i64)
+    }
 }
 
 impl std::fmt::Debug for NaiveTimestamp {
@@ -80,6 +85,13 @@ impl std::fmt::Debug for NaiveTimestamp {
         } else {
             write!(f, "NaiveTimestamp({})", &self.0)
         }
+    }
+}
+
+impl From<eos::Timestamp> for NaiveTimestamp {
+    #[inline]
+    fn from(ts: eos::Timestamp) -> Self {
+        Self(ts.as_seconds())
     }
 }
 

@@ -126,6 +126,18 @@ impl DstTransitionInfo {
             !(end <= ts && ts < start)
         }
     }
+
+    /// Returns true if the UNIX timestamp is in DST
+    pub(crate) fn is_dst_utc(&self, ts: eos::Timestamp, std_offset: &UtcOffset) -> bool {
+        let utc = ts.to_utc();
+        let start = self.start.timestamp_in_year(utc.year()).to_regular(std_offset);
+        let end = self.end.timestamp_in_year(utc.year()).to_regular(&self.offset);
+        if start < end {
+            start <= ts && ts < end
+        } else {
+            !(end <= ts && ts < start)
+        }
+    }
 }
 
 /// A POSIX-string specified time zone rule.
@@ -325,10 +337,10 @@ impl PosixTimeZone {
 }
 
 impl eos::TimeZone for PosixTimeZone {
-    fn name(&self, date: &eos::Date, time: &Time) -> Option<&str> {
+    fn name(&self, ts: eos::Timestamp) -> Option<&str> {
         match &self.dst {
             Some(dst) => {
-                if dst.is_active(date, time) {
+                if dst.is_dst_utc(ts, &self.std_offset) {
                     Some(dst.abbr.as_str())
                 } else {
                     Some(self.std_abbr.as_str())
@@ -338,10 +350,10 @@ impl eos::TimeZone for PosixTimeZone {
         }
     }
 
-    fn offset(&self, date: &eos::Date, time: &Time) -> UtcOffset {
+    fn offset(&self, ts: eos::Timestamp) -> UtcOffset {
         match &self.dst {
             Some(dst) => {
-                if dst.is_active(date, time) {
+                if dst.is_dst_utc(ts, &self.std_offset) {
                     dst.offset
                 } else {
                     self.std_offset
@@ -682,7 +694,9 @@ mod tests {
         let dt = datetime!(2012-02-29 3:00 am);
         let resolved = result.resolve(*dt.date(), *dt.time());
         assert!(resolved.is_unambiguous());
-        assert_eq!(resolved.lenient(), dt);
+        let resolved = resolved.lenient();
+        assert_eq!(resolved, dt);
+        assert_eq!(resolved.tzname(), Some("UTC"));
     }
 
     #[test]
@@ -717,6 +731,17 @@ mod tests {
                     offset: 7200
                 }
             );
+        }
+
+        let names = [
+            (datetime!(2021-11-07 1:30 am -04:00), "EDT"),
+            (datetime!(2021-11-07 1:30 am -05:00), "EST"),
+            (datetime!(2021-11-07 12:30 am -04:00), "EDT"),
+            (datetime!(2021-03-14 03:30 am -04:00), "EDT"),
+        ];
+
+        for (dt, name) in names {
+            assert_eq!(result.name(dt.timestamp()), Some(name));
         }
 
         let local = datetime!(2021-11-07 1:30 am);
@@ -777,6 +802,17 @@ mod tests {
             );
         }
 
+        let names = [
+            (datetime!(2022-04-03 2:30 am +11:00), "AEDT"),
+            (datetime!(2022-04-03 2:30 am +10:00), "AEST"),
+            (datetime!(2022-04-03 1:30 am +11:00), "AEDT"),
+            (datetime!(2021-10-03 03:30 am +11:00), "AEDT"),
+        ];
+
+        for (dt, name) in names {
+            assert_eq!(result.name(dt.timestamp()), Some(name));
+        }
+
         let local = datetime!(2022-04-03 2:30 am);
         let resolve = result.clone().resolve(*local.date(), *local.time());
         assert!(resolve.is_ambiguous());
@@ -830,6 +866,17 @@ mod tests {
                     offset: 86400,
                 }
             );
+        }
+
+        let names = [
+            (datetime!(2022-04-02 23:30 -03:00), "-03"),
+            (datetime!(2022-04-02 23:30 -04:00), "-04"),
+            (datetime!(2022-04-02 22:59:59 -03:00), "-03"),
+            (datetime!(2021-09-05 01:00 -03:00), "-03"),
+        ];
+
+        for (dt, name) in names {
+            assert_eq!(result.name(dt.timestamp()), Some(name));
         }
 
         // America/Santiago is a bit of a weird edge case
@@ -896,6 +943,17 @@ mod tests {
                     offset: 3600,
                 }
             );
+        }
+
+        let names = [
+            (datetime!(2021-10-31 01:30 +01:00), "IST"),
+            (datetime!(2021-10-31 01:30 +00:00), "GMT"),
+            (datetime!(2022-03-27 00:00 +00:00), "GMT"),
+            (datetime!(2022-03-27 02:30 +01:00), "IST"),
+        ];
+
+        for (dt, name) in names {
+            assert_eq!(result.name(dt.timestamp()), Some(name));
         }
 
         // Europe/Dublin is unique in that it has a negative DST offset.
