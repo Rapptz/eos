@@ -12,6 +12,10 @@ pub enum Error {
     ///
     /// [`DateTime`]: crate::DateTime
     SkippedDateTime(Date, Time),
+    /// The [`DateTime`] is ambiguous.
+    ///
+    /// [`DateTime`]: crate::DateTime
+    AmbiguousDateTime(Date, Time),
 }
 
 impl core::fmt::Display for Error {
@@ -20,6 +24,7 @@ impl core::fmt::Display for Error {
             Error::OutOfRange => f.write_str("value out of range"),
             Error::NoLocalTime => f.write_str("could not fetch local time or timezone"),
             Error::SkippedDateTime(date, time) => write!(f, "{}T{} was skipped", date, time),
+            Error::AmbiguousDateTime(date, time) => write!(f, "{}T{} is ambiguous", date, time),
         }
     }
 }

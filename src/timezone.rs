@@ -525,6 +525,22 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
             },
         }
     }
+
+    /// Returns an exact date time that can represent this resolution.
+    ///
+    /// If the date time was skipped or is ambiguous then an [`Error`] is returned.
+    pub fn exact(self) -> Result<DateTime<Tz>, Error> {
+        match self.kind {
+            DateTimeResolutionKind::Missing => Err(Error::SkippedDateTime(self.date, self.time)),
+            DateTimeResolutionKind::Unambiguous => Ok(DateTime {
+                date: self.date,
+                time: self.time,
+                offset: self.earlier,
+                timezone: self.timezone,
+            }),
+            DateTimeResolutionKind::Ambiguous => Err(Error::AmbiguousDateTime(self.date, self.time)),
+        }
+    }
 }
 
 /// A trait that defines timezone behaviour.
@@ -568,6 +584,20 @@ pub trait TimeZone: Clone {
         Self: Sized,
     {
         self.resolve(date, time).lenient()
+    }
+
+    /// Resolves the given date and time to this time zone exactly.
+    ///
+    /// If the time cannot be represented in local time unambiguously then
+    /// an [`Error`] is returned.
+    ///
+    /// If more control is needed from this, consider using the
+    /// [`TimeZone::resolve`] method instead.
+    fn at_exactly(self, date: Date, time: Time) -> Result<DateTime<Self>, Error>
+    where
+        Self: Sized,
+    {
+        self.resolve(date, time).exact()
     }
 
     /// Converts from a UTC [`DateTime`] to a datetime in this timezone.
