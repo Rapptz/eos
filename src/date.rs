@@ -4,7 +4,7 @@ use crate::{
         is_leap_year, iso_week_start_epoch_from_year, iso_weeks_in_year, weekday_from_days,
     },
     utils::{divrem, ensure_in_range},
-    DateTime, Error, Interval, Time, Utc,
+    DateTime, Error, Interval, Time, TimeZone, Utc,
 };
 
 use core::ops::{Add, AddAssign, Sub, SubAssign};
@@ -324,6 +324,20 @@ impl Date {
         S: AsRef<[crate::fmt::FormatSpec<'b>]>,
     {
         crate::fmt::DateFormatter::new(self, spec)
+    }
+
+    /// Returns the earliest valid [`DateTime`] in the given [`TimeZone`] from this date.
+    ///
+    /// If midnight can exist unambiguously in this timezone, then it's returned.
+    /// If the time is ambiguous, then the earlier time is returned. Otherwise if
+    /// there is no midnight then the earliest valid date time is returned. Note that
+    /// this could cause an entire day to be skipped in certain (rare) cases, e.g.
+    /// `Pacific/Apia` (Samoa) skipped 2011-12-30.
+    pub fn in_timezone<Tz>(self, tz: Tz) -> DateTime<Tz>
+    where
+        Tz: TimeZone,
+    {
+        tz.resolve(self, Time::MIDNIGHT).lenient()
     }
 
     pub(crate) fn add_days(&self, days: i32) -> Self {
