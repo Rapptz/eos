@@ -246,6 +246,20 @@ impl Date {
         day: 1,
     };
 
+    /// Represents the minimum valid date.
+    pub const MIN: Self = Self {
+        year: i16::MIN,
+        month: 1,
+        day: 1,
+    };
+
+    /// Represents the maximum valid date.
+    pub const MAX: Self = Self {
+        year: i16::MAX,
+        month: 12,
+        day: 31,
+    };
+
     #[doc(hidden)]
     #[cfg(feature = "macros")]
     #[inline]

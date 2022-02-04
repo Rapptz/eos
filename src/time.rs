@@ -29,7 +29,7 @@ pub struct Time {
 const MAXIMUM_SECONDS_FROM_DURATION: u64 = i32::MAX as u64 * 24 * 60 * 60;
 
 impl Time {
-    /// Represets the minimum time.
+    /// Represents the minimum time.
     pub const MIN: Self = Self {
         hour: 0,
         minute: 0,
