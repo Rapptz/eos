@@ -233,14 +233,7 @@ where
     pub fn new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
         let date = Date::new(year, month, day)?;
         let time = Time::MIDNIGHT;
-        let timezone = Tz::default();
-        let offset = timezone.offset(&date, &time);
-        Ok(Self {
-            date,
-            time,
-            offset,
-            timezone,
-        })
+        Ok(Tz::default().resolve(date, time).lenient())
     }
 }
 
