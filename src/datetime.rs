@@ -267,16 +267,23 @@ where
     /// Creates a [`DateTime`] from a POSIX timestamp in seconds, a nanosecond component, and a timezone.
     ///
     /// ```
-    /// use eos::{datetime, utc_offset, DateTime, Utc};
-    /// assert_eq!(DateTime::from_timestamp(0, 0, Utc)?, DateTime::UNIX_EPOCH);
-    /// assert_eq!(DateTime::from_timestamp(1641173925, 0, Utc)?, datetime!(2022-01-03 1:38:45));
-    /// assert_eq!(DateTime::from_timestamp(1641173925, 0, utc_offset!(-05:00))?, datetime!(2022-01-02 20:38:45 -05:00));
+    /// use eos::{datetime, utc_offset, DateTime, Utc, Timestamp};
+    /// assert_eq!(
+    ///     DateTime::from_timestamp(Timestamp::from_seconds(0), Utc),
+    ///     DateTime::UNIX_EPOCH
+    /// );
+    /// assert_eq!(
+    ///     DateTime::from_timestamp(Timestamp::from_seconds(1641173925), Utc),
+    ///     datetime!(2022-01-03 1:38:45)
+    /// );
+    /// assert_eq!(
+    ///     DateTime::from_timestamp(Timestamp::from_seconds(1641173925), utc_offset!(-05:00)),
+    ///     datetime!(2022-01-02 20:38:45 -05:00)
+    /// );
     /// # Ok::<_, eos::Error>(())
     /// ```
-    pub fn from_timestamp(secs: i64, nanos: u32, timezone: Tz) -> Result<Self, Error> {
-        Ok((DateTime::UNIX_EPOCH + Interval::from_seconds(secs))
-            .with_nanosecond(nanos)?
-            .in_timezone(timezone))
+    pub fn from_timestamp(timestamp: Timestamp, timezone: Tz) -> Self {
+        timezone.convert_utc(timestamp.to_utc())
     }
 
     /// Creates a [`DateTime`] representing the current day at midnight.
