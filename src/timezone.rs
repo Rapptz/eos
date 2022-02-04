@@ -476,6 +476,9 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
     /// The first element of the pair is the earlier date time that was
     /// resolved, and the second element of the pair is the later date time
     /// that was resolved.
+    ///
+    /// This is only available to tests and is not stable API.
+    #[doc(hidden)]
     pub fn into_pair(self) -> (DateTime<Tz>, DateTime<Tz>) {
         let earlier = DateTime {
             date: self.date,
