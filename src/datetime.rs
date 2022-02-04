@@ -465,21 +465,17 @@ where
     }
 
     /// Returns a new [`DateTime`] with the timezone component changed.
+    /// This attempts to retain the local date and time as much as possible.
+    /// The local date time is only changed if the date time cannot represented
+    /// in that timezone, such as when there's a gap due to a transition.
     ///
-    /// This does *not* change the time and date to point to the new
-    /// [`TimeZone`]. See [`DateTime::in_timezone`] for that behaviour.
-    /// Note that this will still change the internal UTC offset.
+    /// If you want to change the local date time and the timezone then
+    /// [`DateTime::in_timezone`] should be used instead.
     pub fn with_timezone<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
     where
         OtherTz: TimeZone,
     {
-        let offset = timezone.offset(&self.date, &self.time);
-        DateTime {
-            date: self.date,
-            time: self.time,
-            offset,
-            timezone,
-        }
+        timezone.resolve(self.date, self.time).lenient()
     }
 
     /// Returns a new [`DateTime`] with the newly specified [`TimeZone`],
