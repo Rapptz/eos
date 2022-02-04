@@ -1039,7 +1039,6 @@ where
 }
 
 // Some basic tests to ensure comparisons work
-// TODO: move to a separate file
 
 #[cfg(test)]
 // TODO: remove when this is standardised inside clippy

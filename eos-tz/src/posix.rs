@@ -228,7 +228,6 @@ impl PosixTimeZone {
     }
 
     pub(crate) fn shift_utc(&self, utc: &mut eos::DateTime<eos::Utc>) {
-        // TODO: This does not handle imaginary or ambiguous times
         let ts = NaiveTimestamp::new(utc.date(), utc.time());
         match self.dst.as_ref() {
             None => {
