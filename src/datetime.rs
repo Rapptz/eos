@@ -260,13 +260,7 @@ where
     pub fn from_ordinal(year: i16, ordinal: u16, timezone: Tz) -> Result<Self, Error> {
         let date = Date::from_ordinal(year, ordinal)?;
         let time = Time::MIDNIGHT;
-        let offset = timezone.offset(&date, &time);
-        Ok(Self {
-            date,
-            time,
-            offset,
-            timezone,
-        })
+        Ok(timezone.resolve(date, time).lenient())
     }
 
     /// Creates a [`DateTime`] from a POSIX timestamp in seconds, a nanosecond component, and a timezone.
@@ -439,7 +433,12 @@ where
     #[inline]
     pub(crate) fn into_utc(self) -> DateTime<Utc> {
         let offset = self.offset; // Copy value before moving
-        let mut utc = self.with_timezone(Utc);
+        let mut utc = DateTime {
+            date: self.date,
+            time: self.time,
+            offset: UtcOffset::UTC,
+            timezone: Utc,
+        };
         utc.shift(-offset);
         utc
     }
