@@ -284,6 +284,32 @@ impl core::ops::Neg for UtcOffset {
     }
 }
 
+impl core::ops::Add for UtcOffset {
+    type Output = Self;
+
+    /// Adds two offsets together.
+    ///
+    /// # Panics
+    ///
+    /// If the offset ended up out of bounds.
+    fn add(self, rhs: Self) -> Self::Output {
+        self.checked_add(rhs).expect("out of bounds when adding offsets")
+    }
+}
+
+impl core::ops::Sub for UtcOffset {
+    type Output = Self;
+
+    /// Subtracts two offsets together.
+    ///
+    /// # Panics
+    ///
+    /// If the offset ended up out of bounds.
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.checked_sub(rhs).expect("out of bounds when subtracting offsets")
+    }
+}
+
 /// An enum representing the kind of [`DateTimeResolution`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DateTimeResolutionKind {
