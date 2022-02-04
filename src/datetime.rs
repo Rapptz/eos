@@ -484,12 +484,18 @@ where
 
     /// Returns the POSIX timestamp in seconds.
     pub fn timestamp(&self) -> i64 {
-        Interval::days_between(&DateTime::UNIX_EPOCH, self).total_seconds_from_days()
+        self.days_since_epoch() as i64 * 86400
+            + self.hour() as i64 * 3600
+            + self.minute() as i64 * 60
+            + self.second() as i64
+            // This is deliberately subtracted
+            // e.g. UTC-5 means we need to add +5 to get back to UTC.
+            - self.offset.total_seconds() as i64
     }
 
     /// Returns the POSIX timestamp in milliseconds.
     pub fn timestamp_millis(&self) -> i64 {
-        Interval::days_between(&DateTime::UNIX_EPOCH, self).total_milliseconds_from_days()
+        self.timestamp() * 1000 + self.millisecond() as i64
     }
 
     pub(crate) fn add_months(mut self, months: i32) -> Self {
