@@ -1,7 +1,7 @@
 use std::io::{Read, Seek};
 
 use crate::{
-    error::ParseError,
+    error::{Error, ParseError},
     posix::PosixTimeZone,
     reader::parse_tzif,
     timestamp::NaiveTimestamp,
@@ -17,8 +17,48 @@ pub struct TimeZone {
     posix: Option<PosixTimeZone>,
 }
 
+#[cfg(target_family = "unix")]
+const TZ_SEARCH_PATHS: [&'static str; 4] = [
+    "/usr/share/zoneinfo",
+    "/usr/lib/zoneinfo",
+    "/usr/share/lib/zoneinfo",
+    "/etc/zoneinfo",
+];
+
+#[cfg(target_family = "unix")]
+#[inline]
+fn is_valid_path<P: AsRef<std::path::Path>>(path: P) -> bool {
+    // Components does its own micro form of normalisation,
+    // but for our use-case it's mostly ok.
+    path.as_ref()
+        .components()
+        .all(|x| matches!(x, std::path::Component::Normal(_)))
+}
+
+// Make this an internal macro to always inline the function call
+#[cfg(all(not(feature = "bundled"), target_family = "windows"))]
+macro_rules! __get_impl {
+    ($zone:ident) => {
+        panic!("windows does not have a data source to retrieve from, consider using the `bundled` feature")
+    };
+}
+
+#[cfg(all(not(feature = "bundled"), target_family = "unix"))]
+macro_rules! __get_impl {
+    ($zone:ident) => {
+        TimeZone::locate($zone)
+    };
+}
+
+#[cfg(feature = "bundled")]
+macro_rules! __get_impl {
+    ($zone:ident) => {
+        TimeZone::bundled($zone)
+    };
+}
+
 impl TimeZone {
-    /// Loads a [`TimeZone`] from a reader that points to a TZif file and the
+    /// Loads a `TimeZone` from a reader that points to a TZif file and the
     /// given Zone identifier.
     ///
     /// When reading from a source against which short reads are not
@@ -41,22 +81,73 @@ impl TimeZone {
         })
     }
 
-    /// Loads a [`TimeZone`] from the internal bundled copy of the TZif files.
+    /// Loads a `TimeZone` from the internal bundled copy of the TZif files.
     ///
     /// Unlike the [`zone`] macro, this allows querying with a runtime string.
     #[cfg(feature = "bundled")]
-    pub fn bundled(zone: &str) -> Result<Self, ParseError> {
+    pub fn bundled(zone: &str) -> Result<Self, Error> {
         match eos_tzdata::locate_tzif(zone) {
-            Some(bytes) => Self::load(std::io::Cursor::new(bytes), zone.to_owned()),
-            None => Err(ParseError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "could not locate time zone",
-            ))),
+            Some(bytes) => Ok(Self::load(std::io::Cursor::new(bytes), zone.to_owned())?),
+            None => Err(Error::NotFound),
         }
     }
 
-    // todo: TimeZone::locate(...)
-    // fetches from OS store, Linux only.
+    /// Loads a `TimeZone` from the system provided timezone database.
+    ///
+    /// This is only available on non-Windows systems. If you want to load a
+    /// file that's either bundled or from the system, consider using
+    /// [`TimeZone::get`] for cross-platform code.
+    ///
+    /// If the timezone could not be located, [`Error`] is returned.
+    ///
+    /// # OS-specific behavior
+    ///
+    /// This searches through the following paths in order until it finds a match:
+    ///
+    /// - `/usr/share/zoneinfo`
+    /// - `/usr/lib/zoneinfo`
+    /// - `/usr/share/lib/zoeinfo`
+    /// - `/etc/zoneinfo`
+    ///
+    /// This should have a wide range of compatibility with most operating systems
+    /// and distributions.
+    #[cfg(target_family = "unix")]
+    pub fn locate(zone: &str) -> Result<Self, Error> {
+        if !is_valid_path(zone) {
+            return Err(Error::InvalidZonePath);
+        }
+
+        for p in TZ_SEARCH_PATHS {
+            let mut path = std::path::PathBuf::from(p);
+            path.push(zone);
+            match std::fs::File::open(path) {
+                Ok(file) => {
+                    let buf = std::io::BufReader::new(file);
+                    return Ok(Self::load(buf, zone.to_owned())?);
+                }
+                Err(_) => continue,
+            }
+        }
+
+        Err(Error::NotFound)
+    }
+
+    /// Load a `TimeZone` from either the bundled data source or
+    /// the system provided timezone database. The bundled data source
+    /// takes priority over the system provided timezone.
+    ///
+    /// This allows you to use the bundled data source on Windows
+    /// while using the system provided time on Linux using a single
+    /// constructor for ease of cross-platform use.
+    ///
+    /// If the timezone could not be located, [`Error`] is returned.
+    ///
+    /// # See also
+    ///
+    /// Check the [`TimeZone::locate`] documentation for search paths.
+    pub fn get(zone: &str) -> Result<Self, Error> {
+        __get_impl!(zone)
+    }
 
     /// Returns the identifier name.
     pub fn id(&self) -> &str {

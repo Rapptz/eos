@@ -7,6 +7,6 @@ pub(crate) mod timestamp;
 mod timezone;
 mod transitions;
 
-pub use error::ParseError;
+pub use error::{Error, ParseError};
 pub use posix::PosixTimeZone;
 pub use timezone::TimeZone;
