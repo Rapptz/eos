@@ -241,3 +241,12 @@ fn test_datetime_resolve() -> Result<(), eos::Error> {
     assert_eq!(resolve.lenient(), datetime!(2021-03-14 03:30 am -04:00));
     Ok(())
 }
+
+#[test]
+fn test_datetime_missing_interval() {
+    let local = datetime!(2021-03-14 01:30).with_timezone(EAST);
+    // An hour is skipped due to DST transition
+    assert_eq!(local + 30.minutes(), datetime!(2021-03-14 03:00 -04:00));
+    assert_eq!(local + 29.minutes(), datetime!(2021-03-14 01:59 -05:00));
+    assert_eq!(local + 31.minutes(), datetime!(2021-03-14 03:01 -04:00));
+}

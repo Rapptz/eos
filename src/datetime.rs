@@ -924,12 +924,7 @@ impl Add<Duration> for DateTime {
     fn add(self, rhs: Duration) -> Self::Output {
         let (days, time) = self.time.add_with_duration(rhs);
         let date = self.date.add_days(days);
-        Self {
-            date,
-            time,
-            offset: self.offset,
-            timezone: self.timezone,
-        }
+        self.timezone.resolve(date, time).lenient()
     }
 }
 
@@ -939,12 +934,7 @@ impl Sub<Duration> for DateTime {
     fn sub(self, rhs: Duration) -> Self::Output {
         let (days, time) = self.time.sub_with_duration(rhs);
         let date = self.date.add_days(days);
-        Self {
-            date,
-            time,
-            offset: self.offset,
-            timezone: self.timezone,
-        }
+        self.timezone.resolve(date, time).lenient()
     }
 }
 
@@ -1008,13 +998,7 @@ where
         };
 
         let date = self.date.add_months(rhs.total_months()).add_days(rhs.days() + days);
-
-        Self {
-            date,
-            time,
-            offset: self.offset,
-            timezone: self.timezone,
-        }
+        self.timezone.resolve(date, time).lenient()
     }
 }
 
@@ -1038,12 +1022,7 @@ where
             .add_months(rhs.total_months().wrapping_neg())
             .add_days(rhs.days().wrapping_neg() + days);
 
-        Self {
-            date,
-            time,
-            offset: self.offset,
-            timezone: self.timezone,
-        }
+        self.timezone.resolve(date, time).lenient()
     }
 }
 
