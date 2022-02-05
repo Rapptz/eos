@@ -17,6 +17,10 @@
 - `formatting`: Enable features relating to formatting various types. Implies `alloc`.
 - `parsing`: Enable features relating to parsing strings to various types. Implies `alloc`.
 
+**Optional features:**
+
+- [`serde`](https://serde.rs): Enable custom Serialize/Deserialize implementations. Requires `parsing` as well.
+
 ### Why not `chrono` or `time`?
 
 There already exist well established libraries in the ecosystem to deal with both dates and times so it's fair to be skeptical of any new library in this space. However, this library was created due to inadequacies in both offerings when it came to more complicated use cases (such as timezones). I had wanted to create a library that was both simpler, more robust, and correct when it came to the complexities of dealing with time.

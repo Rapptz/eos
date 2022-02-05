@@ -12,6 +12,9 @@ pub mod macros;
 #[cfg(any(feature = "formatting", feature = "parsing"))]
 pub mod fmt;
 
+#[cfg(all(feature = "parsing", feature = "serde"))]
+pub mod serde;
+
 mod builder;
 mod date;
 mod datetime;

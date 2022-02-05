@@ -24,6 +24,11 @@ localtime = ["libc"]
 
 [dependencies]
 eos-format-spec-macro = { path = "eos-format-spec-macro", optional = true }
+serde = { version = "1.0.136", default-features = false, optional = true }
+
+[dev-dependencies]
+serde_json = { version = "1" } # For testing Serde integration
+serde_derive = { version = "1", default-features = false } # For testing Serde integration
 
 [target.'cfg(target_family = "unix")'.dependencies]
 libc = { version = "0.2", optional = true, default-features = false } # this could use the weak dep feature
