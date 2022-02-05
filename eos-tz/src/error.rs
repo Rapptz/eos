@@ -1,4 +1,4 @@
-/// Represents parsing errors that can be encountered when parsing TZif files.
+/// The error type that can be encountered when parsing TZif files.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ParseError {
@@ -16,7 +16,7 @@ pub enum ParseError {
     InvalidPosixTz,
 }
 
-/// Represents an error that occurred in the library.
+/// The error type for most operations in the library.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {

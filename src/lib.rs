@@ -1,3 +1,22 @@
+//! # eos: Simple yet correct date and time for Rust
+//!
+//! Eos is a simple crate that makes dates, times, and their manipulation as simple as possible.
+//! It uses the proleptic Gregorian calendar using the ISO-8601
+//!
+//! Special care has been taken to ensure that timezone handling is correct and work as people expect.
+//! This library has been inspired by world class libraries such as [`java.time`], [Noda Time], and [`<date>`].
+//! For example, modifying times and comparing between them properly handle things like ambiguity, skipped times,
+//! and DST transitions.
+//!
+//! Proper timezone support via the IANA database, or [tzdb] for short, has been delegated to a separate first
+//! party crate, [`eos-tz`], though its use is highly recommended. Nevertheless, the library's default timezone
+//! is UTC, so things work as expected even when dealing with times across internet borders.
+//!
+//! [`java.time`]: https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
+//! [Noda Time]: https://nodatime.org
+//! [`<date>`]: https://github.com/HowardHinnant/date
+//! [tzdb]: https://www.iana.org/time-zones
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "std")]

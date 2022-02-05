@@ -1,3 +1,45 @@
+//! Macros to aid in compile-time construction of types.
+//!
+//! The macros implemented here allow the user to bypass the bound checking mechanism for
+//! compile-time created dates, times, and offsets. These macros are implemented entirely using
+//! declarative macros and should have very little impact in compile times.
+//!
+//! The result of all these macros can be used in `const` or `static` contexts.
+//!
+//! # Examples
+//!
+//! Creating a datetime in UTC:
+//!
+//! ```
+//! # use eos::datetime;
+//! let dt = datetime!(2012-02-29 2:15 am);
+//! ```
+//!
+//! Creating a date and a time:
+//!
+//! ```
+//! # use eos::{date, time};
+//! let date = date!(2012-02-29);
+//! let time = time!(02:15);
+//! // Could even combine them both.
+//! let utc = date.at(time);
+//! ```
+//!
+//! Creating a datetime with a UTC offset:
+//!
+//! ```
+//! # use eos::datetime;
+//! let dt = datetime!(2022-01-19 21:42 +09:30);
+//! ```
+//!
+//! Creating a UTC offset:
+//!
+//! ```
+//! # use eos::utc_offset;
+//! let offset = utc_offset!(-05:00); // Eastern time
+//! ```
+//!
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! const_assert {
@@ -235,7 +277,7 @@ macro_rules! utc_offset {
 /// to work.
 ///
 /// With the time seconds and AM/PM being optional and the entire offset component
-/// being optional. Unlike [`Datetime::new`], the macro requires a time to be passed.
+/// being optional. Unlike [`DateTime::new`], the macro requires a time to be passed.
 ///
 /// # Examples
 ///
@@ -283,7 +325,7 @@ macro_rules! utc_offset {
 /// ```
 ///
 /// [`DateTime`]: crate::DateTime
-/// [`DateTime::new]: crate::DateTime::new
+/// [`DateTime::new`]: crate::DateTime::new
 /// [`UtcOffset`]: crate::UtcOffset
 /// [`Utc`]: crate::Utc
 #[macro_export]
@@ -320,3 +362,8 @@ macro_rules! datetime {
         $crate::DateTime::__new_utc_unchecked_from_macro(DATE, TIME)
     }};
 }
+
+pub use time;
+pub use date;
+pub use datetime;
+pub use utc_offset;

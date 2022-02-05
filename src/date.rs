@@ -142,7 +142,7 @@ impl Weekday {
     }
 }
 
-/// Represents a date in the [ISO 8601 week date system].
+/// A date in the [ISO 8601 week date system].
 ///
 /// The ISO week date system is a commonly used variant of the Gregorian calendar, mainly
 /// in financial systems and other forms of businesses that revolve around fiscal
@@ -219,7 +219,7 @@ impl Ord for IsoWeekDate {
     }
 }
 
-/// Represents a concrete date in the proleptic Gregorian calendar.
+/// A concrete date in the proleptic Gregorian calendar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Date {
     /// There is a possibility of using bit compression to represent dates.
@@ -239,21 +239,21 @@ pub struct Date {
 }
 
 impl Date {
-    /// Represents a [`Date`] at the unix epoch (January 1st, 1970).
+    /// A [`Date`] at the unix epoch (January 1st, 1970).
     pub const UNIX_EPOCH: Self = Self {
         year: 1970,
         month: 1,
         day: 1,
     };
 
-    /// Represents the minimum valid date.
+    /// The minimum valid date.
     pub const MIN: Self = Self {
         year: i16::MIN,
         month: 1,
         day: 1,
     };
 
-    /// Represents the maximum valid date.
+    /// The maximum valid date.
     pub const MAX: Self = Self {
         year: i16::MAX,
         month: 12,
@@ -595,6 +595,10 @@ impl Date {
     }
 
     /// Returns a new [`Date] that points to the given year.
+    ///
+    /// If the year causes the day to go out of bounds, then [`Error`]
+    /// is returned. For example, switching from a leap year to a non-leap
+    /// year on February 29th.
     pub fn with_year(mut self, year: i16) -> Result<Self, Error> {
         ensure_in_range!(self.day, 1 => days_in_month(year, self.month));
         self.year = year;

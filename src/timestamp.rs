@@ -13,7 +13,7 @@ const NANOS_PER_MICRO: u32 = 1_000;
 const MILLIS_PER_SEC: u64 = 1_000;
 const MICROS_PER_SEC: u64 = 1_000_000;
 
-/// Represents a UNIX timestamp.
+/// A UNIX timestamp.
 ///
 /// This is defined by the number of seconds since the Unix epoch,
 /// defined as January 1st 1970 12:00 AM UTC.

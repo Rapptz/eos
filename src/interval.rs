@@ -17,7 +17,7 @@ pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
 pub(crate) const NANOS_PER_HOUR: u64 = 60 * NANOS_PER_MIN;
 
-/// Represents a interval of time such as 2 years, 30 minutes, etc.
+/// An interval of time such as 2 years, 30 minutes, etc.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Interval {
     // There is an alternative data format that allows us to fit in

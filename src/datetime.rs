@@ -56,7 +56,7 @@ pub const fn __create_offset_datetime_from_macro(date: Date, time: Time, timezon
 }
 
 impl DateTime<Utc> {
-    /// Represents a [`DateTime`] at the unix epoch (January 1st, 1970 00:00:00 UTC).
+    /// A [`DateTime`] at the unix epoch (January 1st, 1970 00:00:00 UTC).
     pub const UNIX_EPOCH: Self = Self {
         date: Date::UNIX_EPOCH,
         time: Time::MIDNIGHT,
@@ -482,7 +482,7 @@ where
     /// adjusting the date and time components to point to the same internal UTC
     /// time but in the given timezone's local time.
     ///
-    /// This is an alias to [`in_timezone`].
+    /// This is an alias to [`Self::in_timezone`].
     pub fn at<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
     where
         OtherTz: TimeZone,

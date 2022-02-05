@@ -3,7 +3,7 @@ use eos::{
     DateTime, Interval, TimeZone, Utc,
 };
 
-/// Represents a naive Unix timestamp.
+/// A naive Unix timestamp.
 ///
 /// A naive timestamp is defined by the number of seconds since the Unix epoch,
 /// defined as January 1st 1970 12:00 AM UTC. This does *not* have nanosecond precision.

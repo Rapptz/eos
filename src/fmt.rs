@@ -104,8 +104,9 @@
 use crate::{utils::divmod, Date, DateTime, Time, TimeZone, Weekday};
 use core::{fmt::Write, iter::Peekable, str::Bytes};
 
-/// Represents an error that occurs during parsing a string to the specified
-/// type. For example, this is given as a result of a failure in the [`FromIsoFormat`] trait.
+/// The error type that occurs during parsing a string.
+///
+/// For example, this is given as a result of a failure in the [`FromIsoFormat`] trait.
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg(feature = "parsing")]
@@ -259,7 +260,7 @@ pub(crate) struct Parser<'a> {
     bytes: Peekable<Bytes<'a>>,
 }
 
-/// Represents either a month or an ordinal date
+/// Either a month or an ordinal date
 #[cfg(feature = "parsing")]
 enum OrdinalMonthResult {
     Month(u8),
@@ -637,7 +638,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-/// Represents how a fragment should be formatted.
+/// A handle for how a fragment should be formatted.
 ///
 /// A slice of these is usually passed to the corresponding `format` function.
 /// These slices can be received via either the [`format_spec`] macro or
@@ -1034,7 +1035,7 @@ impl<'a> FormatSpec<'a> {
     }
 }
 
-/// Represents an error that occurred during parsing in [`parse_spec`].
+/// The error that occurred during parsing in [`parse_spec`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum Error {
@@ -1063,7 +1064,7 @@ enum FormatSpecPadding {
     Space,
 }
 
-/// Represents the kind of fragment in a format specification.
+/// The kind of fragment in a format specification.
 ///
 /// These are the internal data within a [`FormatSpec`] and are generally
 /// not manually constructed.

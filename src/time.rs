@@ -15,7 +15,7 @@ use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 #[cfg(feature = "parsing")]
 use crate::fmt::{FromIsoFormat, ParseError, Parser};
 
-/// Represents a moment in time. This type is not aware of any particular calendar, date, or time zone.
+/// A moment in time. This type is not aware of any particular calendar, date, or time zone.
 ///
 /// This type has nanosecond precision. Comparisons assume they're on the same calendar date.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -29,7 +29,7 @@ pub struct Time {
 const MAXIMUM_SECONDS_FROM_DURATION: u64 = i32::MAX as u64 * 24 * 60 * 60;
 
 impl Time {
-    /// Represents the minimum time.
+    /// The minimum valid time.
     pub const MIN: Self = Self {
         hour: 0,
         minute: 0,
@@ -37,10 +37,10 @@ impl Time {
         nanosecond: 0,
     };
 
-    /// Represents the time at midnight.
+    /// The time at midnight.
     pub const MIDNIGHT: Self = Self::MIN;
 
-    /// Represents the maximum time.
+    /// The maximum valid time.
     ///
     /// This does not include leap seconds.
     pub const MAX: Self = Self {

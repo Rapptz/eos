@@ -3,7 +3,7 @@ use crate::sys::systemtime;
 
 use crate::{utils::ensure_in_range, Date, DateTime, Error, Time, Timestamp};
 
-/// Represents an offset from UTC.
+/// An offset from UTC.
 ///
 /// This struct can only store values up to ±24:00:00.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -20,21 +20,21 @@ impl Default for UtcOffset {
 }
 
 impl UtcOffset {
-    /// Returns the smallest possible [`UtcOffset`].
+    /// The smallest possible [`UtcOffset`].
     pub const MIN: Self = Self {
         hours: -24,
         minutes: 0,
         seconds: 0,
     };
 
-    /// Returns the largest possible [`UtcOffset`].
+    /// The largest possible [`UtcOffset`].
     pub const MAX: Self = Self {
         hours: 24,
         minutes: 0,
         seconds: 0,
     };
 
-    /// Returns the [`UtcOffset`] representing UTC.
+    /// The [`UtcOffset`] representing UTC.
     pub const UTC: Self = Self {
         hours: 0,
         minutes: 0,
@@ -142,7 +142,7 @@ impl UtcOffset {
         self.seconds
     }
 
-    /// Returns the total number of seconds this offset represents.
+    /// Returns the total number of seconds in this offset.
     ///
     /// # Example
     ///
@@ -327,6 +327,7 @@ pub enum DateTimeResolutionKind {
 }
 
 /// The result of resolving a local time in one time zone to another time zone.
+///
 /// This is returned from the [`TimeZone::resolve`] method. Most users should not
 /// be creating these types themselves unless they're making a timezone library with
 /// their own `resolve` implementation.
@@ -416,7 +417,7 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
         }
     }
 
-    /// Returns the associated [`DateResolutionKind`] for this resolution.
+    /// Returns the associated [`DateTimeResolutionKind`] for this resolution.
     pub fn kind(&self) -> DateTimeResolutionKind {
         self.kind
     }
@@ -678,7 +679,7 @@ impl TimeZone for UtcOffset {
     }
 }
 
-/// Represents the UTC timezone.
+/// The UTC timezone.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Utc;
 
@@ -717,7 +718,7 @@ impl Utc {
     }
 }
 
-/// Represents the system's local timezone.
+/// The system's local timezone.
 ///
 /// Due to differences in operating systems, the information returned by this
 /// struct isn't necessarily the most detailed.
@@ -745,7 +746,7 @@ impl Utc {
 /// the [source] of an CVE ([CVE-2020-26235][CVE]). However, as more time has passed on the issue there are dissenting
 /// views within both the Rust community and the C community on whether the issue lied within `localtime_r` or `setenv`. This
 /// is because the `localtime_r` function only *reads* from the environment, it does not modify it. Many users have
-/// expressed the opinion that the issue is the underlying [`std::env::set_env`] call not being marked `unsafe`
+/// expressed the opinion that the issue is the underlying [`std::env::set_var`] call not being marked `unsafe`
 /// since by its nature it is not a thread safe function. There have been many proposals that have gained significant
 /// traction to mark `set_env` as `unsafe`. Given the direction the standard library is heading, the opinion of various
 /// experts, and the fact that there is no feasible alternative API in POSIX, this library opts to remain using

@@ -2,7 +2,7 @@ use eos::UtcOffset;
 
 use crate::{timestamp::NaiveTimestamp, ParseError};
 
-/// Represents a transition type in the TZif data.
+/// A transition type in the TZif data.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct TransitionType {
     pub(crate) offset: i32,
@@ -10,7 +10,7 @@ pub(crate) struct TransitionType {
     pub(crate) abbr: String,
 }
 
-/// Represents a transition of a timezone.
+/// A transition in a timezone.
 ///
 /// This includes data like a range of time when a time zone applies.
 /// Along with a name and whether there's a DST correction being done.

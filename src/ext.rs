@@ -1,3 +1,5 @@
+//! Extension traits to numeric types for [`Interval`] construction.
+
 use crate::Interval;
 
 ///! Extension traits

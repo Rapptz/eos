@@ -246,7 +246,7 @@ where
 
     /// Builds the final [`Time`] with the given components.
     ///
-    /// If either [`am`] or [`pm`] are called then the time is assumed to be in
+    /// If either [`Self::am`] or [`Self::pm`] are called then the time is assumed to be in
     /// 12-hour clock with a range of `1..=12`. If they're not called then 24-hour time
     /// is assumed.
     ///

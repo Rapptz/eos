@@ -1,6 +1,6 @@
 pub mod data;
 
-/// Represents an IANA tzdb zone entry.
+/// An IANA tzdb zone entry.
 pub struct ZoneEntry {
     /// The raw zone ID identifier. For example, `America/New_York` or `Europe/London`.
     pub zone: &'static str,

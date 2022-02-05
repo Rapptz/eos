@@ -1,6 +1,6 @@
 use crate::{Date, Time};
 
-/// Represents all types of errors that can be encountered when using the library.
+/// The error type for most errors that can be encountered when using the library.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum Error {

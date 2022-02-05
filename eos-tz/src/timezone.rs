@@ -8,7 +8,7 @@ use crate::{
     transitions::{Transition, TransitionType},
 };
 
-/// Represents an IANA database backed timezone.
+/// An IANA database backed timezone.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimeZone {
     id: String,
