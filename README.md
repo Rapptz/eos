@@ -4,6 +4,14 @@
 
 **Right now, this library is in its development phase.**
 
+### Why?
+
+There already exist well established libraries in the ecosystem to deal with both dates and times so it's fair to be skeptical of any new library in this space. However, this library was created due to inadequacies in current offerings when it came to more complicated use cases (such as timezones). I had wanted to create a library that was both simpler, more robust, and correct when it came to the complexities of dealing with time.
+
+Special care has been taken to ensure timezones are implemented properly. To that end, there is no concept of a naive date time. The default timezone of a `DateTime` type is UTC. All operations done on a `DateTime` are timezone aware. For example, comparisons are done by comparing the same instant of time in UTC or within the same timezone. Despite having timezone support, the `chrono` crate [does not do this][chrono-cmp]. Which can lead to surprising behaviour.
+
+Since timezone information can be a bit heavy on resources and not something every applicationw ants to concern itself with, the IANA database backed `TimeZone` implementation is in another crate, [`eos-tz`][eos-tz]. The base library only has `Utc`, `UtcOffset`, and `Local` for their concrete timezone implementations.
+
 ### Features
 
 `eos` supports `no_std` targets and some optional features.
@@ -20,16 +28,6 @@
 **Optional features:**
 
 - [`serde`](https://serde.rs): Enable custom Serialize/Deserialize implementations. Requires `parsing` as well.
-
-### Why not `chrono` or `time`?
-
-There already exist well established libraries in the ecosystem to deal with both dates and times so it's fair to be skeptical of any new library in this space. However, this library was created due to inadequacies in both offerings when it came to more complicated use cases (such as timezones). I had wanted to create a library that was both simpler, more robust, and correct when it came to the complexities of dealing with time.
-
-Timezone naive datetimes are often enough for basic cases but when faced with more complex use cases they often show limitations. Due to this, both `chrono` and `time` can have erratic and surprising behaviour when it comes with working with timezone-aware dates and times. For example, comparisons, hashing, and switching are not timezone aware. `eos` aims to have timezones as a core concept within the library and not as a second thought.
-
-### Design
-
-Unlike most datetime libraries, `eos` does not have the concept of a "naive" datetime without a timezone. All datetimes must have a timezone attached to them, a sensible default being UTC or local time. `eos` only supports ISO 8601 dates used throughout the world and is exclusively on the proleptic Gregorian calendar. This makes it not ideal for dates dealing with the far past or with alternative calendar systems. `eos` also assumes that there are 86400 seconds in a day.
 
 ### Acknowledgements
 
@@ -63,3 +61,5 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 [pyarrow]: https://github.com/arrow-py/arrow
 [dateutil]: https://github.com/dateutil/dateutil
 [apache]: https://github.com/Rapptz/eos/blob/master/LICENSE
+[chrono-cmp]: https://github.com/chronotope/chrono/blob/f6bd567bb677262645c1fc3131c8c1071cd77ec3/src/datetime.rs#L801-L811
+[eos-tz]: https://github.com/Rapptz/eos/tree/master/eos-tz

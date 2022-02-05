@@ -6,7 +6,7 @@ Most UNIX-like operating systems come with their own copy of the `tzdb`, it's fo
 
 For Windows users, the situation is a bit different. There are two approaches that can be done to load compiled `TZif` files. The first is through usage of the `eos_tz::TimeZone::load` method with a specified path that has the compiled data. The other is to use the `bundled` feature which embeds the ~1.8 MiB timezone information directly into the executable. Note that if either of these approaches are taken then you become responsible for keeping the timezone data up to date and correct.
 
-In the future it may be possible to directly load timezone information from the operating system though right now this library only works with the IANA database.
+In the future it may be possible to directly load timezone information from the Windows timezone database though right now this library only works with the IANA database.
 
 ## Features
 
