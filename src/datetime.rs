@@ -2,12 +2,12 @@ use crate::{
     timestamp::Timestamp,
     timezone::{Utc, UtcOffset},
     utils::divmod,
-    Date, IsoWeekDate, Local, Time, TimeZone, Weekday,
+    Date, IsoWeekDate, System, Time, TimeZone, Weekday,
 };
 use crate::{Error, Interval};
 
-#[cfg(feature = "localtime")]
-use crate::sys::localtime;
+#[cfg(feature = "system")]
+use crate::sys::systemtime;
 use core::time::Duration;
 use core::{
     cmp::Ordering,
@@ -102,13 +102,13 @@ impl DateTime<Utc> {
     }
 }
 
-impl DateTime<Local> {
+impl DateTime<System> {
     /// Returns the current [`DateTime`] in local time.
-    #[cfg(feature = "localtime")]
+    #[cfg(feature = "system")]
     #[inline]
     pub fn now() -> Result<Self, Error> {
-        let (dt, local) = localtime::get_local_time_components()?;
-        Ok(dt.with_timezone(Local(local)))
+        let (dt, local) = systemtime::get_system_time_components()?;
+        Ok(dt.with_timezone(System(local)))
     }
 }
 

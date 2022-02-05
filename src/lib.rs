@@ -35,7 +35,7 @@ pub use error::Error;
 pub use interval::Interval;
 pub use time::Time;
 pub use timestamp::Timestamp;
-pub use timezone::{DateTimeResolution, DateTimeResolutionKind, Local, TimeZone, Utc, UtcOffset};
+pub use timezone::{DateTimeResolution, DateTimeResolutionKind, System, TimeZone, Utc, UtcOffset};
 
 // Internal helper for the macro_rules
 #[doc(hidden)]

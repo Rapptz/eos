@@ -7,7 +7,7 @@ use alloc::string::String;
 use crate::{DateTime, Error, Utc, UtcOffset};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub(crate) struct LocalTime {
+pub(crate) struct SystemTime {
     offset: UtcOffset,
     #[cfg(feature = "alloc")]
     name: Option<String>,
@@ -20,7 +20,7 @@ extern "C" {
     fn tzset();
 }
 
-impl LocalTime {
+impl SystemTime {
     pub(crate) fn new() -> Result<Self, Error> {
         let (_, ts) = get_current_duration_from_epoch()?;
         Self::new_from_time(ts)
@@ -49,7 +49,7 @@ impl LocalTime {
         // This returns a NULL pointer in case of errors
         let ptr = unsafe { libc::localtime_r(&timestamp, tm.as_mut_ptr()) };
         if ptr.is_null() {
-            return Err(Error::NoLocalTime);
+            return Err(Error::NoSystemTime);
         }
 
         // SAFETY: this returned without errors
@@ -106,7 +106,7 @@ fn get_current_duration_from_epoch() -> Result<(Duration, libc::time_t), Error> 
     // Note this method is thread-safe
     let code = unsafe { libc::gettimeofday(timeval.as_mut_ptr(), core::ptr::null_mut()) };
     if code != 0 {
-        Err(Error::NoLocalTime)
+        Err(Error::NoSystemTime)
     } else {
         // SAFETY: at this point there is no error
         let timeval = unsafe { timeval.assume_init() };
@@ -123,7 +123,7 @@ fn get_current_duration_from_epoch() -> Result<(Duration, libc::time_t), Error> 
     // Note this method is thread-safe
     let code = unsafe { libc::clock_gettime(libc::CLOCK_REALTIME, timespec.as_mut_ptr()) };
     if code != 0 {
-        Err(Error::NoLocalTime)
+        Err(Error::NoSystemTime)
     } else {
         // SAFETY: at this point there is no error
         let timespec = unsafe { timespec.assume_init() };
@@ -132,19 +132,19 @@ fn get_current_duration_from_epoch() -> Result<(Duration, libc::time_t), Error> 
     }
 }
 
-pub(crate) fn get_local_time_components() -> Result<(DateTime<Utc>, LocalTime), Error> {
+pub(crate) fn get_system_time_components() -> Result<(DateTime<Utc>, SystemTime), Error> {
     let (duration, timestamp) = get_current_duration_from_epoch()?;
-    let tz = LocalTime::new_from_time(timestamp)?;
+    let tz = SystemTime::new_from_time(timestamp)?;
     // Have to adjust the time locally ourselves
     let seconds = tz.offset.total_seconds();
     let shift = if seconds.is_negative() {
         duration
             .checked_sub(Duration::from_secs(-seconds as u64))
-            .ok_or(Error::NoLocalTime)?
+            .ok_or(Error::NoSystemTime)?
     } else {
         duration
             .checked_add(Duration::from_secs(seconds as u64))
-            .ok_or(Error::NoLocalTime)?
+            .ok_or(Error::NoSystemTime)?
     };
     let dt = DateTime::UNIX_EPOCH + shift;
     Ok((dt, tz))

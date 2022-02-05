@@ -9,8 +9,8 @@ use crate::{
 
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
-#[cfg(feature = "localtime")]
-use crate::sys::localtime::get_local_time_components;
+#[cfg(feature = "system")]
+use crate::sys::systemtime::get_system_time_components;
 
 #[cfg(feature = "formatting")]
 use crate::fmt::ToIsoFormat;
@@ -268,10 +268,10 @@ impl Date {
     }
 
     /// Creates a new [`Date`] representing today's date in local time.
-    #[cfg(feature = "localtime")]
+    #[cfg(feature = "system")]
     #[inline]
     pub fn today() -> Result<Self, Error> {
-        let (dt, _) = get_local_time_components()?;
+        let (dt, _) = get_system_time_components()?;
         Ok(*dt.date())
     }
 

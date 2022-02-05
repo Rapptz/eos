@@ -5,5 +5,5 @@ mod imp;
 #[cfg(all(not(target_family = "windows"), not(target_family = "unix")))]
 compile_error!("The platform you're compiling for is unfortunately unsupported");
 
-pub(crate) use imp::get_local_time_components;
-pub(crate) use imp::LocalTime;
+pub(crate) use imp::get_system_time_components;
+pub(crate) use imp::SystemTime;

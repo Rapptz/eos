@@ -6,8 +6,8 @@ use crate::{Date, Time};
 pub enum Error {
     /// Construction or modification of a date or time was out of range.
     OutOfRange,
-    /// Could not get the local time or timezone information
-    NoLocalTime,
+    /// Could not get the system time or timezone information
+    NoSystemTime,
     /// The [`DateTime`] cannot be represented.
     ///
     /// [`DateTime`]: crate::DateTime
@@ -22,7 +22,7 @@ impl core::fmt::Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Error::OutOfRange => f.write_str("value out of range"),
-            Error::NoLocalTime => f.write_str("could not fetch local time or timezone"),
+            Error::NoSystemTime => f.write_str("could not fetch system time or timezone"),
             Error::SkippedDateTime(date, time) => write!(f, "{}T{} was skipped", date, time),
             Error::AmbiguousDateTime(date, time) => write!(f, "{}T{} is ambiguous", date, time),
         }

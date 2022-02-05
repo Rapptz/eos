@@ -1,5 +1,5 @@
-#[cfg(feature = "localtime")]
-use crate::sys::localtime;
+#[cfg(feature = "system")]
+use crate::sys::systemtime;
 
 use crate::{utils::ensure_in_range, Date, DateTime, Error, Time, Timestamp};
 
@@ -717,12 +717,12 @@ impl Utc {
     }
 }
 
-/// Represents the machine's local timezone.
+/// Represents the system's local timezone.
 ///
 /// Due to differences in operating systems, the information returned by this
 /// struct isn't necessarily the most detailed.
 ///
-/// This requires the `localtime` feature to be enabled.
+/// This requires the `system` feature to be enabled.
 ///
 /// # Underlying OS APIs
 ///
@@ -759,39 +759,35 @@ impl Utc {
 /// [source]: https://passcod.name/technical/no-time-for-chrono.html
 /// [CVE]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-26235
 ///
-#[cfg(feature = "localtime")]
+#[cfg(feature = "system")]
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct Local(pub(crate) localtime::LocalTime);
+pub struct System(pub(crate) systemtime::SystemTime);
 
-impl core::fmt::Debug for Local {
+impl core::fmt::Debug for System {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if cfg!(feature = "alloc") {
-            f.debug_struct("Local")
-                .field("offset", &self.0.offset())
-                .field("name", &self.0.name())
-                .finish()
-        } else {
-            f.debug_struct("Local").field("offset", &self.0.offset()).finish()
-        }
+        f.debug_struct("System")
+            .field("offset", &self.0.offset())
+            .field("name", &self.0.name())
+            .finish()
     }
 }
 
-#[cfg(feature = "localtime")]
-impl Local {
-    /// Creates a new [`Local`].
+#[cfg(feature = "system")]
+impl System {
+    /// Creates a new `System`.
     #[inline]
     pub fn new() -> Result<Self, Error> {
-        Ok(Self(localtime::LocalTime::new()?))
+        Ok(Self(systemtime::SystemTime::new()?))
     }
 
-    /// Returns the current [`DateTime`] in local time.
+    /// Returns the current [`DateTime`] in system time.
     #[inline]
     pub fn now() -> Result<DateTime<Self>, Error> {
         DateTime::now()
     }
 }
 
-impl TimeZone for Local {
+impl TimeZone for System {
     fn name(&self, _ts: Timestamp) -> Option<&str> {
         self.0.name()
     }

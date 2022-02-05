@@ -1,9 +1,9 @@
-use eos::{DateTime, Local};
+use eos::{DateTime, System};
 
 // This example shows the two ways to get the local time.
 
 fn main() -> Result<(), eos::Error> {
     println!("{}", DateTime::now()?);
-    println!("{}", Local::now()?);
+    println!("{}", System::now()?);
     Ok(())
 }

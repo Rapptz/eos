@@ -14,13 +14,13 @@ categories = ["date-and-time"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["alloc", "std", "macros", "localtime", "formatting", "parsing"]
+default = ["alloc", "std", "macros", "system", "formatting", "parsing"]
 std = ["alloc"]
 formatting = ["alloc"]
 parsing = ["alloc"]
 alloc = []
 macros = ["eos-format-spec-macro"]
-localtime = ["libc"]
+system = ["libc"]
 
 [dependencies]
 eos-format-spec-macro = { path = "eos-format-spec-macro", optional = true }

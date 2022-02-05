@@ -6,7 +6,7 @@ use alloc::string::String;
 use crate::{Date, DateTime, Time, Utc, UtcOffset};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub(crate) struct LocalTime {
+pub(crate) struct SystemTime {
     info: TIME_ZONE_INFORMATION,
     is_dst: bool,
     #[cfg(feature = "alloc")]
@@ -59,10 +59,10 @@ fn windows_utf16_to_utf8(s: &[u16]) -> Option<String> {
 #[link(name = "kernel32")]
 extern "system" {
     fn GetTimeZoneInformation(lpTimeZoneInformation: *mut TIME_ZONE_INFORMATION) -> u32;
-    fn GetLocalTime(lpSystemTime: *mut SYSTEMTIME);
+    fn GetSystemTime(lpSystemTime: *mut SYSTEMTIME);
 }
 
-impl LocalTime {
+impl SystemTime {
     pub(crate) fn new() -> Result<Self, crate::Error> {
         let mut tzinfo = MaybeUninit::uninit();
         // SAFETY: the WinAPI call for this is pretty safe, if this fails then
@@ -70,7 +70,7 @@ impl LocalTime {
         let code = unsafe { GetTimeZoneInformation(tzinfo.as_mut_ptr()) };
 
         if code == u32::MAX {
-            return Err(crate::Error::NoLocalTime);
+            return Err(crate::Error::NoSystemTime);
         }
 
         // SAFETY: at this point, the WinAPI returned without errors
@@ -121,14 +121,14 @@ impl LocalTime {
     }
 }
 
-pub(crate) fn get_local_time_components() -> Result<(DateTime<Utc>, LocalTime), crate::Error> {
+pub(crate) fn get_system_time_components() -> Result<(DateTime<Utc>, SystemTime), crate::Error> {
     // SAFETY: this function does not fail according to the windows API docs
     // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlocaltime
     // this page makes no mention of any sort of fallibility, even with GetLastError
     // Since this is the case then it's safe to just call it as-is and assume it's valid
     let dt = unsafe {
         let mut out = MaybeUninit::uninit();
-        GetLocalTime(out.as_mut_ptr());
+        GetSystemTime(out.as_mut_ptr());
         out.assume_init()
     };
 
@@ -143,5 +143,5 @@ pub(crate) fn get_local_time_components() -> Result<(DateTime<Utc>, LocalTime), 
         second: dt.wSecond as u8,
         nanosecond: dt.wMilliseconds as u32 * 1_000_000,
     };
-    Ok((DateTime::__new_utc_unchecked_from_macro(date, time), LocalTime::new()?))
+    Ok((DateTime::__new_utc_unchecked_from_macro(date, time), SystemTime::new()?))
 }
