@@ -595,10 +595,10 @@ impl Date {
     }
 
     /// Returns a new [`Date] that points to the given year.
-    pub fn with_year(mut self, year: i16) -> Self {
-        // TODO: needs to error out when switching from e.g. 2012-02-29 -> 2013-02-29
+    pub fn with_year(mut self, year: i16) -> Result<Self, Error> {
+        ensure_in_range!(self.day, 1 => days_in_month(year, self.month));
         self.year = year;
-        self
+        Ok(self)
     }
 
     /// Returns a new [`Date`] that points to the given month.

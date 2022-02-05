@@ -672,9 +672,13 @@ where
     }
 
     /// Returns a new [`DateTime`] with the date pointing to the given year.
-    pub fn with_year(mut self, year: i16) -> Self {
-        self.date = self.date.with_year(year);
-        self
+    ///
+    /// If the year causes the day to go out of bounds, then [`Error`]
+    /// is returned. For example, switching from a leap year to a non-leap
+    /// year on February 29th.
+    pub fn with_year(mut self, year: i16) -> Result<Self, Error> {
+        self.date = self.date.with_year(year)?;
+        Ok(self)
     }
 
     /// Returns a new [`DateTime`] that points to the given month.
