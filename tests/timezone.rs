@@ -249,4 +249,10 @@ fn test_datetime_missing_interval() {
     assert_eq!(local + 30.minutes(), datetime!(2021-03-14 03:00 -04:00));
     assert_eq!(local + 29.minutes(), datetime!(2021-03-14 01:59 -05:00));
     assert_eq!(local + 31.minutes(), datetime!(2021-03-14 03:01 -04:00));
+
+    // Check the other direction
+    let local = datetime!(2021-03-14 03:00).with_timezone(EAST);
+    assert_eq!(local - 30.minutes(), datetime!(2021-03-14 01:30 -05:00));
+    assert_eq!(local - 1.minutes(), datetime!(2021-03-14 01:59 -05:00));
+    assert_eq!(local + 30.minutes(), datetime!(2021-03-14 03:30 -04:00));
 }

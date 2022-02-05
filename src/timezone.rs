@@ -567,6 +567,30 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
             DateTimeResolutionKind::Ambiguous => Err(Error::AmbiguousDateTime(self.date, self.time)),
         }
     }
+
+    pub(crate) fn backwards(self) -> DateTime<Tz> {
+        match self.kind {
+            DateTimeResolutionKind::Missing => {
+                // UTC-4 -> UTC-5
+                // -5 - -4 => -1 (offset)
+                let mut as_utc = self.date.at(self.time);
+                let delta = self.earlier.saturating_sub(self.later);
+                as_utc.shift(delta);
+                DateTime {
+                    date: as_utc.date,
+                    time: as_utc.time,
+                    offset: self.earlier,
+                    timezone: self.timezone,
+                }
+            }
+            DateTimeResolutionKind::Unambiguous | DateTimeResolutionKind::Ambiguous => DateTime {
+                date: self.date,
+                time: self.time,
+                offset: self.earlier,
+                timezone: self.timezone,
+            },
+        }
+    }
 }
 
 /// A trait that defines timezone behaviour.

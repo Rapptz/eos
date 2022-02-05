@@ -934,7 +934,7 @@ impl Sub<Duration> for DateTime {
     fn sub(self, rhs: Duration) -> Self::Output {
         let (days, time) = self.time.sub_with_duration(rhs);
         let date = self.date.add_days(days);
-        self.timezone.resolve(date, time).lenient()
+        self.timezone.resolve(date, time).backwards()
     }
 }
 
@@ -998,7 +998,11 @@ where
         };
 
         let date = self.date.add_months(rhs.total_months()).add_days(rhs.days() + days);
-        self.timezone.resolve(date, time).lenient()
+        if sub {
+            self.timezone.resolve(date, time).backwards()
+        } else {
+            self.timezone.resolve(date, time).lenient()
+        }
     }
 }
 
@@ -1022,7 +1026,11 @@ where
             .add_months(rhs.total_months().wrapping_neg())
             .add_days(rhs.days().wrapping_neg() + days);
 
-        self.timezone.resolve(date, time).lenient()
+        if sub {
+            self.timezone.resolve(date, time).lenient()
+        } else {
+            self.timezone.resolve(date, time).backwards()
+        }
     }
 }
 
