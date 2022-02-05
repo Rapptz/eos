@@ -27,11 +27,6 @@ pub struct Timestamp {
 }
 
 impl Timestamp {
-    /// Denotes the minimum possible Timestamp.
-    ///
-    /// This is usually used to represent the beginning of time.
-    // pub(crate) const MIN: Self = Self::from_seconds(i64::MIN);
-
     const MIN_VALID: i64 = MIN_EPOCH_DAYS as i64 * 86400;
     const MAX_VALID: i64 = MAX_EPOCH_DAYS as i64 * 86400 + (23 * 3600) + (59 * 60) + 59;
 

@@ -504,16 +504,6 @@ impl Interval {
         self.months + self.years as i32 * 12
     }
 
-    #[inline]
-    pub(crate) const fn total_seconds_from_days(&self) -> i64 {
-        self.days as i64 * 86400 + self.hours as i64 * 3600 + self.minutes * 60 + self.seconds
-    }
-
-    #[inline]
-    pub(crate) const fn total_milliseconds_from_days(&self) -> i64 {
-        self.total_seconds_from_days() * 1000 + self.nanoseconds / 1_000_000
-    }
-
     /// Returns a duration representing the time components of this interval.
     ///
     /// The first boolean argument is whether the time ended up being negative.

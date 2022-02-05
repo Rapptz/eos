@@ -86,10 +86,6 @@ impl LocalTime {
         self.offset
     }
 
-    pub(crate) fn dst_offset(&self) -> UtcOffset {
-        UtcOffset::UTC
-    }
-
     #[cfg(feature = "alloc")]
     pub(crate) fn name(&self) -> Option<&str> {
         self.name.as_deref()

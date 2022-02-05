@@ -106,14 +106,6 @@ impl LocalTime {
         UtcOffset::from_seconds_unchecked(-seconds)
     }
 
-    pub(crate) fn dst_offset(&self) -> UtcOffset {
-        if self.is_dst {
-            UtcOffset::from_seconds_unchecked(self.info.DaylightBias * 60)
-        } else {
-            UtcOffset::UTC
-        }
-    }
-
     #[cfg(feature = "alloc")]
     pub(crate) fn name(&self) -> Option<&str> {
         if self.is_dst {

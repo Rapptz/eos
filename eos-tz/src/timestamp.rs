@@ -36,11 +36,6 @@ impl From<i64> for NaiveTimestamp {
 }
 
 impl NaiveTimestamp {
-    /// Denotes the minimum possible NaiveTimestamp.
-    ///
-    /// This is usually used to represent the beginning of time.
-    pub(crate) const MIN: Self = Self::from_seconds(i64::MIN);
-
     /// The minimum valid number of seconds
     pub(crate) const MIN_VALID: i64 = MIN_EPOCH_DAYS as i64 * 86400;
     pub(crate) const MAX_VALID: i64 = MAX_EPOCH_DAYS as i64 * 86400 + (23 * 3600) + (59 * 60) + 59;
