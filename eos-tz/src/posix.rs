@@ -383,6 +383,10 @@ impl eos::TimeZone for PosixTimeZone {
         self.shift_utc(&mut utc);
         utc.with_timezone(self)
     }
+
+    fn is_fixed(&self) -> bool {
+        self.dst.is_none()
+    }
 }
 
 /*

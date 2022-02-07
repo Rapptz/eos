@@ -655,6 +655,15 @@ pub trait TimeZone: Clone {
     fn convert_utc(self, utc: DateTime<Utc>) -> DateTime<Self>
     where
         Self: Sized;
+
+    /// Returns `true` if the timezone is fixed offset.
+    ///
+    /// This is used as an optimisation hint in some cases. A fixed
+    /// offset timezone is one that has no transitions and will always
+    /// be unambiguous for a given date and time.
+    fn is_fixed(&self) -> bool {
+        false
+    }
 }
 
 impl TimeZone for UtcOffset {
@@ -676,6 +685,10 @@ impl TimeZone for UtcOffset {
     {
         utc.shift(self);
         utc.with_timezone(self)
+    }
+
+    fn is_fixed(&self) -> bool {
+        true
     }
 }
 
@@ -706,6 +719,10 @@ impl TimeZone for Utc {
         Self: Sized,
     {
         utc
+    }
+
+    fn is_fixed(&self) -> bool {
+        true
     }
 }
 
@@ -813,6 +830,10 @@ impl TimeZone for System {
         // TODO: proper algorithm
         utc.shift(self.0.offset());
         utc.with_timezone(self)
+    }
+
+    fn is_fixed(&self) -> bool {
+        true // temporary?
     }
 }
 

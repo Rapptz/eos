@@ -928,7 +928,16 @@ impl Add<Duration> for DateTime {
     fn add(self, rhs: Duration) -> Self::Output {
         let (days, time) = self.time.add_with_duration(rhs);
         let date = self.date.add_days(days);
-        self.timezone.resolve(date, time).lenient()
+        if self.timezone.is_fixed() {
+            DateTime {
+                date,
+                time,
+                offset: self.offset,
+                timezone: self.timezone,
+            }
+        } else {
+            self.timezone.resolve(date, time).lenient()
+        }
     }
 }
 
@@ -938,7 +947,16 @@ impl Sub<Duration> for DateTime {
     fn sub(self, rhs: Duration) -> Self::Output {
         let (days, time) = self.time.sub_with_duration(rhs);
         let date = self.date.add_days(days);
-        self.timezone.resolve(date, time).backwards()
+        if self.timezone.is_fixed() {
+            DateTime {
+                date,
+                time,
+                offset: self.offset,
+                timezone: self.timezone,
+            }
+        } else {
+            self.timezone.resolve(date, time).backwards()
+        }
     }
 }
 
@@ -1002,7 +1020,14 @@ where
         };
 
         let date = self.date.add_months(rhs.total_months()).add_days(rhs.days() + days);
-        if sub {
+        if self.timezone.is_fixed() {
+            DateTime {
+                date,
+                time,
+                offset: self.offset,
+                timezone: self.timezone,
+            }
+        } else if sub {
             self.timezone.resolve(date, time).backwards()
         } else {
             self.timezone.resolve(date, time).lenient()
@@ -1030,7 +1055,14 @@ where
             .add_months(rhs.total_months().wrapping_neg())
             .add_days(rhs.days().wrapping_neg() + days);
 
-        if sub {
+        if self.timezone.is_fixed() {
+            DateTime {
+                date,
+                time,
+                offset: self.offset,
+                timezone: self.timezone,
+            }
+        } else if sub {
             self.timezone.resolve(date, time).lenient()
         } else {
             self.timezone.resolve(date, time).backwards()

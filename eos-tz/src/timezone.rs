@@ -17,6 +17,7 @@ struct TimeZoneData {
     transitions: Vec<Transition>,
     ttypes: Vec<TransitionType>,
     posix: Option<PosixTimeZone>,
+    fixed: bool,
 }
 
 /// An IANA database backed timezone.
@@ -79,11 +80,23 @@ impl TimeZone {
     /// Note that the time zone identifier *must* be valid, for example `America/New_York`.
     pub fn load<R: Read + Seek>(reader: R, id: String) -> Result<Self, ParseError> {
         let (transitions, ttypes, posix) = parse_tzif(reader)?;
+        // A fixed transition is one that has no transition information at all.
+        // There are a few assumptions here:
+        // 1. No more than 1 transition in the list.
+        //    The first element of the transition list is typically a non-DST transition and can be ignored.
+        // 2. The POSIX timezone embedded is also fixed, i.e. no DST information.
+        //    It may be possible to construct a POSIX timezone with DST information
+        //    but no actual transitions (something silly over a 365 day range...).
+        //    I'm not sure if these exist in practice.
+        // Nevertheless, this should be mostly fine.
+        // If a type doesn't have a POSIX transition but has 1 transition in the file then it's still fixed.
+        let fixed = transitions.len() <= 1 && posix.as_ref().map(eos::TimeZone::is_fixed).unwrap_or(true);
         let data = TimeZoneData {
             id,
             transitions,
             ttypes,
             posix,
+            fixed,
         };
         Ok(Self(Arc::new(data)))
     }
@@ -352,6 +365,10 @@ impl eos::TimeZone for TimeZone {
         // Assume remaining cases are unambiguous
         // Hopefully this holds.
         eos::DateTimeResolution::unambiguous(date, time, trans.offset, self.clone())
+    }
+
+    fn is_fixed(&self) -> bool {
+        self.0.fixed
     }
 }
 

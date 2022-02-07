@@ -444,6 +444,7 @@ fn test_utc() {
 
     assert_eq!(utc.name(dt.timestamp()), Some("UTC"));
     assert_eq!(utc.offset(dt.timestamp()), eos::UtcOffset::UTC);
+    assert!(utc.is_fixed());
 }
 
 #[test]
