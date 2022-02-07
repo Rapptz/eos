@@ -1,4 +1,7 @@
-use std::io::{Read, Seek};
+use std::{
+    io::{Read, Seek},
+    sync::Arc,
+};
 
 use crate::{
     error::{Error, ParseError},
@@ -8,14 +11,17 @@ use crate::{
     transitions::{Transition, TransitionType},
 };
 
-/// An IANA database backed timezone.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TimeZone {
+struct TimeZoneData {
     id: String,
     transitions: Vec<Transition>,
     ttypes: Vec<TransitionType>,
     posix: Option<PosixTimeZone>,
 }
+
+/// An IANA database backed timezone.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TimeZone(Arc<TimeZoneData>);
 
 #[cfg(target_family = "unix")]
 const TZ_SEARCH_PATHS: [&'static str; 4] = [
@@ -73,12 +79,13 @@ impl TimeZone {
     /// Note that the time zone identifier *must* be valid, for example `America/New_York`.
     pub fn load<R: Read + Seek>(reader: R, id: String) -> Result<Self, ParseError> {
         let (transitions, ttypes, posix) = parse_tzif(reader)?;
-        Ok(Self {
+        let data = TimeZoneData {
             id,
             transitions,
             ttypes,
             posix,
-        })
+        };
+        Ok(Self(Arc::new(data)))
     }
 
     /// Loads a `TimeZone` from the internal bundled copy of the TZif files.
@@ -151,14 +158,14 @@ impl TimeZone {
 
     /// Returns the identifier name.
     pub fn id(&self) -> &str {
-        self.id.as_str()
+        self.0.id.as_str()
     }
 
     pub(crate) fn get_transition(&self, ts: NaiveTimestamp) -> Option<&Transition> {
-        let idx = match self.transitions.binary_search_by_key(&ts, |trans| trans.utc_start) {
+        let idx = match self.0.transitions.binary_search_by_key(&ts, |trans| trans.utc_start) {
             Ok(idx) => idx,
             Err(idx) => {
-                if idx != self.transitions.len() {
+                if idx != self.0.transitions.len() {
                     // The first entry in the transition list is always extended until
                     // the beginning of time. The remaining ones start based off of the previous
                     // end value. This offset by 1 means that we take the one that we actually care about.
@@ -170,7 +177,7 @@ impl TimeZone {
                 }
             }
         };
-        self.transitions.get(idx)
+        self.0.transitions.get(idx)
     }
 }
 
@@ -206,23 +213,23 @@ pub use zone;
 impl eos::TimeZone for TimeZone {
     fn name(&self, ts: eos::Timestamp) -> Option<&str> {
         match self.get_transition(ts.into()) {
-            None => match &self.posix {
+            None => match &self.0.posix {
                 // See below
                 None => None,
                 Some(posix) => posix.name(ts),
             },
-            Some(trans) => self.ttypes.get(trans.name_idx).map(|ttype| ttype.abbr.as_str()),
+            Some(trans) => self.0.ttypes.get(trans.name_idx).map(|ttype| ttype.abbr.as_str()),
         }
     }
 
     fn offset(&self, ts: eos::Timestamp) -> eos::UtcOffset {
         match self.get_transition(ts.into()) {
-            None => match &self.posix {
+            None => match &self.0.posix {
                 // According to RFC 8536 having no transition *and* no POSIX
                 // string at the end means the time is unspecified. Since this
                 // is undefined behaviour territory, just return a plausible value,
                 // which in this case is the *last* transition's offset value.
-                None => self.transitions.last().map(|t| t.offset).unwrap_or_default(),
+                None => self.0.transitions.last().map(|t| t.offset).unwrap_or_default(),
                 Some(posix) => posix.offset(ts),
             },
             Some(trans) => trans.offset,
@@ -235,16 +242,16 @@ impl eos::TimeZone for TimeZone {
     {
         let ts = utc.timestamp();
         match self.get_transition(ts.into()) {
-            None => match &self.posix {
-                None => utc.with_timezone(self),
+            None => match &self.0.posix {
+                None => utc.with_timezone(self.clone()),
                 Some(posix) => {
                     posix.shift_utc(&mut utc);
-                    utc.with_timezone(self)
+                    utc.with_timezone(self.clone())
                 }
             },
             Some(trans) => {
                 utc.shift(trans.offset);
-                utc.with_timezone(self)
+                utc.with_timezone(self.clone())
             }
         }
     }
@@ -255,16 +262,16 @@ impl eos::TimeZone for TimeZone {
     {
         let ts = NaiveTimestamp::new(&date, &time);
         // Manually check transitions since we need to get the surrounding ones
-        let (prev, trans, next) = match self.transitions.binary_search_by_key(&ts, |t| t.start) {
+        let (prev, trans, next) = match self.0.transitions.binary_search_by_key(&ts, |t| t.start) {
             Ok(idx) => (
-                self.transitions.get(idx.wrapping_sub(1)),
-                &self.transitions[idx],
-                self.transitions.get(idx + 1),
+                self.0.transitions.get(idx.wrapping_sub(1)),
+                &self.0.transitions[idx],
+                self.0.transitions.get(idx + 1),
             ),
-            Err(idx) if idx != self.transitions.len() => (
-                self.transitions.get(idx.wrapping_sub(2)),
-                &self.transitions[idx - 1],
-                Some(&self.transitions[idx]),
+            Err(idx) if idx != self.0.transitions.len() => (
+                self.0.transitions.get(idx.wrapping_sub(2)),
+                &self.0.transitions[idx - 1],
+                Some(&self.0.transitions[idx]),
             ),
             Err(idx) => {
                 // There's a specific case where we're past the last transition and into the TZStr
@@ -275,34 +282,34 @@ impl eos::TimeZone for TimeZone {
                 // [1912-01-01 00:00, end-of-time) UTC +00:00:00
                 // Since 1912-01-01 00:01 is a gap period lingering from the +00:16:08 that needs to
                 // be accounted for, there needs to be a check for that here
-                if !self.transitions.is_empty() {
-                    let trans = &self.transitions[idx - 1];
+                if !self.0.transitions.is_empty() {
+                    let trans = &self.0.transitions[idx - 1];
                     if trans.is_missing(ts) {
-                        let earlier = self.transitions[idx - 2].offset;
-                        return eos::DateTimeResolution::missing(date, time, earlier, trans.offset, self);
+                        let earlier = self.0.transitions[idx - 2].offset;
+                        return eos::DateTimeResolution::missing(date, time, earlier, trans.offset, self.clone());
                     }
                 }
                 // If this transition is in the future then we fall back to the POSIX timezone
-                match &self.posix {
+                match &self.0.posix {
                     Some(posix) => {
                         let (kind, earlier, later) = posix.partial_resolution(&date, &time);
                         return match kind {
                             eos::DateTimeResolutionKind::Missing => {
-                                eos::DateTimeResolution::missing(date, time, earlier, later, self)
+                                eos::DateTimeResolution::missing(date, time, earlier, later, self.clone())
                             }
                             eos::DateTimeResolutionKind::Unambiguous => {
-                                eos::DateTimeResolution::unambiguous(date, time, earlier, self)
+                                eos::DateTimeResolution::unambiguous(date, time, earlier, self.clone())
                             }
                             eos::DateTimeResolutionKind::Ambiguous => {
-                                eos::DateTimeResolution::ambiguous(date, time, earlier, later, self)
+                                eos::DateTimeResolution::ambiguous(date, time, earlier, later, self.clone())
                             }
                         };
                     }
                     None => {
                         // This is unspecified (as said above)
                         // Return a garbage unambiguous time
-                        let offset = self.transitions.get(idx - 1).map(|t| t.offset).unwrap_or_default();
-                        return eos::DateTimeResolution::unambiguous(date, time, offset, self);
+                        let offset = self.0.transitions.get(idx - 1).map(|t| t.offset).unwrap_or_default();
+                        return eos::DateTimeResolution::unambiguous(date, time, offset, self.clone());
                     }
                 };
             }
@@ -333,18 +340,18 @@ impl eos::TimeZone for TimeZone {
 
         if let Some(next) = next {
             if next.is_ambiguous(ts) {
-                return eos::DateTimeResolution::ambiguous(date, time, trans.offset, next.offset, self);
+                return eos::DateTimeResolution::ambiguous(date, time, trans.offset, next.offset, self.clone());
             }
         }
         if trans.is_missing(ts) {
             if let Some(prev) = prev {
-                return eos::DateTimeResolution::missing(date, time, prev.offset, trans.offset, self);
+                return eos::DateTimeResolution::missing(date, time, prev.offset, trans.offset, self.clone());
             }
         }
 
         // Assume remaining cases are unambiguous
         // Hopefully this holds.
-        eos::DateTimeResolution::unambiguous(date, time, trans.offset, self)
+        eos::DateTimeResolution::unambiguous(date, time, trans.offset, self.clone())
     }
 }
 
