@@ -41,6 +41,7 @@ mod error;
 pub mod ext;
 pub mod gregorian;
 mod interval;
+pub mod iter;
 pub(crate) mod sys;
 mod time;
 mod timestamp;

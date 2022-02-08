@@ -438,6 +438,69 @@ where
         self.time.cmp(&other.time)
     }
 
+    /// Returns an iterator builder to create a recurrent range over date times.
+    ///
+    /// At its most basic form, it allows you to iterate as if repeatedly adding
+    /// the given interval. However, it can also be chained to create certain
+    /// conditions to iterate over.
+    ///
+    /// It's important to note that this does not actually implement the entire
+    /// [`rrule`] specification since it differs from this function when it comes
+    /// to missing or ambiguous times and is more complicated than this method.
+    ///
+    /// [`rrule`]: https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.10
+    ///
+    /// # Examples
+    ///
+    /// Getting every 3 days starting from now:
+    ///
+    /// ```ignore
+    /// let now = Utc::now();
+    /// for dt in now.every(3.days()) {
+    ///     println!("{}", dt);
+    /// }
+    /// ```
+    ///
+    /// Getting the first 5 of the previous iteration:
+    ///
+    /// ```ignore
+    /// let now = Utc::now();
+    /// for dt in now.every(3.days()).into_iter().take(5) {
+    ///     println!("{}", dt);
+    /// }
+    /// ```
+    ///
+    /// Getting every week on Sunday:
+    ///
+    /// ```ignore
+    /// let now = Utc::now();
+    /// for dt in now.every(1.weeks()).on(Weekday::Sunday).into_iter().take(5) {
+    ///     println!("{}", dt);
+    /// }
+    /// ```
+    ///
+    /// Getting every 5 days at 3:30 AM:
+    ///
+    /// ```ignore
+    /// let now = Utc::now();
+    /// for dt in now.every(5.days()).at(time!(03:30)).into_iter().take(10) {
+    ///     println!("{}", dt);
+    /// }
+    /// ```
+    ///
+    /// Getting every 3 days until a limit date is reached:
+    ///
+    /// ```ignore
+    /// let now = Utc::now();
+    /// let until = datetime!(2023-04-10);
+    /// for dt in now.every(3.days()).at(time!(03:30)).until(until) {
+    ///     println!("{}", dt);
+    /// }
+    /// ```
+    pub fn every(self, interval: Interval) -> crate::iter::Every<Tz> {
+        crate::iter::Every::new(self, interval)
+    }
+
     #[inline]
     pub(crate) fn into_utc(self) -> DateTime<Utc> {
         let offset = self.offset; // Copy value before moving
