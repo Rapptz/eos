@@ -687,6 +687,15 @@ where
     /// assert_eq!(datetime!(2021-3-17 00:00).next(Weekday::Saturday), datetime!(2021-3-20 00:00));
     /// assert_eq!(datetime!(2021-3-17 00:00).next(Weekday::Sunday), datetime!(2021-3-21 00:00));
     /// ```
+    ///
+    /// Getting the next time:
+    ///
+    /// ```rust
+    /// use eos::{datetime, time};
+    ///
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(time!(03:00)), datetime!(2021-3-17 03:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(time!(02:00)), datetime!(2021-3-18 02:00));
+    /// ```
     pub fn next<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -711,6 +720,15 @@ where
     /// assert_eq!(datetime!(2021-3-17 00:00).prev(Weekday::Friday), datetime!(2021-3-12 00:00));
     /// assert_eq!(datetime!(2021-3-17 00:00).prev(Weekday::Saturday), datetime!(2021-3-13 00:00));
     /// assert_eq!(datetime!(2021-3-17 00:00).prev(Weekday::Sunday), datetime!(2021-3-14 00:00));
+    /// ```
+    ///
+    /// Getting the previous time:
+    ///
+    /// ```rust
+    /// use eos::{datetime, time};
+    ///
+    /// assert_eq!(datetime!(2021-3-17 04:00).prev(time!(03:00)), datetime!(2021-3-17 03:00));
+    /// assert_eq!(datetime!(2021-3-17 03:00).prev(time!(03:00)), datetime!(2021-3-16 03:00));
     /// ```
     pub fn prev<A>(self, advance: A) -> Self
     where
