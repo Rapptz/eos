@@ -363,7 +363,7 @@ macro_rules! datetime {
     }};
 }
 
-pub use time;
 pub use date;
 pub use datetime;
+pub use time;
 pub use utc_offset;

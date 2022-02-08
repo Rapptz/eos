@@ -3,6 +3,7 @@ use crate::{
         date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, find_iso_week_start_epoch,
         is_leap_year, iso_week_start_epoch_from_year, iso_weeks_in_year, weekday_from_days,
     },
+    step::Advance,
     utils::{divrem, ensure_in_range},
     DateTime, Error, Interval, Time, TimeZone, Utc,
 };
@@ -508,42 +509,54 @@ impl Date {
         }
     }
 
-    /// Returns a [`Date`] moved to the next date where the given [`Weekday`] falls.
+    /// Returns a [`Date`] moved to the next step of the given value.
+    ///
+    /// # Examples
+    ///
+    /// Getting the next weekday:
     ///
     /// ```rust
     /// use eos::{date, Weekday};
     ///
     /// // March 17th 2021 was a Wednesday
-    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Monday), date!(2021-3-22));
-    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Tuesday), date!(2021-3-23));
-    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Wednesday), date!(2021-3-24));
-    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Thursday), date!(2021-3-18));
-    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Friday), date!(2021-3-19));
-    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Saturday), date!(2021-3-20));
-    /// assert_eq!(date!(2021-3-17).next_weekday(Weekday::Sunday), date!(2021-3-21));
+    /// assert_eq!(date!(2021-3-17).next(Weekday::Monday), date!(2021-3-22));
+    /// assert_eq!(date!(2021-3-17).next(Weekday::Tuesday), date!(2021-3-23));
+    /// assert_eq!(date!(2021-3-17).next(Weekday::Wednesday), date!(2021-3-24));
+    /// assert_eq!(date!(2021-3-17).next(Weekday::Thursday), date!(2021-3-18));
+    /// assert_eq!(date!(2021-3-17).next(Weekday::Friday), date!(2021-3-19));
+    /// assert_eq!(date!(2021-3-17).next(Weekday::Saturday), date!(2021-3-20));
+    /// assert_eq!(date!(2021-3-17).next(Weekday::Sunday), date!(2021-3-21));
     /// ```
-    pub fn next_weekday(self, weekday: Weekday) -> Self {
-        let diff = weekday as i8 - self.weekday() as i8;
-        self.add_days(if diff <= 0 { diff + 7 } else { diff } as i32)
+    pub fn next<A>(self, advance: A) -> Self
+    where
+        A: Advance<Self>,
+    {
+        advance.next_from(self)
     }
 
-    /// Returns a [`Date`] moved to the previous date where the given [`Weekday`] fell.
+    /// Returns a [`Date`] moved to the previous step of the given value.
+    ///
+    /// # Examples
+    ///
+    /// Getting the previous weekday:
     ///
     /// ```rust
     /// use eos::{date, Weekday};
     ///
     /// // March 17th 2021 was a Wednesday
-    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Monday), date!(2021-3-15));
-    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Tuesday), date!(2021-3-16));
-    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Wednesday), date!(2021-3-10));
-    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Thursday), date!(2021-3-11));
-    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Friday), date!(2021-3-12));
-    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Saturday), date!(2021-3-13));
-    /// assert_eq!(date!(2021-3-17).prev_weekday(Weekday::Sunday), date!(2021-3-14));
+    /// assert_eq!(date!(2021-3-17).prev(Weekday::Monday), date!(2021-3-15));
+    /// assert_eq!(date!(2021-3-17).prev(Weekday::Tuesday), date!(2021-3-16));
+    /// assert_eq!(date!(2021-3-17).prev(Weekday::Wednesday), date!(2021-3-10));
+    /// assert_eq!(date!(2021-3-17).prev(Weekday::Thursday), date!(2021-3-11));
+    /// assert_eq!(date!(2021-3-17).prev(Weekday::Friday), date!(2021-3-12));
+    /// assert_eq!(date!(2021-3-17).prev(Weekday::Saturday), date!(2021-3-13));
+    /// assert_eq!(date!(2021-3-17).prev(Weekday::Sunday), date!(2021-3-14));
     /// ```
-    pub fn prev_weekday(self, weekday: Weekday) -> Self {
-        let diff = weekday as i8 - self.weekday() as i8;
-        self.add_days(if diff >= 0 { diff - 7 } else { diff } as i32)
+    pub fn prev<A>(self, advance: A) -> Self
+    where
+        A: Advance<Self>,
+    {
+        advance.prev_from(self)
     }
 
     /// Returns the ISO week date for this date.

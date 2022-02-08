@@ -10,7 +10,7 @@ fn this_or_next_sunday(date: Date) -> Date {
     if date.weekday() == Weekday::Sunday {
         date
     } else {
-        date.next_weekday(Weekday::Sunday)
+        date.next(Weekday::Sunday)
     }
 }
 

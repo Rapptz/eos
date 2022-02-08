@@ -61,7 +61,7 @@ impl<Tz: TimeZone> Every<Tz> {
         // Check if our initial data needs to be shifted
         if let Some(weekday) = self.weekday {
             if self.start.weekday() != weekday {
-                self.start = self.start.next_weekday(weekday);
+                self.start = self.start.next(weekday);
             }
         }
         let fixed = self.start.timezone().is_fixed();
@@ -129,7 +129,7 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
 
         if let Some(weekday) = self.weekday {
             if date.weekday() != weekday {
-                date = date.next_weekday(weekday);
+                date = date.next(weekday);
             }
         }
 
