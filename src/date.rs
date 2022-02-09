@@ -346,7 +346,7 @@ impl Date {
             return *self;
         }
 
-        let days = self.days_since_epoch() + days;
+        let days = self.days_since_epoch().saturating_add(days);
         let (year, month, day) = date_from_epoch_days(days);
         Self { year, month, day }
     }
@@ -356,7 +356,7 @@ impl Date {
             return *self;
         }
 
-        let m = self.month as i32 - 1 + months;
+        let m = (self.month as i32 - 1).saturating_add(months);
         let (year, month) = if m >= 0 {
             let (r, q) = divrem!(m, 12);
             (r, q + 1)
@@ -385,7 +385,7 @@ impl Date {
             return *self;
         }
 
-        let year = self.year + years;
+        let year = self.year.saturating_add(years);
         let days = days_in_month(year, self.month);
         Self {
             year,
