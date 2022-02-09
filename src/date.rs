@@ -527,6 +527,17 @@ impl Date {
     /// assert_eq!(date!(2021-3-17).next(Weekday::Saturday), date!(2021-3-20));
     /// assert_eq!(date!(2021-3-17).next(Weekday::Sunday), date!(2021-3-21));
     /// ```
+    ///
+    /// Getting the next unit:
+    ///
+    /// ```rust
+    /// use eos::{date, unit};
+    ///
+    /// assert_eq!(date!(2021-3-17).next(unit::Year), date!(2022-3-17));
+    /// assert_eq!(date!(2021-3-17).next(unit::Month), date!(2021-4-17));
+    /// assert_eq!(date!(2021-3-17).next(unit::Week), date!(2021-3-24));
+    /// assert_eq!(date!(2021-3-17).next(unit::Day), date!(2021-3-18));
+    /// ```
     pub fn next<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -551,6 +562,16 @@ impl Date {
     /// assert_eq!(date!(2021-3-17).prev(Weekday::Friday), date!(2021-3-12));
     /// assert_eq!(date!(2021-3-17).prev(Weekday::Saturday), date!(2021-3-13));
     /// assert_eq!(date!(2021-3-17).prev(Weekday::Sunday), date!(2021-3-14));
+    /// ```
+    /// Getting the previous unit:
+    ///
+    /// ```rust
+    /// use eos::{date, unit};
+    ///
+    /// assert_eq!(date!(2021-3-17).prev(unit::Year), date!(2020-3-17));
+    /// assert_eq!(date!(2021-3-17).prev(unit::Month), date!(2021-2-17));
+    /// assert_eq!(date!(2021-3-17).prev(unit::Week), date!(2021-3-10));
+    /// assert_eq!(date!(2021-3-17).prev(unit::Day), date!(2021-3-16));
     /// ```
     pub fn prev<A>(self, advance: A) -> Self
     where

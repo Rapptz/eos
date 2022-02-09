@@ -696,6 +696,20 @@ where
     /// assert_eq!(datetime!(2021-3-17 02:00).next(time!(03:00)), datetime!(2021-3-17 03:00));
     /// assert_eq!(datetime!(2021-3-17 02:00).next(time!(02:00)), datetime!(2021-3-18 02:00));
     /// ```
+    ///
+    /// Getting the next unit:
+    ///
+    /// ```rust
+    /// use eos::{datetime, unit};
+    ///
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Year), datetime!(2022-3-17 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Month), datetime!(2021-4-17 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Week), datetime!(2021-3-24 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Day), datetime!(2021-3-18 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Hour), datetime!(2021-3-17 03:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Minute), datetime!(2021-3-17 02:01));
+    /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Second), datetime!(2021-3-17 02:00:01));
+    /// ```
     pub fn next<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -729,6 +743,20 @@ where
     ///
     /// assert_eq!(datetime!(2021-3-17 04:00).prev(time!(03:00)), datetime!(2021-3-17 03:00));
     /// assert_eq!(datetime!(2021-3-17 03:00).prev(time!(03:00)), datetime!(2021-3-16 03:00));
+    /// ```
+    ///
+    /// Getting the previous unit:
+    ///
+    /// ```rust
+    /// use eos::{datetime, unit};
+    ///
+    /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Year), datetime!(2020-3-17 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Month), datetime!(2021-2-17 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Week), datetime!(2021-3-10 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Day), datetime!(2021-3-16 02:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Hour), datetime!(2021-3-17 01:00));
+    /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Minute), datetime!(2021-3-17 01:59));
+    /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Second), datetime!(2021-3-17 01:59:59));
     /// ```
     pub fn prev<A>(self, advance: A) -> Self
     where

@@ -1,5 +1,6 @@
 use crate::{
     interval::{NANOS_PER_HOUR, NANOS_PER_MIN, NANOS_PER_SEC},
+    step::Advance,
     utils::{divmod, ensure_in_range},
     Date, DateTime, Error, Interval, Utc,
 };
@@ -113,6 +114,46 @@ impl Time {
         S: AsRef<[crate::fmt::FormatSpec<'b>]>,
     {
         crate::fmt::TimeFormatter::new(self, spec)
+    }
+
+    /// Returns a [`Time`] moved to the next step of the given value.
+    ///
+    /// # Examples
+    ///
+    /// Getting the next unit:
+    ///
+    /// ```rust
+    /// use eos::{time, unit};
+    ///
+    /// assert_eq!(time!(02:00).next(unit::Hour), time!(03:00));
+    /// assert_eq!(time!(02:00).next(unit::Minute), time!(02:01));
+    /// assert_eq!(time!(02:00).next(unit::Second), time!(02:00:01));
+    /// ```
+    pub fn next<A>(self, advance: A) -> Self
+    where
+        A: Advance<Self>,
+    {
+        advance.next_from(self)
+    }
+
+    /// Returns a [`Time`] moved to the previous step of the given value.
+    ///
+    /// # Examples
+    ///
+    /// Getting the previous unit:
+    ///
+    /// ```rust
+    /// use eos::{time, unit};
+    ///
+    /// assert_eq!(time!(02:00).prev(unit::Hour), time!(01:00));
+    /// assert_eq!(time!(02:00).prev(unit::Minute), time!(01:59));
+    /// assert_eq!(time!(02:00).prev(unit::Second), time!(01:59:59));
+    /// ```
+    pub fn prev<A>(self, advance: A) -> Self
+    where
+        A: Advance<Self>,
+    {
+        advance.prev_from(self)
     }
 
     #[inline]

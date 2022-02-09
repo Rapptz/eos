@@ -47,6 +47,7 @@ pub(crate) mod sys;
 mod time;
 mod timestamp;
 mod timezone;
+pub mod unit;
 mod utils;
 
 pub use builder::Builder;
