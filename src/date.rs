@@ -43,6 +43,7 @@ impl Weekday {
     /// Next    | `Tuesday` | `Wednesday` | `Thursday`  | `Friday`   | `Saturday` | `Sunday`   | `Monday`
     ///
     #[inline]
+    #[must_use]
     pub const fn next(self) -> Self {
         match self {
             Self::Monday => Self::Tuesday,
@@ -62,6 +63,7 @@ impl Weekday {
     /// Previous | `Sunday` | `Monday`  | `Tuesday`   | `Wednesday` | `Thursday` | `Friday`   | `Saturday`
     ///
     #[inline]
+    #[must_use]
     pub const fn prev(self) -> Self {
         match self {
             Self::Monday => Self::Sunday,
@@ -81,6 +83,7 @@ impl Weekday {
     /// Number  | 1        | 2         | 3           | 4          | 5        | 6          | 7
     ///
     #[inline]
+    #[must_use]
     pub const fn number_from_monday(self) -> u8 {
         self as u8
     }
@@ -92,6 +95,7 @@ impl Weekday {
     /// Number  | 1       | 2        | 3         | 4           | 5          | 6        | 7
     ///
     #[inline]
+    #[must_use]
     pub const fn number_from_sunday(self) -> u8 {
         match self {
             Self::Monday => 2,
@@ -111,6 +115,7 @@ impl Weekday {
     /// Number  | 0        | 1         | 2           | 3          | 4        | 5          | 6
     ///
     #[inline]
+    #[must_use]
     pub const fn days_from_monday(self) -> u8 {
         match self {
             Self::Monday => 0,
@@ -130,6 +135,7 @@ impl Weekday {
     /// Number  | 0       | 1        | 2         | 3           | 4          | 5        | 6
     ///
     #[inline]
+    #[must_use]
     pub const fn days_from_sunday(self) -> u8 {
         match self {
             Self::Monday => 1,
@@ -170,6 +176,7 @@ impl IsoWeekDate {
     ///
     /// If the week is out of bounds for the given year (53 or higher).
     ///
+    #[inline]
     pub const fn new(year: i16, week: u8, weekday: Weekday) -> Result<Self, Error> {
         ensure_in_range!(week, 1 => iso_weeks_in_year(year));
         Ok(Self { year, week, weekday })
@@ -179,6 +186,7 @@ impl IsoWeekDate {
     ///
     /// Note that the ISO year might be different from the Gregorian year.
     #[inline]
+    #[must_use]
     pub const fn year(&self) -> i16 {
         self.year
     }
@@ -187,12 +195,14 @@ impl IsoWeekDate {
     ///
     /// This value will always be within `1..=53`.
     #[inline]
+    #[must_use]
     pub const fn week(&self) -> u8 {
         self.week
     }
 
     /// Returns the ISO weekday.
     #[inline]
+    #[must_use]
     pub const fn weekday(&self) -> Weekday {
         self.weekday
     }
@@ -279,6 +289,7 @@ impl Date {
     /// Creates a new [`Date`] representing today's date in UTC.
     #[cfg(feature = "std")]
     #[inline]
+    #[must_use]
     pub fn today_utc() -> Self {
         let dt = crate::DateTime::utc_now();
         *dt.date()
@@ -300,6 +311,7 @@ impl Date {
     /// assert_eq!(date.day(), 19);
     /// # Ok::<_, eos::Error>(())
     /// ```
+    #[inline]
     pub fn new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
         ensure_in_range!(month, 1 => 12);
         ensure_in_range!(day, 1 => days_in_month(year, month));
@@ -307,6 +319,8 @@ impl Date {
     }
 
     /// Combines this [`Date`] with a [`Time`] to create a [`DateTime`] in [`Utc`].
+    #[inline]
+    #[must_use]
     pub fn at(&self, time: Time) -> DateTime<Utc> {
         DateTime {
             date: *self,
@@ -334,6 +348,7 @@ impl Date {
     /// there is no midnight then the earliest valid date time is returned. Note that
     /// this could cause an entire day to be skipped in certain (rare) cases, e.g.
     /// `Pacific/Apia` (Samoa) skipped 2011-12-30.
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn in_timezone<Tz>(self, tz: Tz) -> DateTime<Tz>
     where
         Tz: TimeZone,
@@ -415,6 +430,7 @@ impl Date {
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub const fn year(&self) -> i16 {
         self.year
     }
@@ -434,6 +450,7 @@ impl Date {
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub const fn month(&self) -> u8 {
         self.month
     }
@@ -453,6 +470,7 @@ impl Date {
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub const fn day(&self) -> u8 {
         self.day
     }
@@ -473,11 +491,14 @@ impl Date {
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub const fn ordinal(&self) -> u16 {
         date_to_ordinal(self.year, self.month, self.day)
     }
 
     /// Returns the number of days since the UNIX Epoch (1970-01-01).
+    #[inline]
+    #[must_use]
     pub const fn days_since_epoch(&self) -> i32 {
         date_to_epoch_days(self.year, self.month, self.day)
     }
@@ -493,6 +514,8 @@ impl Date {
     /// assert_eq!(date!(2012-2-29).weekday(), Weekday::Wednesday);
     /// # Ok::<_, eos::Error>(())
     /// ```
+    #[inline]
+    #[must_use]
     pub fn weekday(&self) -> Weekday {
         let days = self.days_since_epoch();
         let d = (days + 4).rem_euclid(7) as u8;
@@ -538,6 +561,7 @@ impl Date {
     /// assert_eq!(date!(2021-3-17).next(unit::Week), date!(2021-3-24));
     /// assert_eq!(date!(2021-3-17).next(unit::Day), date!(2021-3-18));
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn next<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -573,6 +597,7 @@ impl Date {
     /// assert_eq!(date!(2021-3-17).prev(unit::Week), date!(2021-3-10));
     /// assert_eq!(date!(2021-3-17).prev(unit::Day), date!(2021-3-16));
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn prev<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -603,6 +628,7 @@ impl Date {
     /// assert_eq!(iso.year(), 1997);
     /// assert_eq!(iso.week(), 1);
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub const fn iso_week(&self) -> IsoWeekDate {
         let epoch = self.days_since_epoch();
         let start_epoch = find_iso_week_start_epoch(self.year, epoch);

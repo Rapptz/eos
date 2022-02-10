@@ -83,7 +83,8 @@ impl Time {
     /// assert!(Time::new(23, 59, 60).is_err());
     /// # Ok::<_, eos::Error>(())
     /// ```
-    pub fn new(hour: u8, minute: u8, second: u8) -> Result<Self, Error> {
+    #[inline]
+    pub const fn new(hour: u8, minute: u8, second: u8) -> Result<Self, Error> {
         ensure_in_range!(hour, 23);
         ensure_in_range!(minute, 59);
         ensure_in_range!(second, 59);
@@ -96,7 +97,9 @@ impl Time {
     }
 
     /// Combines this [`Time`] with a [`Date`] to create a [`DateTime`] in [`Utc`].
-    pub fn at(&self, date: Date) -> DateTime<Utc> {
+    #[inline]
+    #[must_use]
+    pub const fn at(&self, date: Date) -> DateTime<Utc> {
         DateTime {
             date,
             time: *self,
@@ -129,6 +132,7 @@ impl Time {
     /// assert_eq!(time!(02:00).next(unit::Minute), time!(02:01));
     /// assert_eq!(time!(02:00).next(unit::Second), time!(02:00:01));
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn next<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -149,6 +153,7 @@ impl Time {
     /// assert_eq!(time!(02:00).prev(unit::Minute), time!(01:59));
     /// assert_eq!(time!(02:00).prev(unit::Second), time!(01:59:59));
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn prev<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -228,6 +233,7 @@ impl Time {
     ///
     /// This value will always be within `0..24`.
     #[inline]
+    #[must_use]
     pub const fn hour(&self) -> u8 {
         self.hour
     }
@@ -236,6 +242,7 @@ impl Time {
     ///
     /// This value will always be within `0..60`.
     #[inline]
+    #[must_use]
     pub const fn minute(&self) -> u8 {
         self.minute
     }
@@ -244,6 +251,7 @@ impl Time {
     ///
     /// This value will always be within `0..60`.
     #[inline]
+    #[must_use]
     pub const fn second(&self) -> u8 {
         self.second
     }
@@ -252,6 +260,7 @@ impl Time {
     ///
     /// This value will always be within `0..1000`.
     #[inline]
+    #[must_use]
     pub const fn millisecond(&self) -> u16 {
         (self.nanosecond / 1_000_000) as u16
     }
@@ -260,6 +269,7 @@ impl Time {
     ///
     /// This value will always be within `0..1_000_000`.
     #[inline]
+    #[must_use]
     pub const fn microsecond(&self) -> u32 {
         self.nanosecond / 1_000
     }
@@ -268,6 +278,7 @@ impl Time {
     ///
     /// This value will always be within `0..2_000_000_000`.
     #[inline]
+    #[must_use]
     pub const fn nanosecond(&self) -> u32 {
         self.nanosecond
     }

@@ -33,6 +33,8 @@ impl Timestamp {
     /// Creates a new `Timestamp` from the specified whole seconds and additional nanoseconds.
     ///
     /// If the number of nanoseconds is greater than 2 billion then it is clamped to that value.
+    #[inline]
+    #[must_use]
     pub const fn new(seconds: i64, nanoseconds: u32) -> Self {
         Self {
             seconds,
@@ -45,6 +47,8 @@ impl Timestamp {
     }
 
     /// Creates a new `Timestamp` from the given number of seconds.
+    #[inline]
+    #[must_use]
     pub const fn from_seconds(seconds: i64) -> Self {
         Self {
             seconds,
@@ -53,6 +57,8 @@ impl Timestamp {
     }
 
     /// Creates a new `Timestamp` from the given number of milliseconds.
+    #[inline]
+    #[must_use]
     pub const fn from_milliseconds(milliseconds: i64) -> Self {
         let (seconds, millis) = divmod!(milliseconds, MILLIS_PER_SEC as i64);
         Self {
@@ -62,6 +68,8 @@ impl Timestamp {
     }
 
     /// Creates a new `Timestamp` from the given number of microseconds.
+    #[inline]
+    #[must_use]
     pub const fn from_microseconds(microseconds: i64) -> Self {
         let (seconds, micros) = divmod!(microseconds, MICROS_PER_SEC as i64);
         Self {
@@ -73,11 +81,15 @@ impl Timestamp {
     /// Returns the number of whole seconds in this timestamp.
     ///
     /// This does not return the nanoseconds component.
+    #[inline]
+    #[must_use]
     pub const fn as_seconds(&self) -> i64 {
         self.seconds
     }
 
     /// Returns the total number of milliseconds in this timestamp.
+    #[inline]
+    #[must_use]
     pub const fn as_milliseconds(&self) -> i128 {
         self.seconds as i128 * MILLIS_PER_SEC as i128 + (self.nanoseconds / NANOS_PER_MILLI) as i128
     }
@@ -85,6 +97,8 @@ impl Timestamp {
     /// Returns the number of seconds as an `f64`.
     ///
     /// This contains the fractional seconds.
+    #[inline]
+    #[must_use]
     pub fn as_seconds_f64(&self) -> f64 {
         (self.seconds as f64) + (self.nanoseconds as f64) / (NANOS_PER_SEC as f64)
     }
@@ -92,6 +106,8 @@ impl Timestamp {
     /// Returns the number of seconds as an `f32`.
     ///
     /// This contains the fractional seconds.
+    #[inline]
+    #[must_use]
     pub fn as_seconds_f32(&self) -> f32 {
         (self.seconds as f32) + (self.nanoseconds as f32) / (NANOS_PER_SEC as f32)
     }
@@ -100,6 +116,7 @@ impl Timestamp {
     ///
     /// If the timestamp is out of range whether in the negative or positive
     /// direction then it saturates towards the overflowing side.
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub const fn to_utc(self) -> DateTime<Utc> {
         // This is a manual implementation due to the `const fn` requirement.
 

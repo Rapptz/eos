@@ -205,6 +205,7 @@ pub trait ToIsoFormat {
     ///
     /// Certain types do not make use of this precision and will be ignored. A much simpler
     /// alternative is provided under [`Self::to_iso_format`].
+    #[must_use]
     fn to_iso_format_with_precision(&self, precision: IsoFormatPrecision) -> String;
 
     /// Converts to an appropriate ISO-8601 extended formatted string.
@@ -212,6 +213,7 @@ pub trait ToIsoFormat {
     /// This function attempts to convert with appropriate precision for the given type.
     /// This means that certain values (typically fractional seconds) will be omitted if they
     /// can be.
+    #[must_use]
     fn to_iso_format(&self) -> String;
 }
 
@@ -1267,6 +1269,7 @@ pub use format_dt;
 
 /// A wrapper type that formats [`Date`] instances with the given format spec.
 #[cfg(feature = "formatting")]
+#[must_use]
 pub struct DateFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -1292,6 +1295,7 @@ where
 
 /// A wrapper type that formats [`Time`] instances with the given format spec.
 #[cfg(feature = "formatting")]
+#[must_use]
 pub struct TimeFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -1317,6 +1321,7 @@ where
 
 /// A wrapper type that formats [`DateTime`] instances with the given format spec.
 #[cfg(feature = "formatting")]
+#[must_use]
 pub struct DateTimeFormatter<'a, 'b, Tz, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
@@ -1346,6 +1351,7 @@ where
 ///
 /// [RFC 3339]: https://datatracker.ietf.org/doc/html/rfc3339
 #[cfg(feature = "formatting")]
+#[must_use]
 pub struct Rfc3339Formatter<'a, Tz>
 where
     Tz: TimeZone,

@@ -10,6 +10,7 @@ use crate::{DateTime, Interval, Time, TimeZone, Weekday};
 ///
 /// This struct is created via [`DateTime::every`]. See its documentation
 /// for more details.
+#[must_use]
 pub struct Every<Tz: TimeZone> {
     start: DateTime<Tz>,
     interval: Interval,
@@ -85,6 +86,7 @@ impl<Tz: TimeZone> Every<Tz> {
 }
 
 /// The actual iterator created by [`Every`].
+#[must_use]
 pub struct EveryIter<Tz: TimeZone> {
     start: DateTime<Tz>,
     interval: Interval,

@@ -59,24 +59,28 @@ impl Interval {
 
     /// Creates a [`Interval`] representing the specified number of years.
     #[inline]
+    #[must_use]
     pub const fn from_years(years: i16) -> Self {
         Self { years, ..Self::ZERO }
     }
 
     /// Creates a [`Interval`] representing the specified number of days.
     #[inline]
+    #[must_use]
     pub const fn from_days(days: i32) -> Self {
         Self { days, ..Self::ZERO }
     }
 
     /// Creates a [`Interval`] representing the specified number of months.
     #[inline]
+    #[must_use]
     pub const fn from_months(months: i32) -> Self {
         Self { months, ..Self::ZERO }
     }
 
     /// Creates a [`Interval`] representing the specified number of weeks.
     #[inline]
+    #[must_use]
     pub const fn from_weeks(weeks: i32) -> Self {
         Self {
             days: weeks * 7,
@@ -86,18 +90,21 @@ impl Interval {
 
     /// Creates a [`Interval`] representing the specified number of hours.
     #[inline]
+    #[must_use]
     pub const fn from_hours(hours: i32) -> Self {
         Self { hours, ..Self::ZERO }
     }
 
     /// Creates a [`Interval`] representing the specified number of minutes.
     #[inline]
+    #[must_use]
     pub const fn from_minutes(minutes: i64) -> Self {
         Self { minutes, ..Self::ZERO }
     }
 
     /// Creates a [`Interval`] representing the specified number of seconds.
     #[inline]
+    #[must_use]
     pub const fn from_seconds(seconds: i64) -> Self {
         Self { seconds, ..Self::ZERO }
     }
@@ -107,6 +114,7 @@ impl Interval {
     /// Note that the internal structure only stores nanoseconds. If the computation
     /// would end up overflowing then the value is saturated to the upper bounds.
     #[inline]
+    #[must_use]
     pub const fn from_milliseconds(milliseconds: i64) -> Self {
         Self {
             nanoseconds: milliseconds.saturating_mul(1_000_000),
@@ -119,6 +127,7 @@ impl Interval {
     /// Note that the internal structure only stores nanoseconds. If the computation
     /// would end up overflowing then the value is saturated to the upper bounds.
     #[inline]
+    #[must_use]
     pub const fn from_microseconds(microseconds: i64) -> Self {
         Self {
             nanoseconds: microseconds.saturating_mul(1_000),
@@ -128,6 +137,7 @@ impl Interval {
 
     /// Creates a [`Interval`] representing the specified number of nanoseconds.
     #[inline]
+    #[must_use]
     pub const fn from_nanoseconds(nanoseconds: i64) -> Self {
         Self {
             nanoseconds,
@@ -137,101 +147,118 @@ impl Interval {
 
     /// Returns the number of years within this interval.
     #[inline]
+    #[must_use]
     pub const fn years(&self) -> i16 {
         self.years
     }
 
     /// Returns the number of days within this interval.
     #[inline]
+    #[must_use]
     pub const fn days(&self) -> i32 {
         self.days
     }
 
     /// Returns the number of months within this interval.
     #[inline]
+    #[must_use]
     pub const fn months(&self) -> i32 {
         self.months
     }
 
     /// Returns the number of weeks within this interval.
     #[inline]
+    #[must_use]
     pub const fn weeks(&self) -> i32 {
         self.days / 7
     }
 
     /// Returns the number of hours within this interval.
     #[inline]
+    #[must_use]
     pub const fn hours(&self) -> i32 {
         self.hours
     }
 
     /// Returns the number of minutes within this interval.
     #[inline]
+    #[must_use]
     pub const fn minutes(&self) -> i64 {
         self.minutes
     }
 
     /// Returns the number of seconds within this interval.
     #[inline]
+    #[must_use]
     pub const fn seconds(&self) -> i64 {
         self.seconds
     }
 
     /// Returns the number of milliseconds within this interval.
     #[inline]
+    #[must_use]
     pub const fn milliseconds(&self) -> i64 {
         self.nanoseconds / 1_000_000
     }
 
     /// Returns the number of microseconds within this interval.
     #[inline]
+    #[must_use]
     pub const fn microseconds(&self) -> i64 {
         self.nanoseconds / 1000
     }
 
     /// Returns the number of nanoseconds within this interval.
     #[inline]
+    #[must_use]
     pub const fn nanoseconds(&self) -> i64 {
         self.nanoseconds
     }
 
     /// Returns a new [`Interval`] with the given number of years.
+    #[must_use]
     pub fn with_years(mut self, years: i16) -> Self {
         self.years = years;
         self
     }
 
     /// Returns a new [`Interval`] with the given number of days.
+    #[must_use]
     pub fn with_days(mut self, days: i32) -> Self {
         self.days = days;
         self
     }
 
     /// Returns a new [`Interval`] with the given number of weeks.
+    #[must_use]
     pub fn with_weeks(mut self, weeks: i32) -> Self {
         self.days = self.days - (self.days / 7) + weeks * 7;
         self
     }
 
     /// Returns a new [`Interval`] with the given number of months.
+    #[must_use]
     pub fn with_months(mut self, months: i32) -> Self {
         self.months = months;
         self
     }
 
     /// Returns a new [`Interval`] with the given number of hours.
+    #[must_use]
     pub fn with_hours(mut self, hours: i32) -> Self {
         self.hours = hours;
         self
     }
 
     /// Returns a new [`Interval`] with the given number of minutes.
+    #[must_use]
     pub fn with_minutes(mut self, minutes: i64) -> Self {
         self.minutes = minutes;
         self
     }
 
     /// Returns a new [`Interval`] with the given number of seconds.
+    #[must_use]
     pub fn with_seconds(mut self, seconds: i64) -> Self {
         self.seconds = seconds;
         self
@@ -243,6 +270,7 @@ impl Interval {
     /// would end up overflowing then the value is saturated to the upper bounds. If
     /// nanoseconds are already set then this would remove the previous value.
     #[inline]
+    #[must_use]
     pub fn with_milliseconds(mut self, milliseconds: i64) -> Self {
         self.nanoseconds = milliseconds.saturating_mul(1_000_000);
         self
@@ -254,12 +282,14 @@ impl Interval {
     /// would end up overflowing then the value is saturated to the upper bounds. If
     /// nanoseconds are already set then this would remove the previous value.
     #[inline]
+    #[must_use]
     pub fn with_microseconds(mut self, microseconds: i64) -> Self {
         self.nanoseconds = microseconds.saturating_mul(1_000);
         self
     }
 
     /// Returns a new [`Interval`] with the given number of nanoseconds.
+    #[must_use]
     pub fn with_nanoseconds(mut self, nanoseconds: i64) -> Self {
         self.nanoseconds = nanoseconds;
         self
@@ -329,6 +359,7 @@ impl Interval {
     /// assert_eq!(interval.months(), 1);
     /// assert_eq!(interval.days(), 1);
     /// ```
+    #[must_use]
     pub fn between_dates(start: &Date, end: &Date) -> Self {
         // Trivial case
         if start == end {
@@ -364,6 +395,7 @@ impl Interval {
     /// assert_eq!(interval.minutes(), 29);
     /// assert_eq!(interval.seconds(), 45);
     /// ```
+    #[must_use]
     pub fn between_times(start: &Time, end: &Time) -> Self {
         // Times are conceptually simple since they're bounded to at most 24 hours
         let nanos = end.total_nanos() as i64 - start.total_nanos() as i64;
@@ -416,6 +448,7 @@ impl Interval {
     /// assert_eq!(interval.days(), -12);
     /// assert_eq!(interval.hours(), -3);
     /// ```
+    #[must_use]
     pub fn between<Tz, OtherTz>(start: &DateTime<Tz>, end: &DateTime<OtherTz>) -> Self
     where
         Tz: TimeZone,

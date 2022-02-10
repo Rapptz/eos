@@ -66,6 +66,7 @@ pub use datetime::__create_offset_datetime_from_macro;
 
 /// Returns the current [`DateTime`] in the given timezone.
 #[cfg(feature = "std")]
+#[must_use]
 pub fn now_in<Tz: TimeZone>(zone: Tz) -> DateTime<Tz> {
     DateTime::utc_now().in_timezone(zone)
 }

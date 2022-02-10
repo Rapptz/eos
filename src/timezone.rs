@@ -110,6 +110,7 @@ impl UtcOffset {
     /// assert_eq!(UtcOffset::from_seconds(23400)?.total_seconds(), 23400);
     /// # Ok::<_, eos::Error>(())
     /// ```
+    #[inline]
     pub const fn from_seconds(seconds: i32) -> Result<Self, Error> {
         ensure_in_range!(seconds, -86400 => 86400);
         Ok(Self::from_seconds_unchecked(seconds))
@@ -128,16 +129,22 @@ impl UtcOffset {
     }
 
     /// Get the utc offset's hours.
+    #[inline]
+    #[must_use]
     pub const fn hours(&self) -> i8 {
         self.hours
     }
 
     /// Get the utc offset's minutes.
+    #[inline]
+    #[must_use]
     pub const fn minutes(&self) -> i8 {
         self.minutes
     }
 
     /// Get the utc offset's seconds.
+    #[inline]
+    #[must_use]
     pub const fn seconds(&self) -> i8 {
         self.seconds
     }
@@ -152,24 +159,28 @@ impl UtcOffset {
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub const fn total_seconds(&self) -> i32 {
         self.hours as i32 * 3600 + self.minutes as i32 * 60 + self.seconds as i32
     }
 
     /// Unwraps this offset into their individual `(hours, minutes, seconds)` components.
     #[inline]
+    #[must_use]
     pub const fn into_hms(self) -> (i8, i8, i8) {
         (self.hours, self.minutes, self.seconds)
     }
 
     /// Returns `true` if this offset is UTC.
     #[inline]
+    #[must_use]
     pub const fn is_utc(&self) -> bool {
         self.hours == 0 && self.minutes == 0 && self.seconds == 0
     }
 
     /// Returns `true` if this offset is negative.
     #[inline]
+    #[must_use]
     pub const fn is_negative(&self) -> bool {
         self.hours < 0 && self.minutes < 0 && self.seconds < 0
     }
@@ -186,6 +197,7 @@ impl UtcOffset {
     /// assert_eq!(west.checked_sub(east), Ok(utc_offset!(-3:00)));
     /// ```
     #[inline]
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub const fn checked_sub(self, other: Self) -> Result<Self, Error> {
         let seconds = self.total_seconds() - other.total_seconds();
         Self::from_seconds(seconds)
@@ -206,6 +218,7 @@ impl UtcOffset {
     /// assert_eq!(other.checked_add(east), Ok(utc_offset!(-23:00)));
     /// ```
     #[inline]
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub const fn checked_add(self, other: Self) -> Result<Self, Error> {
         let seconds = self.total_seconds() + other.total_seconds();
         Self::from_seconds(seconds)
@@ -223,6 +236,7 @@ impl UtcOffset {
     /// assert_eq!(west.saturating_sub(east), utc_offset!(-3:00));
     /// ```
     #[inline]
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub const fn saturating_sub(self, other: Self) -> Self {
         let seconds = self.total_seconds() - other.total_seconds();
         if seconds <= -86400 {
@@ -249,6 +263,7 @@ impl UtcOffset {
     /// assert_eq!(other.saturating_add(east), utc_offset!(-23:00));
     /// ```
     #[inline]
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub const fn saturating_add(self, other: Self) -> Self {
         let seconds = self.total_seconds() + other.total_seconds();
         if seconds <= -86400 {
@@ -349,6 +364,7 @@ pub enum DateTimeResolutionKind {
 ///
 /// [*fold*]: https://www.python.org/dev/peps/pep-0495/#terminology
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[must_use]
 pub struct DateTimeResolution<Tz: TimeZone> {
     date: Date,
     time: Time,
@@ -418,31 +434,37 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
     }
 
     /// Returns the associated [`DateTimeResolutionKind`] for this resolution.
+    #[must_use]
     pub fn kind(&self) -> DateTimeResolutionKind {
         self.kind
     }
 
     /// Returns a reference to the date time resolution's date.
+    #[must_use]
     pub fn date(&self) -> &Date {
         &self.date
     }
 
     /// Returns a reference to the date time resolution's time.
+    #[must_use]
     pub fn time(&self) -> &Time {
         &self.time
     }
 
     /// Returns a reference to the date time resolution's timezone.
+    #[must_use]
     pub fn timezone(&self) -> &Tz {
         &self.timezone
     }
 
     /// Returns a reference to the date time resolution's earlier.
+    #[must_use]
     pub fn earlier_offset(&self) -> &UtcOffset {
         &self.earlier
     }
 
     /// Returns a reference to the date time resolution's later.
+    #[must_use]
     pub fn later_offset(&self) -> &UtcOffset {
         &self.later
     }
@@ -450,6 +472,7 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
     /// Returns `true` if the date time resolution is [`Ambiguous`].
     ///
     /// [`Ambiguous`]: DateTimeResolutionKind::Ambiguous
+    #[must_use]
     pub fn is_ambiguous(&self) -> bool {
         matches!(self.kind, DateTimeResolutionKind::Ambiguous)
     }
@@ -457,6 +480,7 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
     /// Returns `true` if the date time resolution is [`Unambiguous`].
     ///
     /// [`Unambiguous`]: DateTimeResolutionKind::Unambiguous
+    #[must_use]
     pub fn is_unambiguous(&self) -> bool {
         matches!(self.kind, DateTimeResolutionKind::Unambiguous)
     }
@@ -464,6 +488,7 @@ impl<Tz: TimeZone> DateTimeResolution<Tz> {
     /// Returns `true` if the date time resolution is [`Missing`].
     ///
     /// [`Missing`]: DateTimeResolutionKind::Missing
+    #[must_use]
     pub fn is_missing(&self) -> bool {
         matches!(self.kind, DateTimeResolutionKind::Missing)
     }

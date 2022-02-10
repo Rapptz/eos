@@ -13,6 +13,7 @@ use crate::{Date, DateTime, Error, IsoWeekDate, Time, TimeZone, Weekday};
 /// - Month and day default to `1`.
 /// - Year defaults to `1970`.
 #[derive(Debug, Clone)]
+#[must_use]
 pub struct Builder<Tz>
 where
     Tz: TimeZone,

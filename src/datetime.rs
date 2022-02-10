@@ -289,6 +289,7 @@ where
 
     /// Creates a [`DateTime`] representing the current day at midnight.
     #[cfg(feature = "std")]
+    #[must_use]
     pub fn today(tz: Tz) -> Self {
         DateTime::utc_now().in_timezone(tz).with_time(Time::MIDNIGHT)
     }
@@ -319,21 +320,25 @@ where
     }
 
     /// Returns a reference to the time component.
+    #[must_use]
     pub fn time(&self) -> &Time {
         &self.time
     }
 
     /// Returns a mutable reference to the time component.
+    #[must_use]
     pub fn time_mut(&mut self) -> &mut Time {
         &mut self.time
     }
 
     /// Returns a reference to the date component.
+    #[must_use]
     pub fn date(&self) -> &Date {
         &self.date
     }
 
     /// Returns a mutable reference to the date component.
+    #[must_use]
     pub fn date_mut(&mut self) -> &mut Date {
         &mut self.date
     }
@@ -341,33 +346,39 @@ where
     /// Returns a new [`DateTime`] with the newly specified [`Time`].
     ///
     /// This does not do timezone conversion.
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn with_time(mut self, time: Time) -> Self {
         self.time = time;
         self
     }
 
     /// Returns a new [`DateTime`] with the newly specified [`Date`].
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn with_date(mut self, date: Date) -> Self {
         self.date = date;
         self
     }
 
     /// Returns a reference to the [`TimeZone`] associated with this datetime.
+    #[must_use]
     pub fn timezone(&self) -> &Tz {
         &self.timezone
     }
 
     /// Returns a mutable reference to the [`TimeZone`] associated with this datetime.
+    #[must_use]
     pub fn timezone_mut(&mut self) -> &mut Tz {
         &mut self.timezone
     }
 
     /// Returns a reference to the [`UtcOffset`] this datetime currently resides in.
+    #[must_use]
     pub fn offset(&self) -> &UtcOffset {
         &self.offset
     }
 
     /// Returns the time zone name, if any.
+    #[must_use]
     pub fn tzname(&self) -> Option<&str> {
         self.timezone.name(self.timestamp())
     }
@@ -379,6 +390,7 @@ where
     /// [`TimeZone`] datetimes.
     ///
     /// [bad-ord]: https://github.com/rust-lang/rfcs/issues/2511
+    #[must_use]
     pub fn cmp_cross_timezone<OtherTz>(&self, other: &DateTime<OtherTz>) -> Ordering
     where
         OtherTz: TimeZone,
@@ -428,6 +440,7 @@ where
     /// Compares two datetime instances without caring about their timezone information.
     ///
     /// This essentially just compares their individual [`Date`] and [`Time`] components.
+    #[must_use]
     pub fn cmp_without_tz<OtherTz>(&self, other: &DateTime<OtherTz>) -> Ordering
     where
         OtherTz: TimeZone,
@@ -456,6 +469,7 @@ where
     /// let later = datetime!(2022-01-01 13:10);
     /// assert_eq!(later.duration_since(&earlier), Duration::from_secs(3600));
     /// ```
+    #[must_use]
     pub fn duration_since<OtherTz>(&self, earlier: &DateTime<OtherTz>) -> Duration
     where
         OtherTz: TimeZone,
@@ -477,6 +491,7 @@ where
     /// assert_eq!(later.saturating_duration_since(&earlier), Duration::from_secs(3600));
     /// assert_eq!(earlier.saturating_duration_since(&later), Duration::ZERO);
     /// ```
+    #[must_use]
     pub fn saturating_duration_since<OtherTz>(&self, earlier: &DateTime<OtherTz>) -> Duration
     where
         OtherTz: TimeZone,
@@ -498,6 +513,7 @@ where
     /// assert_eq!(later.checked_duration_since(&earlier), Some(Duration::from_secs(3600)));
     /// assert_eq!(earlier.checked_duration_since(&later), None);
     /// ```
+    #[must_use]
     pub fn checked_duration_since<OtherTz>(&self, earlier: &DateTime<OtherTz>) -> Option<Duration>
     where
         OtherTz: TimeZone,
@@ -597,6 +613,7 @@ where
     ///
     /// If you merely want to change the internal timezone without making adjustments
     /// for the date and time, then [`DateTime::with_timezone`] should be used instead.
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn in_timezone<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
     where
         OtherTz: TimeZone,
@@ -611,6 +628,7 @@ where
     ///
     /// If you want to change the local date time and the timezone then
     /// [`DateTime::in_timezone`] should be used instead.
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn with_timezone<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
     where
         OtherTz: TimeZone,
@@ -623,6 +641,7 @@ where
     /// time but in the given timezone's local time.
     ///
     /// This is an alias to [`Self::in_timezone`].
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn at<OtherTz>(self, timezone: OtherTz) -> DateTime<OtherTz>
     where
         OtherTz: TimeZone,
@@ -631,6 +650,7 @@ where
     }
 
     /// Returns the UNIX timestamp.
+    #[must_use]
     pub fn timestamp(&self) -> Timestamp {
         let seconds = self.days_since_epoch() as i64 * 86400
             + self.hour() as i64 * 3600
@@ -667,6 +687,7 @@ where
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub fn year(&self) -> i16 {
         self.date.year()
     }
@@ -684,6 +705,7 @@ where
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub fn month(&self) -> u8 {
         self.date.month()
     }
@@ -701,6 +723,7 @@ where
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub fn day(&self) -> u8 {
         self.date.day()
     }
@@ -721,11 +744,13 @@ where
     /// # Ok::<_, eos::Error>(())
     /// ```
     #[inline]
+    #[must_use]
     pub fn ordinal(&self) -> u16 {
         self.date.ordinal()
     }
 
     /// Returns the number of days since the UNIX Epoch (1970-01-01).
+    #[must_use]
     pub fn days_since_epoch(&self) -> i32 {
         self.date().days_since_epoch()
     }
@@ -741,6 +766,7 @@ where
     /// assert_eq!(DateTime::<Utc>::new(2012, 2, 29)?.weekday(), Weekday::Wednesday);
     /// # Ok::<_, eos::Error>(())
     /// ```
+    #[must_use]
     pub fn weekday(&self) -> Weekday {
         self.date.weekday()
     }
@@ -786,6 +812,7 @@ where
     /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Minute), datetime!(2021-3-17 02:01));
     /// assert_eq!(datetime!(2021-3-17 02:00).next(unit::Second), datetime!(2021-3-17 02:00:01));
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn next<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -834,6 +861,7 @@ where
     /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Minute), datetime!(2021-3-17 01:59));
     /// assert_eq!(datetime!(2021-3-17 02:00).prev(unit::Second), datetime!(2021-3-17 01:59:59));
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn prev<A>(self, advance: A) -> Self
     where
         A: Advance<Self>,
@@ -865,6 +893,7 @@ where
     /// assert_eq!(iso.week(), 1);
     /// ```
     #[inline]
+    #[must_use]
     pub fn iso_week(&self) -> IsoWeekDate {
         self.date.iso_week()
     }
@@ -913,6 +942,7 @@ where
     ///
     /// This value will always be within `0..24`.
     #[inline]
+    #[must_use]
     pub fn hour(&self) -> u8 {
         self.time.hour()
     }
@@ -921,6 +951,7 @@ where
     ///
     /// This value will always be within `0..60`.
     #[inline]
+    #[must_use]
     pub fn minute(&self) -> u8 {
         self.time.minute()
     }
@@ -929,6 +960,7 @@ where
     ///
     /// This value will always be within `0..60`.
     #[inline]
+    #[must_use]
     pub fn second(&self) -> u8 {
         self.time.second()
     }
@@ -937,6 +969,7 @@ where
     ///
     /// This value will always be within `0..1000`.
     #[inline]
+    #[must_use]
     pub fn millisecond(&self) -> u16 {
         self.time.millisecond()
     }
@@ -945,6 +978,7 @@ where
     ///
     /// This value will always be within `0..1_000_000`.
     #[inline]
+    #[must_use]
     pub fn microsecond(&self) -> u32 {
         self.time.microsecond()
     }
@@ -953,6 +987,7 @@ where
     ///
     /// This value will always be within `0..2_000_000_000`.
     #[inline]
+    #[must_use]
     pub fn nanosecond(&self) -> u32 {
         self.time.nanosecond()
     }
