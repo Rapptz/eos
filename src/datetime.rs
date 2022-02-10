@@ -439,6 +439,82 @@ where
         self.time.cmp(&other.time)
     }
 
+    /// Returns the amount of time elapsed from another datetime to this one as a [`Duration`].
+    ///
+    /// # Panics
+    ///
+    /// If `earlier` is later than `self`. Use [`Self::checked_duration_since`] or
+    /// [`Self::saturating_duration_since`] for non-panicking behavior.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eos::datetime;
+    /// # use std::time::Duration;
+    ///
+    /// let earlier = datetime!(2022-01-01 12:10);
+    /// let later = datetime!(2022-01-01 13:10);
+    /// assert_eq!(later.duration_since(&earlier), Duration::from_secs(3600));
+    /// ```
+    pub fn duration_since<OtherTz>(&self, earlier: &DateTime<OtherTz>) -> Duration
+    where
+        OtherTz: TimeZone,
+    {
+        self.checked_duration_since(earlier).expect("supplied datetime is later than self")
+    }
+
+    /// Returns the amount of time elapsed from another datetime to this one as a [`Duration`].
+    /// If `earlier` is later than `self` then [`Duration::ZERO`] is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eos::datetime;
+    /// # use std::time::Duration;
+    ///
+    /// let earlier = datetime!(2022-01-01 12:10);
+    /// let later = datetime!(2022-01-01 13:10);
+    /// assert_eq!(later.saturating_duration_since(&earlier), Duration::from_secs(3600));
+    /// assert_eq!(earlier.saturating_duration_since(&later), Duration::ZERO);
+    /// ```
+    pub fn saturating_duration_since<OtherTz>(&self, earlier: &DateTime<OtherTz>) -> Duration
+    where
+        OtherTz: TimeZone,
+    {
+        self.checked_duration_since(earlier).unwrap_or_default()
+    }
+
+    /// Returns the amount of time elapsed from another datetime to this one as a [`Duration`].
+    /// If `earlier` is later than `self` then [`None`] is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eos::datetime;
+    /// # use std::time::Duration;
+    ///
+    /// let earlier = datetime!(2022-01-01 12:10);
+    /// let later = datetime!(2022-01-01 13:10);
+    /// assert_eq!(later.checked_duration_since(&earlier), Some(Duration::from_secs(3600)));
+    /// assert_eq!(earlier.checked_duration_since(&later), None);
+    /// ```
+    pub fn checked_duration_since<OtherTz>(&self, earlier: &DateTime<OtherTz>) -> Option<Duration>
+    where
+        OtherTz: TimeZone,
+    {
+        let days = self.days_since_epoch() - earlier.days_since_epoch();
+        let mut total_seconds = days * 86400 + self.time.total_seconds() - earlier.time.total_seconds()
+            + earlier.offset.total_seconds()
+            - self.offset.total_seconds();
+        let (secs, nanos) = divmod!(self.nanosecond() as i64 - earlier.nanosecond() as i64, 1_000_000_000);
+        total_seconds += secs as i32;
+        if total_seconds < 0 {
+            None
+        } else {
+            Some(Duration::new(total_seconds as u64, nanos as u32))
+        }
+    }
+
     /// Returns an iterator builder to create a recurrent range over date times.
     ///
     /// At its most basic form, it allows you to iterate as if repeatedly adding
