@@ -2,13 +2,13 @@ macro_rules! ensure_in_range {
     ($value:expr, $min:expr => $max:expr) => {
         #[allow(clippy::manual_range_contains)]
         if $value > $max || $value < $min {
-            return Err(crate::Error::OutOfRange);
+            return None;
         }
     };
 
     ($value:ident, $max:expr) => {
         if $value > $max {
-            return Err(crate::Error::OutOfRange);
+            return None;
         }
     };
 }

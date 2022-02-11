@@ -133,7 +133,7 @@ impl DateTime<UtcOffset> {
         let month = parser.parse_month()?;
         parser.expect(b'-')?;
         let day = parser.parse_two_digits()?;
-        let date = Date::new(year, month, day).map_err(|_| ParseError::OutOfBounds)?;
+        let date = Date::new(year, month, day).ok_or(ParseError::OutOfBounds)?;
         match parser.advance() {
             Some(b' ' | b'T') => {}
             Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
@@ -224,18 +224,21 @@ where
     /// ```
     /// use eos::{DateTime, Time, Utc};
     ///
+    /// # fn test() -> Option<()> {
     /// let dt = DateTime::<Utc>::new(2003, 4, 19)?; // creates a DateTime at UTC
     /// assert_eq!(dt.year(), 2003);
     /// assert_eq!(dt.month(), 4);
     /// assert_eq!(dt.day(), 19);
     /// assert_eq!(dt.time(), &Time::MIDNIGHT);
-    /// assert!(DateTime::<Utc>::new(2013, 2, 29).is_err()); // 2013 was not a leap year
-    /// # Ok::<_, eos::Error>(())
+    /// assert!(DateTime::<Utc>::new(2013, 2, 29).is_none()); // 2013 was not a leap year
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
-    pub fn new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
+    pub fn new(year: i16, month: u8, day: u8) -> Option<Self> {
         let date = Date::new(year, month, day)?;
         let time = Time::MIDNIGHT;
-        Ok(Tz::default().resolve(date, time).lenient())
+        Some(Tz::default().resolve(date, time).lenient())
     }
 }
 
@@ -253,16 +256,17 @@ where
     ///
     /// ```
     /// use eos::{DateTime, Utc};
-    /// assert_eq!(DateTime::from_ordinal(1992, 62, Utc), Ok(DateTime::<Utc>::new(1992, 3, 2)?)); // leap year
-    /// assert!(DateTime::from_ordinal(2013, 366, Utc).is_err()); // not a leap year
-    /// assert_eq!(DateTime::from_ordinal(2012, 366, Utc), Ok(DateTime::<Utc>::new(2012, 12, 31)?));
-    /// assert_eq!(DateTime::from_ordinal(2001, 246, Utc), Ok(DateTime::<Utc>::new(2001, 9, 3)?));
+    /// assert_eq!(DateTime::from_ordinal(1992, 62, Utc), DateTime::<Utc>::new(1992, 3, 2)); // leap year
+    /// assert!(DateTime::from_ordinal(2013, 366, Utc).is_none()); // not a leap year
+    /// assert_eq!(DateTime::from_ordinal(2012, 366, Utc), DateTime::<Utc>::new(2012, 12, 31));
+    /// assert_eq!(DateTime::from_ordinal(2001, 246, Utc), DateTime::<Utc>::new(2001, 9, 3));
     /// # Ok::<_, eos::Error>(())
     /// ```
-    pub fn from_ordinal(year: i16, ordinal: u16, timezone: Tz) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn from_ordinal(year: i16, ordinal: u16, timezone: Tz) -> Option<Self> {
         let date = Date::from_ordinal(year, ordinal)?;
         let time = Time::MIDNIGHT;
-        Ok(timezone.resolve(date, time).lenient())
+        Some(timezone.resolve(date, time).lenient())
     }
 
     /// Creates a [`DateTime`] from a POSIX timestamp in seconds, a nanosecond component, and a timezone.
@@ -474,7 +478,8 @@ where
     where
         OtherTz: TimeZone,
     {
-        self.checked_duration_since(earlier).expect("supplied datetime is later than self")
+        self.checked_duration_since(earlier)
+            .expect("supplied datetime is later than self")
     }
 
     /// Returns the amount of time elapsed from another datetime to this one as a [`Duration`].
@@ -736,12 +741,15 @@ where
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
+    /// # fn test() -> Option<()> {
     /// let date = DateTime::<Utc>::new(2013, 3, 17)?;
     /// let leap = DateTime::<Utc>::new(2012, 3, 17)?;
     ///
     /// assert_eq!(date.ordinal(), 76);
     /// assert_eq!(leap.ordinal(), 77); // 2012 was a leap year
-    /// # Ok::<_, eos::Error>(())
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
     #[inline]
     #[must_use]
@@ -762,9 +770,12 @@ where
     /// ```
     /// # use eos::{DateTime, Utc};
     /// # use eos::Weekday;
+    /// # fn test() -> Option<()> {
     /// assert_eq!(DateTime::<Utc>::new(2021, 12, 25)?.weekday(), Weekday::Saturday);
     /// assert_eq!(DateTime::<Utc>::new(2012, 2, 29)?.weekday(), Weekday::Wednesday);
-    /// # Ok::<_, eos::Error>(())
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
     #[must_use]
     pub fn weekday(&self) -> Weekday {
@@ -900,42 +911,48 @@ where
 
     /// Returns a new [`DateTime`] with the date pointing to the given year.
     ///
-    /// If the year causes the day to go out of bounds, then [`Error`]
+    /// If the year causes the day to go out of bounds, then [`None`]
     /// is returned. For example, switching from a leap year to a non-leap
     /// year on February 29th.
-    pub fn with_year(mut self, year: i16) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_year(mut self, year: i16) -> Option<Self> {
         self.date = self.date.with_year(year)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`DateTime`] that points to the given month.
     /// If the month is out of bounds (`1..=12`) or if the month
     /// does not have as many days as is currently specified then
-    /// an [`Error`] is returned.
+    /// [`None`] is returned.
     ///
     /// # Examples
     ///
     /// ```
     /// # use eos::{DateTime, Utc};
-    /// assert!(DateTime::<Utc>::new(2012, 3, 30)?.with_month(2).is_err());
-    /// assert!(DateTime::<Utc>::new(2014, 12, 31)?.with_month(1).is_ok());
-    /// assert!(DateTime::<Utc>::new(2019, 4, 28)?.with_month(2).is_ok());
-    /// # Ok::<_, eos::Error>(())
+    /// # fn test() -> Option<()> {
+    /// assert!(DateTime::<Utc>::new(2012, 3, 30)?.with_month(2).is_none());
+    /// assert!(DateTime::<Utc>::new(2014, 12, 31)?.with_month(1).is_some());
+    /// assert!(DateTime::<Utc>::new(2019, 4, 28)?.with_month(2).is_some());
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
-    pub fn with_month(mut self, month: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_month(mut self, month: u8) -> Option<Self> {
         self.date = self.date.with_month(month)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Date`] that points to the given day.
-    /// If the day is out of bounds (`1..=31`) then an [`Error`] is returned.
+    /// If the day is out of bounds (`1..=31`) then [`None`] is returned.
     ///
     /// Note that the actual maximum day depends on the specified month.
     /// For example, `30` is always invalid with a month of February since
     /// the maximum day for the given month is `29`.
-    pub fn with_day(mut self, day: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_day(mut self, day: u8) -> Option<Self> {
         self.date = self.date.with_day(day)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns the hour.
@@ -993,63 +1010,69 @@ where
     }
 
     /// Returns a new [`DateTime`] that points to the given hour.
-    /// If the hour is out of bounds (`0..24`) then [`Error`] is returned.
+    /// If the hour is out of bounds (`0..24`) then [`None`] is returned.
     ///
     /// This does not do timezone conversion.
     #[inline]
-    pub fn with_hour(mut self, hour: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_hour(mut self, hour: u8) -> Option<Self> {
         self.time = self.time.with_hour(hour)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`DateTime`] that points to the given minute.
-    /// If the minute is out of bounds (`0..60`) then [`Error`] is returned.
+    /// If the minute is out of bounds (`0..60`) then [`None`] is returned.
     ///
     /// This does not do timezone conversion.
     #[inline]
-    pub fn with_minute(mut self, minute: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_minute(mut self, minute: u8) -> Option<Self> {
         self.time = self.time.with_minute(minute)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`DateTime`] that points to the given second.
-    /// If the second is out of bounds (`0..60`) then [`Error`] is returned.
+    /// If the second is out of bounds (`0..60`) then [`None`] is returned.
     ///
     /// This does not do timezone conversion.
     #[inline]
-    pub fn with_second(mut self, second: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_second(mut self, second: u8) -> Option<Self> {
         self.time = self.time.with_second(second)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`DateTime`] that points to the given millisecond.
-    /// If the millisecond is out of bounds (`0..1000`) then [`Error`] is returned.
+    /// If the millisecond is out of bounds (`0..1000`) then [`None`] is returned.
     ///
     /// This does not do timezone conversion.
     #[inline]
-    pub fn with_millisecond(mut self, millisecond: u16) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_millisecond(mut self, millisecond: u16) -> Option<Self> {
         self.time = self.time.with_millisecond(millisecond)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`DateTime`] that points to the given microsecond.
-    /// If the microsecond is out of bounds (`0..1_000_000`) then [`Error`] is returned.
+    /// If the microsecond is out of bounds (`0..1_000_000`) then [`None`] is returned.
     ///
     /// This does not do timezone conversion.
     #[inline]
-    pub fn with_microsecond(mut self, microsecond: u32) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_microsecond(mut self, microsecond: u32) -> Option<Self> {
         self.time = self.time.with_microsecond(microsecond)?;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`DateTime`] that points to the given nanosecond.
-    /// If the nanosecond is out of bounds (`0..2_000_000_000`) then [`Error`] is returned.
+    /// If the nanosecond is out of bounds (`0..2_000_000_000`) then [`None`] is returned.
     ///
     /// This does not do timezone conversion.
     #[inline]
-    pub fn with_nanosecond(mut self, nanosecond: u32) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_nanosecond(mut self, nanosecond: u32) -> Option<Self> {
         self.time = self.time.with_nanosecond(nanosecond)?;
-        Ok(self)
+        Some(self)
     }
 }
 

@@ -54,7 +54,7 @@ impl Transition {
             start,
             utc_start,
             end,
-            offset: UtcOffset::from_seconds(ttype.offset).map_err(|_| ParseError::InvalidOffset)?,
+            offset: UtcOffset::from_seconds(ttype.offset).ok_or(ParseError::InvalidOffset)?,
         })
     }
 

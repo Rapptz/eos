@@ -160,7 +160,7 @@ const DST_START_2021: DateTime = datetime!(2021-3-14 2:00 am);
 const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 
 #[test]
-fn test_from_utc() -> Result<(), eos::Error> {
+fn test_from_utc() {
     for tz in [&EAST, &CENTRAL, &MOUNTAIN, &PACIFIC] {
         let local = tz.convert_utc(DT);
         assert_eq!(local - DT.with_timezone(*tz), Interval::from(*local.offset()));
@@ -178,10 +178,10 @@ fn test_from_utc() -> Result<(), eos::Error> {
     */
 
     // start = EST
-    let mut start = DST_START_2021.with_hour(4)?;
+    let mut start = DST_START_2021.with_hour(4).unwrap();
 
     for hour in [23, 0, 1, 3, 4, 5] {
-        let mut expected = start.with_hour(hour)?;
+        let mut expected = start.with_hour(hour).unwrap();
         if hour == 23 {
             expected = expected - 1.days();
         }
@@ -198,9 +198,9 @@ fn test_from_utc() -> Result<(), eos::Error> {
         start = start + 1.hours();
     }
 
-    let mut start = DST_END_2021.with_hour(4)?;
+    let mut start = DST_END_2021.with_hour(4).unwrap();
     for hour in [0, 1, 1, 2, 3, 4] {
-        let expected = start.with_hour(hour)?;
+        let expected = start.with_hour(hour).unwrap();
         let got = EAST.convert_utc(start);
         assert_eq!(expected.with_timezone(EAST), got);
 
@@ -213,7 +213,6 @@ fn test_from_utc() -> Result<(), eos::Error> {
 
         start = start + 1.hours();
     }
-    Ok(())
 }
 
 #[test]

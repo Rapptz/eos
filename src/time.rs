@@ -2,7 +2,7 @@ use crate::{
     interval::{NANOS_PER_HOUR, NANOS_PER_MIN, NANOS_PER_SEC},
     step::Advance,
     utils::{divmod, ensure_in_range},
-    Date, DateTime, Error, Interval, Utc,
+    Date, DateTime, Interval, Utc,
 };
 
 use core::{
@@ -72,23 +72,26 @@ impl Time {
     ///
     /// ```rust
     /// # use eos::Time;
+    /// # fn test() -> Option<()> {
     /// let time = Time::new(23, 10, 0)?;
     ///
     /// assert_eq!(time.hour(), 23);
     /// assert_eq!(time.minute(), 10);
     /// assert_eq!(time.second(), 0);
-    /// assert!(Time::new(10, 0, 0).is_ok());
-    /// assert!(Time::new(24, 0, 0).is_err());
-    /// assert!(Time::new(23, 60, 0).is_err());
-    /// assert!(Time::new(23, 59, 60).is_err());
-    /// # Ok::<_, eos::Error>(())
+    /// assert!(Time::new(10, 0, 0).is_some());
+    /// assert!(Time::new(24, 0, 0).is_none());
+    /// assert!(Time::new(23, 60, 0).is_none());
+    /// assert!(Time::new(23, 59, 60).is_none());
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
     #[inline]
-    pub const fn new(hour: u8, minute: u8, second: u8) -> Result<Self, Error> {
+    pub const fn new(hour: u8, minute: u8, second: u8) -> Option<Self> {
         ensure_in_range!(hour, 23);
         ensure_in_range!(minute, 59);
         ensure_in_range!(second, 59);
-        Ok(Self {
+        Some(Self {
             nanosecond: 0,
             hour,
             minute,
@@ -284,57 +287,63 @@ impl Time {
     }
 
     /// Returns a new [`Time`] that points to the given hour.
-    /// If the hour is out of bounds (`0..24`) then [`Error`] is returned.
+    /// If the hour is out of bounds (`0..24`) then [`None`] is returned.
     #[inline]
-    pub fn with_hour(mut self, hour: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_hour(mut self, hour: u8) -> Option<Self> {
         ensure_in_range!(hour, 24);
         self.hour = hour;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Time`] that points to the given minute.
-    /// If the minute is out of bounds (`0..60`) then [`Error`] is returned.
+    /// If the minute is out of bounds (`0..60`) then [`None`] is returned.
     #[inline]
-    pub fn with_minute(mut self, minute: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_minute(mut self, minute: u8) -> Option<Self> {
         ensure_in_range!(minute, 59);
         self.minute = minute;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Time`] that points to the given second.
-    /// If the second is out of bounds (`0..60`) then [`Error`] is returned.
+    /// If the second is out of bounds (`0..60`) then [`None`] is returned.
     #[inline]
-    pub fn with_second(mut self, second: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_second(mut self, second: u8) -> Option<Self> {
         ensure_in_range!(second, 59);
         self.second = second;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Time`] that points to the given millisecond.
-    /// If the millisecond is out of bounds (`0..1000`) then [`Error`] is returned.
+    /// If the millisecond is out of bounds (`0..1000`) then [`None`] is returned.
     #[inline]
-    pub fn with_millisecond(mut self, millisecond: u16) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_millisecond(mut self, millisecond: u16) -> Option<Self> {
         ensure_in_range!(millisecond, 1999);
         self.nanosecond = millisecond as u32 * 1_000_000;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Time`] that points to the given microsecond.
-    /// If the microsecond is out of bounds (`0..1_000_000`) then [`Error`] is returned.
+    /// If the microsecond is out of bounds (`0..1_000_000`) then [`None`] is returned.
     #[inline]
-    pub fn with_microsecond(mut self, microsecond: u32) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_microsecond(mut self, microsecond: u32) -> Option<Self> {
         ensure_in_range!(microsecond, 1_999_999);
         self.nanosecond = microsecond * 1_000;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Time`] that points to the given nanosecond.
-    /// If the nanosecond is out of bounds (`0..2_000_000_000`) then [`Error`] is returned.
+    /// If the nanosecond is out of bounds (`0..2_000_000_000`) then [`None`] is returned.
     #[inline]
-    pub fn with_nanosecond(mut self, nanosecond: u32) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_nanosecond(mut self, nanosecond: u32) -> Option<Self> {
         ensure_in_range!(nanosecond, 1_999_999_999);
         self.nanosecond = nanosecond;
-        Ok(self)
+        Some(self)
     }
 }
 

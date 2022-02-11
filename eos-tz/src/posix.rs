@@ -537,7 +537,7 @@ fn parse_offset(parser: &mut Parser) -> ParseResult<UtcOffset> {
         seconds = -seconds;
     }
 
-    UtcOffset::from_seconds(seconds).map_err(|_| ParseError::InvalidOffset)
+    UtcOffset::from_seconds(seconds).ok_or(ParseError::InvalidOffset)
 }
 
 fn parse_time(parser: &mut Parser) -> ParseResult<i64> {
@@ -996,7 +996,7 @@ mod tests {
     const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 
     #[test]
-    fn test_timezone_transition() -> Result<(), eos::Error> {
+    fn test_timezone_transition() {
         // Modified from timezone_conversion.rs test case
         let tz = PosixTimeZone::from_str("EST+5EDT,M3.2.0/2,M11.1.0/2");
         assert!(tz.is_ok());
@@ -1014,9 +1014,9 @@ mod tests {
         */
 
         // start = UTC
-        let mut start = DST_START_2021.with_hour(4)?;
+        let mut start = DST_START_2021.with_hour(4).unwrap();
         for hour in [23, 0, 1, 3, 4, 5] {
-            let mut expected = start.with_hour(hour)?;
+            let mut expected = start.with_hour(hour).unwrap();
             if hour == 23 {
                 expected = expected - 1.days();
             }
@@ -1026,15 +1026,14 @@ mod tests {
             start = start + 1.hours();
         }
 
-        let mut start = DST_END_2021.with_hour(4)?;
+        let mut start = DST_END_2021.with_hour(4).unwrap();
         for hour in [0, 1, 1, 2, 3, 4] {
-            let expected = start.with_hour(hour)?;
+            let expected = start.with_hour(hour).unwrap();
             let got = tz.clone().convert_utc(start);
             assert_eq!(expected.with_timezone(tz.clone()), got);
 
             start = start + 1.hours();
         }
-        Ok(())
     }
 
     #[test]

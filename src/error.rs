@@ -5,6 +5,9 @@ use crate::{Date, Time};
 #[non_exhaustive]
 pub enum Error {
     /// Construction or modification of a date or time was out of range.
+    ///
+    /// This is mainly returned when using the [`crate::Builder`] interface,
+    /// most out of bound errors are done using [`Option`] instead.
     OutOfRange,
     /// Could not get the system time or timezone information
     NoSystemTime,

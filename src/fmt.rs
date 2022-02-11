@@ -590,7 +590,7 @@ impl<'a> Parser<'a> {
                         Ok(Date { year, month, day })
                     }
                     OrdinalMonthResult::Ordinal(ordinal) => {
-                        Date::from_ordinal(year, ordinal).map_err(|_| ParseError::OutOfBounds)
+                        Date::from_ordinal(year, ordinal).ok_or(ParseError::OutOfBounds)
                     }
                 }
             }
@@ -1005,7 +1005,7 @@ impl<'a> FormatSpec<'a> {
                 } else {
                     0
                 };
-                let offset = crate::UtcOffset::from_hms(hour, minute, seconds).map_err(|_| ParseError::OutOfBounds)?;
+                let offset = crate::UtcOffset::from_hms(hour, minute, seconds).ok_or(ParseError::OutOfBounds)?;
                 if negative {
                     builder.timezone = -offset;
                 } else {
@@ -1021,7 +1021,7 @@ impl<'a> FormatSpec<'a> {
                     Some(c) if c.is_ascii_digit() => parser.parse_two_digits()? as i8,
                     _ => 0,
                 };
-                let offset = crate::UtcOffset::from_hms(hour, minute, seconds).map_err(|_| ParseError::OutOfBounds)?;
+                let offset = crate::UtcOffset::from_hms(hour, minute, seconds).ok_or(ParseError::OutOfBounds)?;
                 if negative {
                     builder.timezone = -offset;
                 } else {

@@ -172,14 +172,13 @@ pub struct IsoWeekDate {
 impl IsoWeekDate {
     /// Creates a new [`IsoWeekDate`] from the given year, week, and weekday.
     ///
-    /// # Errors
-    ///
-    /// If the week is out of bounds for the given year (53 or higher).
+    /// If the week is out of bounds for the given year (53 or higher) then
+    /// [`None`] is returned.
     ///
     #[inline]
-    pub const fn new(year: i16, week: u8, weekday: Weekday) -> Result<Self, Error> {
+    pub const fn new(year: i16, week: u8, weekday: Weekday) -> Option<Self> {
         ensure_in_range!(week, 1 => iso_weeks_in_year(year));
-        Ok(Self { year, week, weekday })
+        Some(Self { year, week, weekday })
     }
 
     /// Returns the ISO year.
@@ -305,17 +304,20 @@ impl Date {
     ///
     /// ```
     /// # use eos::Date;
+    /// # fn test() -> Option<()> {
     /// let date = Date::new(2003, 4, 19)?;
     /// assert_eq!(date.year(), 2003);
     /// assert_eq!(date.month(), 4);
     /// assert_eq!(date.day(), 19);
-    /// # Ok::<_, eos::Error>(())
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
     #[inline]
-    pub fn new(year: i16, month: u8, day: u8) -> Result<Self, Error> {
+    pub fn new(year: i16, month: u8, day: u8) -> Option<Self> {
         ensure_in_range!(month, 1 => 12);
         ensure_in_range!(day, 1 => days_in_month(year, month));
-        Ok(Self { year, month, day })
+        Some(Self { year, month, day })
     }
 
     /// Combines this [`Date`] with a [`Time`] to create a [`DateTime`] in [`Utc`].
@@ -656,46 +658,49 @@ impl Date {
 
     /// Returns a new [`Date] that points to the given year.
     ///
-    /// If the year causes the day to go out of bounds, then [`Error`]
+    /// If the year causes the day to go out of bounds, then [`None`]
     /// is returned. For example, switching from a leap year to a non-leap
     /// year on February 29th.
-    pub fn with_year(mut self, year: i16) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_year(mut self, year: i16) -> Option<Self> {
         ensure_in_range!(self.day, 1 => days_in_month(year, self.month));
         self.year = year;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Date`] that points to the given month.
     /// If the month is out of bounds (`1..=12`) or if the month
     /// does not have as many days as is currently specified then
-    /// an [`Error`] is returned.
+    /// an [`None`] is returned.
     ///
     /// # Examples
     ///
     /// ```
     /// # use eos::date;
-    /// assert!(date!(2012-3-30).with_month(2).is_err());
-    /// assert!(date!(2014-12-31).with_month(1).is_ok());
-    /// assert!(date!(2019-4-28).with_month(2).is_ok());
+    /// assert!(date!(2012-3-30).with_month(2).is_none());
+    /// assert!(date!(2014-12-31).with_month(1).is_some());
+    /// assert!(date!(2019-4-28).with_month(2).is_some());
     /// # Ok::<_, eos::Error>(())
     /// ```
-    pub fn with_month(mut self, month: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_month(mut self, month: u8) -> Option<Self> {
         ensure_in_range!(month, 1 => 12);
         ensure_in_range!(self.day, 1 => days_in_month(self.year, month));
         self.month = month;
-        Ok(self)
+        Some(self)
     }
 
     /// Returns a new [`Date`] that points to the given day.
-    /// If the day is out of bounds (`1..=31`) then an [`Error`] is returned.
+    /// If the day is out of bounds (`1..=31`) then an [`None`] is returned.
     ///
     /// Note that the actual maximum day depends on the specified month.
     /// For example, `30` is always invalid with a month of February since
     /// the maximum day for the given month is `29`.
-    pub fn with_day(mut self, day: u8) -> Result<Self, Error> {
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn with_day(mut self, day: u8) -> Option<Self> {
         ensure_in_range!(day, 1 => days_in_month(self.year, self.month));
         self.day = day;
-        Ok(self)
+        Some(self)
     }
 
     /// Creates a date from the given year and ordinal date.
@@ -707,23 +712,23 @@ impl Date {
     ///
     /// ```
     /// # use eos::{Date, date};
-    /// assert_eq!(Date::from_ordinal(1992, 62), Ok(date!(1992-3-2))); // leap year
-    /// assert!(Date::from_ordinal(2013, 366).is_err()); // not a leap year
-    /// assert_eq!(Date::from_ordinal(2012, 366), Ok(date!(2012-12-31)));
-    /// assert_eq!(Date::from_ordinal(2012, 59), Ok(date!(2012-2-28)));
-    /// assert_eq!(Date::from_ordinal(2012, 60), Ok(date!(2012-2-29)));
-    /// assert_eq!(Date::from_ordinal(2001, 246), Ok(date!(2001-9-3)));
+    /// assert_eq!(Date::from_ordinal(1992, 62), Some(date!(1992-3-2))); // leap year
+    /// assert_eq!(Date::from_ordinal(2013, 366), None); // not a leap year
+    /// assert_eq!(Date::from_ordinal(2012, 366), Some(date!(2012-12-31)));
+    /// assert_eq!(Date::from_ordinal(2012, 59), Some(date!(2012-2-28)));
+    /// assert_eq!(Date::from_ordinal(2012, 60), Some(date!(2012-2-29)));
+    /// assert_eq!(Date::from_ordinal(2001, 246), Some(date!(2001-9-3)));
     /// # Ok::<_, eos::Error>(())
     /// ```
-    pub fn from_ordinal(year: i16, ordinal: u16) -> Result<Self, Error> {
+    pub fn from_ordinal(year: i16, ordinal: u16) -> Option<Self> {
         ensure_in_range!(ordinal, 1 => 366);
         if ordinal == 366 && !is_leap_year(year) {
-            return Err(Error::OutOfRange);
+            return None;
         }
 
         let epoch = date_to_epoch_days(year, 1, 1) - 1 + ordinal as i32;
         let (year, month, day) = date_from_epoch_days(epoch);
-        Ok(Self { year, month, day })
+        Some(Self { year, month, day })
     }
 }
 

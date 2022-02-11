@@ -107,13 +107,16 @@ pub use __expand_or_zero;
 ///
 /// ```rust
 /// use eos::{time, Time};
+/// # fn test() -> Option<()> {
 /// assert_eq!(time!(12:00), Time::new(12, 0, 0)?);
 /// assert_eq!(time!(12:23:05), Time::new(12, 23, 05)?);
 ///
 /// // AM and PM are supported too
 /// assert_eq!(time!(12:00 am), Time::new(0, 0, 0)?);
 /// assert_eq!(time!(1:12:23 pm), Time::new(13, 12, 23)?);
-/// # Ok::<_, eos::Error>(())
+/// # Some(())
+/// # }
+/// # test();
 /// ```
 ///
 /// [`Time`]: crate::Time
@@ -164,9 +167,12 @@ macro_rules! time {
 ///
 /// ```rust
 /// use eos::{date, Date};
+/// # fn test() -> Option<()> {
 /// assert_eq!(date!(2012-2-29), Date::new(2012, 2, 29)?);
 /// assert_eq!(date!(2000-01-25), Date::new(2000, 1, 25)?);
-/// # Ok::<_, eos::Error>(())
+/// # Some(())
+/// # }
+/// # test();
 /// ```
 ///
 /// [`Date`]: crate::Date
@@ -204,6 +210,7 @@ macro_rules! date {
 ///
 /// ```rust
 /// use eos::{utc_offset, UtcOffset};
+/// # fn test() -> Option<()> {
 /// assert_eq!(utc_offset!(5), UtcOffset::from_hms(5, 0, 0)?);
 /// assert_eq!(utc_offset!(-5), UtcOffset::from_hms(-5, 0, 0)?);
 /// assert_eq!(utc_offset!(-5:30), UtcOffset::from_hms(-5, -30, 0)?);
@@ -212,7 +219,9 @@ macro_rules! date {
 /// assert_eq!(utc_offset!(-01:02:03), UtcOffset::from_hms(-1, -2, -3)?);
 /// assert_eq!(utc_offset!(-00:30), UtcOffset::from_hms(0, -30, 0)?);
 /// assert_eq!(utc_offset!(00:30), UtcOffset::from_hms(0, 30, 0)?);
-/// # Ok::<_, eos::Error>(())
+/// # Some(())
+/// # }
+/// # test();
 /// ```
 ///
 /// [`UtcOffset`]: crate::UtcOffset
@@ -283,6 +292,7 @@ macro_rules! utc_offset {
 ///
 /// ```rust
 /// use eos::{datetime, DateTime, Time, Utc, UtcOffset};
+/// # fn test() -> Option<()> {
 /// assert_eq!(
 ///     datetime!(2012-02-29 2:00),
 ///     DateTime::<Utc>::new(2012, 2, 29)?.with_time(Time::new(2, 0, 0)?)
@@ -321,7 +331,9 @@ macro_rules! utc_offset {
 ///       .with_time(Time::new(20, 12, 0)?)
 ///       .with_timezone(UtcOffset::from_hms(0, -30, 0)?)
 /// );
-/// # Ok::<_, eos::Error>(())
+/// # Some(())
+/// # }
+/// # test();
 /// ```
 ///
 /// [`DateTime`]: crate::DateTime

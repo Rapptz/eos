@@ -235,13 +235,13 @@ where
     /// is returned.
     pub fn build_date(&self) -> Result<Date, Error> {
         if let Some((ordinal, year)) = self.ordinal.zip(self.year) {
-            Date::from_ordinal(year, ordinal)
+            Date::from_ordinal(year, ordinal).ok_or(Error::OutOfRange)
         } else if let Some((week, year)) = self.iso_week.zip(self.year) {
             let weekday = self.weekday.unwrap_or(Weekday::Monday);
-            let iso_week = IsoWeekDate::new(year, week, weekday)?;
+            let iso_week = IsoWeekDate::new(year, week, weekday).ok_or(Error::OutOfRange)?;
             Ok(Date::from(iso_week))
         } else {
-            Date::new(self.year.unwrap_or(1970), self.month, self.day)
+            Date::new(self.year.unwrap_or(1970), self.month, self.day).ok_or(Error::OutOfRange)
         }
     }
 
@@ -272,7 +272,9 @@ where
             None => self.hour,
         };
 
-        Time::new(hour, self.minute, self.second)?.with_nanosecond(self.nanosecond)
+        Time::new(hour, self.minute, self.second)
+            .and_then(|t| t.with_nanosecond(self.nanosecond))
+            .ok_or(Error::OutOfRange)
     }
 }
 
@@ -283,7 +285,7 @@ mod tests {
     #[test]
     fn test_basic_construction() -> Result<(), Error> {
         let dt = Builder::new().month(12).day(31).year(2022).build()?;
-        assert_eq!(dt.date(), &Date::new(2022, 12, 31)?);
+        assert_eq!(dt.date(), &Date::new(2022, 12, 31).unwrap());
         assert_eq!(dt.time(), &Time::MIDNIGHT);
         Ok(())
     }
@@ -291,7 +293,7 @@ mod tests {
     #[test]
     fn test_ordinal_construction() -> Result<(), Error> {
         let dt = Builder::new().year(2020).ordinal(60).build()?;
-        assert_eq!(dt.date(), &Date::new(2020, 2, 29)?);
+        assert_eq!(dt.date(), &Date::new(2020, 2, 29).unwrap());
         assert_eq!(dt.time(), &Time::MIDNIGHT);
         Ok(())
     }

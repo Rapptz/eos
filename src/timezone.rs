@@ -59,14 +59,17 @@ impl UtcOffset {
     ///
     /// ```
     /// # use eos::UtcOffset;
-    /// assert!(UtcOffset::from_hms(24, 1, 0).is_err()); // invalid range
-    /// assert!(UtcOffset::from_hms(24, 0, 0).is_ok());
+    /// # fn test() -> Option<()> {
+    /// assert!(UtcOffset::from_hms(24, 1, 0).is_none()); // invalid range
+    /// assert!(UtcOffset::from_hms(24, 0, 0).is_some());
     /// assert_eq!(UtcOffset::from_hms(23, 56, 59)?.into_hms(), (23, 56, 59));
     /// assert_eq!(UtcOffset::from_hms(0, 30, 0)?.into_hms(), (0, 30, 0));
     /// assert_eq!(UtcOffset::from_hms(0, -30, 30)?.into_hms(), (0, -30, -30));
-    /// # Ok::<_, eos::Error>(())
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
-    pub const fn from_hms(hours: i8, mut minutes: i8, mut seconds: i8) -> Result<Self, Error> {
+    pub const fn from_hms(hours: i8, mut minutes: i8, mut seconds: i8) -> Option<Self> {
         ensure_in_range!(hours, -24 => 24);
         ensure_in_range!(minutes, -59 => 59);
         ensure_in_range!(seconds, -59 => 59);
@@ -106,14 +109,17 @@ impl UtcOffset {
     ///
     /// ```
     /// # use eos::UtcOffset;
+    /// # fn test() -> Option<()> {
     /// assert_eq!(UtcOffset::from_seconds(23400)?.into_hms(), (6, 30, 0));
     /// assert_eq!(UtcOffset::from_seconds(23400)?.total_seconds(), 23400);
-    /// # Ok::<_, eos::Error>(())
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
     #[inline]
-    pub const fn from_seconds(seconds: i32) -> Result<Self, Error> {
+    pub const fn from_seconds(seconds: i32) -> Option<Self> {
         ensure_in_range!(seconds, -86400 => 86400);
-        Ok(Self::from_seconds_unchecked(seconds))
+        Some(Self::from_seconds_unchecked(seconds))
     }
 
     pub(crate) const fn from_seconds_unchecked(seconds: i32) -> Self {
@@ -155,8 +161,11 @@ impl UtcOffset {
     ///
     /// ```
     /// # use eos::UtcOffset;
+    /// # fn test() -> Option<()> {
     /// assert_eq!(UtcOffset::from_hms(6, 30, 0)?.total_seconds(), 23400);
-    /// # Ok::<_, eos::Error>(())
+    /// # Some(())
+    /// # }
+    /// # test();
     /// ```
     #[inline]
     #[must_use]
@@ -185,7 +194,7 @@ impl UtcOffset {
         self.hours < 0 && self.minutes < 0 && self.seconds < 0
     }
 
-    /// Subtracts two offsets, returning [`Error`] if the result would be out of bounds.
+    /// Subtracts two offsets, returning [`None`] if the result would be out of bounds.
     ///
     /// ```rust
     /// # use eos::utc_offset;
@@ -193,17 +202,17 @@ impl UtcOffset {
     /// let west = utc_offset!(-8:00);
     /// let far  = utc_offset!(18:00);
     ///
-    /// assert!(far.checked_sub(west).is_err()); // 18 - -8 => 26
-    /// assert_eq!(west.checked_sub(east), Ok(utc_offset!(-3:00)));
+    /// assert!(far.checked_sub(west).is_none()); // 18 - -8 => 26
+    /// assert_eq!(west.checked_sub(east), Some(utc_offset!(-3:00)));
     /// ```
     #[inline]
     #[must_use = "this returns the result of the operation, without modifying the original"]
-    pub const fn checked_sub(self, other: Self) -> Result<Self, Error> {
+    pub const fn checked_sub(self, other: Self) -> Option<Self> {
         let seconds = self.total_seconds() - other.total_seconds();
         Self::from_seconds(seconds)
     }
 
-    /// Adds two offsets, returning [`Error`] if the result would be out of bounds.
+    /// Adds two offsets, returning [`None`] if the result would be out of bounds.
     ///
     /// ```rust
     /// # use eos::utc_offset;
@@ -212,14 +221,14 @@ impl UtcOffset {
     /// let far   = utc_offset!(18:00);
     /// let other = utc_offset!(-18:00);
     ///
-    /// assert_eq!(far.checked_add(west), Ok(utc_offset!(10:00)));
-    /// assert_eq!(west.checked_add(east), Ok(utc_offset!(-13:00)));
-    /// assert!(other.checked_add(west).is_err());
-    /// assert_eq!(other.checked_add(east), Ok(utc_offset!(-23:00)));
+    /// assert_eq!(far.checked_add(west), Some(utc_offset!(10:00)));
+    /// assert_eq!(west.checked_add(east), Some(utc_offset!(-13:00)));
+    /// assert!(other.checked_add(west).is_none());
+    /// assert_eq!(other.checked_add(east), Some(utc_offset!(-23:00)));
     /// ```
     #[inline]
     #[must_use = "this returns the result of the operation, without modifying the original"]
-    pub const fn checked_add(self, other: Self) -> Result<Self, Error> {
+    pub const fn checked_add(self, other: Self) -> Option<Self> {
         let seconds = self.total_seconds() + other.total_seconds();
         Self::from_seconds(seconds)
     }
@@ -868,18 +877,18 @@ mod tests {
 
     #[test]
     fn test_construction_ranges() {
-        assert!(UtcOffset::from_hms(-32, 0, 0).is_err());
-        assert!(UtcOffset::from_hms(24, 0, 0).is_ok());
-        assert!(UtcOffset::from_hms(23, 60, 0).is_err());
-        assert!(UtcOffset::from_hms(-23, -60, 0).is_err());
-        assert!(UtcOffset::from_hms(-23, -60, -60).is_err());
-        assert!(UtcOffset::from_hms(24, -60, -60).is_err());
+        assert!(UtcOffset::from_hms(-32, 0, 0).is_none());
+        assert!(UtcOffset::from_hms(24, 0, 0).is_some());
+        assert!(UtcOffset::from_hms(23, 60, 0).is_none());
+        assert!(UtcOffset::from_hms(-23, -60, 0).is_none());
+        assert!(UtcOffset::from_hms(-23, -60, -60).is_none());
+        assert!(UtcOffset::from_hms(24, -60, -60).is_none());
 
-        assert!(UtcOffset::from_hms(-5, 30, 0).is_ok());
+        assert!(UtcOffset::from_hms(-5, 30, 0).is_some());
 
-        assert!(UtcOffset::from_seconds(-86400).is_ok());
-        assert!(UtcOffset::from_seconds(86400).is_ok());
-        assert!(UtcOffset::from_seconds(3600).is_ok());
-        assert!(UtcOffset::from_seconds(-3600).is_ok());
+        assert!(UtcOffset::from_seconds(-86400).is_some());
+        assert!(UtcOffset::from_seconds(86400).is_some());
+        assert!(UtcOffset::from_seconds(3600).is_some());
+        assert!(UtcOffset::from_seconds(-3600).is_some());
     }
 }
