@@ -126,7 +126,7 @@ impl TimeZone {
     ///
     /// - `/usr/share/zoneinfo`
     /// - `/usr/lib/zoneinfo`
-    /// - `/usr/share/lib/zoeinfo`
+    /// - `/usr/share/lib/zoneinfo`
     /// - `/etc/zoneinfo`
     ///
     /// This should have a wide range of compatibility with most operating systems
