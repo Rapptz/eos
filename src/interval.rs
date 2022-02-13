@@ -28,6 +28,12 @@ pub(crate) const MICROS_PER_HOUR: i64 = 60 * MICROS_PER_MIN;
 ///
 /// For performance and memory reasons this only has up to microsecond precision.
 ///
+/// This type is used for calendar-aware relative differences between two dates, times,
+/// or date times. This means that it's aware of the month and year difference between
+/// two dates. As a consequence this makes it less than ideal for computing certain things
+/// such as "number of days between point A and point B" since a year and a month differ in the
+/// number of days and this type does not store that information.
+///
 /// Intervals are stored in whole unit months, days, and microseconds. This format
 /// is not guaranteed to be stable between releases. However, this interaction makes the
 /// accessors operate in a way is normalized to the nearest unit. For example, `1234` months
@@ -162,13 +168,6 @@ impl Interval {
         self.months % 12
     }
 
-    /// Returns the number of *whole* weeks within this interval.
-    #[inline]
-    #[must_use]
-    pub const fn weeks(&self) -> i32 {
-        self.days / 7
-    }
-
     /// Returns the number of *whole* hours within this interval.
     #[inline]
     #[must_use]
@@ -202,6 +201,53 @@ impl Interval {
     #[must_use]
     pub const fn microseconds(&self) -> i64 {
         self.microseconds % MICROS_PER_SEC
+    }
+
+    /// Returns the total number of weeks within this interval.
+    ///
+    /// This does not include months, since the number of weeks in a month
+    /// varies between 4 to 5.
+    #[inline]
+    #[must_use]
+    pub const fn total_weeks(&self) -> i32 {
+        self.days / 7
+    }
+
+    /// Returns the total number of months within this interval.
+    ///
+    /// Every year counts as 12 months.
+    #[inline]
+    #[must_use]
+    pub const fn total_months(&self) -> i32 {
+        self.months
+    }
+
+    /// Returns the total number of minutes within this interval.
+    #[inline]
+    #[must_use]
+    pub const fn total_minutes(&self) -> i64 {
+        self.microseconds / MICROS_PER_MIN
+    }
+
+    /// Returns the total number of seconds within this interval.
+    #[inline]
+    #[must_use]
+    pub const fn total_seconds(&self) -> i64 {
+        self.microseconds / MICROS_PER_SEC
+    }
+
+    /// Returns the total number of milliseconds within this interval.
+    #[inline]
+    #[must_use]
+    pub const fn total_milliseconds(&self) -> i64 {
+        self.microseconds / 1_000
+    }
+
+    /// Returns the total number of microseconds within this interval.
+    #[inline]
+    #[must_use]
+    pub const fn total_microseconds(&self) -> i64 {
+        self.microseconds
     }
 
     /// Constructs an [`Interval`] between two dates.
@@ -376,11 +422,6 @@ impl Interval {
             microseconds: seconds as i64 * MICROS_PER_SEC + micros,
             ..Self::ZERO
         }
-    }
-
-    #[inline]
-    pub(crate) const fn total_months(&self) -> i32 {
-        self.months
     }
 
     /// Returns a duration representing the time components of this interval.

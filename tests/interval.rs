@@ -6,7 +6,7 @@ fn zero() {
     let zero = Interval::ZERO;
     assert_eq!(zero.years(), 0);
     assert_eq!(zero.months(), 0);
-    assert_eq!(zero.weeks(), 0);
+    assert_eq!(zero.total_weeks(), 0);
     assert_eq!(zero.days(), 0);
     assert_eq!(zero.hours(), 0);
     assert_eq!(zero.minutes(), 0);
@@ -20,7 +20,7 @@ fn from_unit() {
     assert_eq!(Interval::from_years(2).years(), 2);
     // 1234 months -> 102 years, 10 months
     assert_eq!(Interval::from_months(1234).months(), 10);
-    assert_eq!(Interval::from_weeks(1234).weeks(), 1234);
+    assert_eq!(Interval::from_weeks(1234).total_weeks(), 1234);
     assert_eq!(Interval::from_days(1234).days(), 1234);
     assert_eq!(Interval::from_hours(1234).hours(), 1234);
     // 1234 minutes -> 1200 hours, 34 minutes
@@ -36,7 +36,7 @@ fn from_unit() {
 fn from_literal() {
     assert_eq!(2.years().years(), 2);
     assert_eq!(1234.months().months(), 10);
-    assert_eq!(1234.weeks().weeks(), 1234);
+    assert_eq!(1234.weeks().total_weeks(), 1234);
     assert_eq!(1234.days().days(), 1234);
     assert_eq!(1234.hours().hours(), 1234);
     assert_eq!(1234.minutes().minutes(), 34);
