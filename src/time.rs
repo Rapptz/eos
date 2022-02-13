@@ -16,9 +16,10 @@ use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 #[cfg(feature = "parsing")]
 use crate::fmt::{FromIsoFormat, ParseError, Parser};
 
-/// A moment in time. This type is not aware of any particular calendar, date, or time zone.
+/// A moment in time.
 ///
-/// This type has nanosecond precision. Comparisons assume they're on the same calendar date.
+/// This type is not aware of any particular calendar, date, or time zone. The maximum
+/// supported precision is nanoseconds. Comparisons assume they're on the same calendar date.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Time {
     pub(crate) hour: u8,

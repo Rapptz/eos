@@ -16,6 +16,7 @@
 //! [Noda Time]: https://nodatime.org
 //! [`<date>`]: https://github.com/HowardHinnant/date
 //! [tzdb]: https://www.iana.org/time-zones
+//! [`eos-tz`]: https://github.com/Rapptz/eos/tree/master/eos-tz
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
