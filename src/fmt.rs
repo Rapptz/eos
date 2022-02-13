@@ -413,6 +413,23 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses up to 6 digits, returning the number being represented.
+    ///
+    /// If the number is too large to fit in an u32 then it errors out.
+    /// If no numbers are given then this will also error.
+    pub(crate) fn parse_microseconds(&mut self) -> Result<u32, ParseError> {
+        let (digits, count) = self.parse_up_to_n_digits::<6>();
+        if count == 0 {
+            Err(ParseError::UnexpectedNonDigit)
+        } else {
+            let mut result = 0;
+            for (index, value) in digits.iter().enumerate() {
+                result += *value as u32 * POW10[5 - index];
+            }
+            Ok(result)
+        }
+    }
+
     /// Expects the stream to have the following byte
     #[inline]
     pub(crate) fn expect(&mut self, expected: u8) -> Result<u8, ParseError> {

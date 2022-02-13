@@ -5,7 +5,10 @@ use core::{
 };
 use std::fmt::Write;
 
-use crate::{utils::divrem, Date, DateTime, Time, TimeZone, UtcOffset};
+use crate::{
+    utils::{divmod, divrem},
+    Date, DateTime, Time, TimeZone, UtcOffset,
+};
 
 #[cfg(feature = "formatting")]
 use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
@@ -17,51 +20,42 @@ pub(crate) const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub(crate) const NANOS_PER_MIN: u64 = 60 * NANOS_PER_SEC;
 pub(crate) const NANOS_PER_HOUR: u64 = 60 * NANOS_PER_MIN;
 
+pub(crate) const MICROS_PER_SEC: i64 = 1_000_000;
+pub(crate) const MICROS_PER_MIN: i64 = 60 * MICROS_PER_SEC;
+pub(crate) const MICROS_PER_HOUR: i64 = 60 * MICROS_PER_MIN;
+
 /// An interval of time such as 2 years, 30 minutes, etc.
+///
+/// For performance and memory reasons this only has up to microsecond precision.
+///
+/// Intervals are stored in whole unit months, days, and microseconds. This format
+/// is not guaranteed to be stable between releases. However, this interaction makes the
+/// accessors operate in a way is normalized to the nearest unit. For example, `1234` months
+/// would be equivalent to 102 years and 10 months. Therefore, [`Interval::months`]
+/// would return `10` rather than `1234`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Interval {
-    // There is an alternative data format that allows us to fit in
-    // every component necessary without taking as much as memory
-    // while retaining functionality, inspired by PostgreSQL.
-    // By storing 32-bit months we get both years and months for free.
-    // The next granularity is 32-bit days, which are fixed length of 7
-    // days and we get days and weeks for free.
-    // Afterwards we can store 64-bit seconds and 32-bit nanoseconds.
-    //
-    // However, this does complicate certain retrieval operations when we begin to clamp
-    // them down into their own separate type. For example with 32-bit months / 12
-    // we can't end up with 16-bit years since it could overflow.
-    // I want to prioritise correctness before focusing on the
-    // perceived benefits of minimising the memory, even if I want to.
-    //
-    // Likewise, by hardcoding these assumptions it becomes hard to break out of the
-    // ISO8601 calendar if I want to in the future.
-    years: i16,
-    days: i32,
     months: i32,
-    hours: i32,
-    minutes: i64,
-    seconds: i64,
-    nanoseconds: i64,
+    days: i32,
+    microseconds: i64,
 }
 
 impl Interval {
     /// A interval that contains only zero values.
     pub const ZERO: Self = Self {
-        years: 0,
-        days: 0,
         months: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-        nanoseconds: 0,
+        days: 0,
+        microseconds: 0,
     };
 
     /// Creates a [`Interval`] representing the specified number of years.
     #[inline]
     #[must_use]
     pub const fn from_years(years: i16) -> Self {
-        Self { years, ..Self::ZERO }
+        Self {
+            months: years as i32 * 12,
+            ..Self::ZERO
+        }
     }
 
     /// Creates a [`Interval`] representing the specified number of days.
@@ -92,257 +86,122 @@ impl Interval {
     #[inline]
     #[must_use]
     pub const fn from_hours(hours: i32) -> Self {
-        Self { hours, ..Self::ZERO }
+        Self {
+            microseconds: hours as i64 * MICROS_PER_HOUR,
+            ..Self::ZERO
+        }
     }
 
     /// Creates a [`Interval`] representing the specified number of minutes.
     #[inline]
     #[must_use]
-    pub const fn from_minutes(minutes: i64) -> Self {
-        Self { minutes, ..Self::ZERO }
+    pub const fn from_minutes(minutes: i32) -> Self {
+        Self {
+            microseconds: minutes as i64 * MICROS_PER_MIN,
+            ..Self::ZERO
+        }
     }
 
     /// Creates a [`Interval`] representing the specified number of seconds.
     #[inline]
     #[must_use]
-    pub const fn from_seconds(seconds: i64) -> Self {
-        Self { seconds, ..Self::ZERO }
+    pub const fn from_seconds(seconds: i32) -> Self {
+        Self {
+            microseconds: seconds as i64 * MICROS_PER_SEC,
+            ..Self::ZERO
+        }
     }
 
     /// Creates a [`Interval`] representing the specified number of milliseconds.
     ///
-    /// Note that the internal structure only stores nanoseconds. If the computation
+    /// Note that the internal structure only stores microseconds. If the computation
     /// would end up overflowing then the value is saturated to the upper bounds.
     #[inline]
     #[must_use]
     pub const fn from_milliseconds(milliseconds: i64) -> Self {
         Self {
-            nanoseconds: milliseconds.saturating_mul(1_000_000),
+            microseconds: milliseconds.saturating_mul(1_000),
             ..Self::ZERO
         }
     }
 
     /// Creates a [`Interval`] representing the specified number of microseconds.
     ///
-    /// Note that the internal structure only stores nanoseconds. If the computation
+    /// Note that the internal structure only stores microseconds. If the computation
     /// would end up overflowing then the value is saturated to the upper bounds.
     #[inline]
     #[must_use]
     pub const fn from_microseconds(microseconds: i64) -> Self {
         Self {
-            nanoseconds: microseconds.saturating_mul(1_000),
+            microseconds,
             ..Self::ZERO
         }
     }
 
-    /// Creates a [`Interval`] representing the specified number of nanoseconds.
-    #[inline]
-    #[must_use]
-    pub const fn from_nanoseconds(nanoseconds: i64) -> Self {
-        Self {
-            nanoseconds,
-            ..Self::ZERO
-        }
-    }
-
-    /// Returns the number of years within this interval.
+    /// Returns the number of *whole* years within this interval.
     #[inline]
     #[must_use]
     pub const fn years(&self) -> i16 {
-        self.years
+        // This could technically overflow
+        (self.months / 12) as i16
     }
 
-    /// Returns the number of days within this interval.
+    /// Returns the number of *whole* days within this interval.
+    ///
+    /// Note that 86400 seconds does not equal a day in this interval.
     #[inline]
     #[must_use]
     pub const fn days(&self) -> i32 {
         self.days
     }
 
-    /// Returns the number of months within this interval.
+    /// Returns the number of *whole* months within this interval.
     #[inline]
     #[must_use]
     pub const fn months(&self) -> i32 {
-        self.months
+        self.months % 12
     }
 
-    /// Returns the number of weeks within this interval.
+    /// Returns the number of *whole* weeks within this interval.
     #[inline]
     #[must_use]
     pub const fn weeks(&self) -> i32 {
         self.days / 7
     }
 
-    /// Returns the number of hours within this interval.
+    /// Returns the number of *whole* hours within this interval.
     #[inline]
     #[must_use]
-    pub const fn hours(&self) -> i32 {
-        self.hours
+    pub const fn hours(&self) -> i64 {
+        self.microseconds / MICROS_PER_HOUR
     }
 
-    /// Returns the number of minutes within this interval.
+    /// Returns the number of *whole* minutes within this interval.
     #[inline]
     #[must_use]
     pub const fn minutes(&self) -> i64 {
-        self.minutes
+        (self.microseconds % MICROS_PER_HOUR) / MICROS_PER_MIN
     }
 
-    /// Returns the number of seconds within this interval.
+    /// Returns the number of *whole* seconds within this interval.
     #[inline]
     #[must_use]
     pub const fn seconds(&self) -> i64 {
-        self.seconds
+        (self.microseconds % MICROS_PER_MIN) / MICROS_PER_SEC
     }
 
-    /// Returns the number of milliseconds within this interval.
+    /// Returns the number of *whole* milliseconds within this interval.
     #[inline]
     #[must_use]
     pub const fn milliseconds(&self) -> i64 {
-        self.nanoseconds / 1_000_000
+        self.microseconds() / 1_000
     }
 
-    /// Returns the number of microseconds within this interval.
+    /// Returns the number of *whole* microseconds within this interval.
     #[inline]
     #[must_use]
     pub const fn microseconds(&self) -> i64 {
-        self.nanoseconds / 1000
-    }
-
-    /// Returns the number of nanoseconds within this interval.
-    #[inline]
-    #[must_use]
-    pub const fn nanoseconds(&self) -> i64 {
-        self.nanoseconds
-    }
-
-    /// Returns a new [`Interval`] with the given number of years.
-    #[must_use]
-    pub fn with_years(mut self, years: i16) -> Self {
-        self.years = years;
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of days.
-    #[must_use]
-    pub fn with_days(mut self, days: i32) -> Self {
-        self.days = days;
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of weeks.
-    #[must_use]
-    pub fn with_weeks(mut self, weeks: i32) -> Self {
-        self.days = self.days - (self.days / 7) + weeks * 7;
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of months.
-    #[must_use]
-    pub fn with_months(mut self, months: i32) -> Self {
-        self.months = months;
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of hours.
-    #[must_use]
-    pub fn with_hours(mut self, hours: i32) -> Self {
-        self.hours = hours;
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of minutes.
-    #[must_use]
-    pub fn with_minutes(mut self, minutes: i64) -> Self {
-        self.minutes = minutes;
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of seconds.
-    #[must_use]
-    pub fn with_seconds(mut self, seconds: i64) -> Self {
-        self.seconds = seconds;
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of milliseconds.
-    ///
-    /// Note that the internal structure only stores nanoseconds. If the computation
-    /// would end up overflowing then the value is saturated to the upper bounds. If
-    /// nanoseconds are already set then this would remove the previous value.
-    #[inline]
-    #[must_use]
-    pub fn with_milliseconds(mut self, milliseconds: i64) -> Self {
-        self.nanoseconds = milliseconds.saturating_mul(1_000_000);
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of microseconds.
-    ///
-    /// Note that the internal structure only stores nanoseconds. If the computation
-    /// would end up overflowing then the value is saturated to the upper bounds. If
-    /// nanoseconds are already set then this would remove the previous value.
-    #[inline]
-    #[must_use]
-    pub fn with_microseconds(mut self, microseconds: i64) -> Self {
-        self.nanoseconds = microseconds.saturating_mul(1_000);
-        self
-    }
-
-    /// Returns a new [`Interval`] with the given number of nanoseconds.
-    #[must_use]
-    pub fn with_nanoseconds(mut self, nanoseconds: i64) -> Self {
-        self.nanoseconds = nanoseconds;
-        self
-    }
-
-    /// Normalize the interval so that large units are combined to their larger unit.
-    /// For example, this turns 90 minutes into 1 hour and 30 minutes or 13 months
-    /// into 1 year and 1 month.
-    ///
-    /// ```rust
-    /// use eos::{Interval, ext::IntervalLiteral};
-    /// let mut interval: Interval = 90.minutes() + 9.days() + 13.months() + 1.years();
-    /// interval.normalize();
-    /// assert_eq!(interval.years(), 2);
-    /// assert_eq!(interval.months(), 1);
-    /// assert_eq!(interval.days(), 9);
-    /// assert_eq!(interval.hours(), 1);
-    /// assert_eq!(interval.minutes(), 30);
-    /// ```
-    pub fn normalize(&mut self) {
-        if self.nanoseconds.abs() >= 1_000_000_000 {
-            self.seconds += self.nanoseconds / 1_000_000_000;
-            self.nanoseconds %= 1_000_000_000;
-        }
-
-        if self.seconds.abs() >= 60 {
-            self.minutes += self.seconds / 60;
-            self.seconds %= 60;
-        }
-
-        if self.minutes.abs() >= 60 {
-            self.hours += (self.minutes / 60) as i32;
-            self.minutes %= 60;
-        }
-
-        if self.hours.abs() >= 24 {
-            self.days += self.hours / 24;
-            self.hours %= 24;
-        }
-
-        // Weeks cannot be reduced further... but months can in the gregorian calendar
-        // Some edge cases arrive from this reduction such as
-        // 1436-2-29 - (77.years() + (-97).months())
-        // The formulation can either be 1367-3-28 or 1367-3-29 depending on whether
-        // normalisation happens or not.
-        // Since the library is assuming a Gregorian calendar, it makes sense to normalise
-        // months and years even if other years do not always have 12 months in other calendars
-        // Note that this normalisation is done via the total_months method, not this one
-
-        if self.months.abs() >= 12 {
-            self.years += (self.months / 12) as i16;
-            self.months %= 12;
-        }
+        self.microseconds % MICROS_PER_SEC
     }
 
     /// Constructs an [`Interval`] between two dates.
@@ -373,9 +232,8 @@ impl Interval {
         result = result.add_months(months);
         let days = end.days_since_epoch() - result.days_since_epoch();
         Self {
-            years,
+            months: years as i32 * 12 + months,
             days,
-            months,
             ..Self::ZERO
         }
     }
@@ -398,15 +256,9 @@ impl Interval {
     #[must_use]
     pub fn between_times(start: &Time, end: &Time) -> Self {
         // Times are conceptually simple since they're bounded to at most 24 hours
-        let nanos = end.total_nanos() as i64 - start.total_nanos() as i64;
-        let (hour, nanos) = divrem!(nanos, NANOS_PER_HOUR as i64);
-        let (minutes, nanos) = divrem!(nanos, NANOS_PER_MIN as i64);
-        let (seconds, nanos) = divrem!(nanos, NANOS_PER_SEC as i64);
+        let microseconds = end.total_micros() - start.total_micros();
         Self {
-            hours: hour as i32,
-            minutes,
-            seconds,
-            nanoseconds: nanos,
+            microseconds,
             ..Self::ZERO
         }
     }
@@ -495,15 +347,10 @@ impl Interval {
             }
 
             let mut delta = Self::days_between(&offset, end);
-            let (years, months) = divrem!(months, 12);
-            delta.years = years as i16;
             delta.months = months;
-            delta.normalize(); // for seconds
             delta
         } else {
-            let mut delta = Self::days_between(start, end);
-            delta.normalize();
-            delta
+            Self::days_between(start, end)
         }
     }
 
@@ -515,7 +362,7 @@ impl Interval {
     {
         let days = end.date().days_since_epoch() - start.date().days_since_epoch();
         let mut seconds = end.time().total_seconds() - start.time().total_seconds();
-        let nanos = end.time().nanosecond() as i32 - start.time().nanosecond() as i32;
+        let micros = end.time().microsecond() as i64 - start.time().microsecond() as i64;
 
         if start.offset() != end.offset() {
             seconds = seconds + start.offset().total_seconds() - end.offset().total_seconds();
@@ -526,36 +373,23 @@ impl Interval {
         let (days, seconds) = divrem!(seconds, 86_400);
         Self {
             days,
-            seconds: seconds as i64,
-            nanoseconds: nanos as i64,
+            microseconds: seconds as i64 * MICROS_PER_SEC + micros,
             ..Self::ZERO
         }
     }
 
     #[inline]
     pub(crate) const fn total_months(&self) -> i32 {
-        self.months + self.years as i32 * 12
+        self.months
     }
 
     /// Returns a duration representing the time components of this interval.
     ///
     /// The first boolean argument is whether the time ended up being negative.
     pub(crate) fn get_time_duration(&self) -> (bool, Duration) {
-        let mut total_seconds = self.hours as i64 * 3600 + self.minutes as i64 * 60 + self.seconds;
-        let (seconds, nanos) = divrem!(self.nanoseconds, 1_000_000_000);
-        total_seconds += seconds;
-        match (total_seconds.is_positive(), nanos.is_positive()) {
-            (true, true) => (false, Duration::new(total_seconds as u64, nanos as u32)),
-            (false, false) => (true, Duration::new(-total_seconds as u64, -nanos as u32)),
-            (true, false) => (
-                false,
-                Duration::from_secs(total_seconds as u64) - Duration::from_nanos(-nanos as u64),
-            ),
-            (false, true) => (
-                true,
-                Duration::from_secs(-total_seconds as u64) - Duration::from_nanos(nanos as u64),
-            ),
-        }
+        let (seconds, microseconds) = divmod!(self.microseconds, MICROS_PER_SEC);
+        let nanoseconds = (microseconds as u32).saturating_mul(1_000);
+        (seconds < 0, Duration::new(seconds.abs() as u64, nanoseconds))
     }
 }
 
@@ -608,13 +442,7 @@ fn months_between(start: &Date, end: &Date) -> i32 {
 
 impl From<UtcOffset> for Interval {
     fn from(offset: UtcOffset) -> Self {
-        let (h, m, s) = offset.into_hms();
-        Self {
-            hours: h as _,
-            minutes: m as _,
-            seconds: s as _,
-            ..Self::ZERO
-        }
+        Self::from_seconds(offset.total_seconds())
     }
 }
 
@@ -623,13 +451,9 @@ impl Neg for Interval {
 
     fn neg(self) -> Self::Output {
         Self {
-            years: -self.years,
-            days: -self.days,
             months: -self.months,
-            hours: -self.hours,
-            minutes: -self.minutes,
-            seconds: -self.seconds,
-            nanoseconds: -self.nanoseconds,
+            days: -self.days,
+            microseconds: -self.microseconds,
         }
     }
 }
@@ -639,26 +463,18 @@ impl Add for Interval {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self {
-            years: self.years + rhs.years,
-            days: self.days + rhs.days,
             months: self.months + rhs.months,
-            hours: self.hours + rhs.hours,
-            minutes: self.minutes + rhs.minutes,
-            seconds: self.seconds + rhs.seconds,
-            nanoseconds: self.nanoseconds + rhs.nanoseconds,
+            days: self.days + rhs.days,
+            microseconds: self.microseconds + rhs.microseconds,
         }
     }
 }
 
 impl AddAssign for Interval {
     fn add_assign(&mut self, rhs: Self) {
-        self.years += rhs.years;
-        self.days += rhs.days;
         self.months += rhs.months;
-        self.hours += rhs.hours;
-        self.minutes += rhs.minutes;
-        self.seconds += rhs.seconds;
-        self.nanoseconds += rhs.nanoseconds;
+        self.days += rhs.days;
+        self.microseconds += rhs.microseconds;
     }
 }
 
@@ -667,36 +483,44 @@ impl Sub for Interval {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self {
-            years: self.years - rhs.years,
-            days: self.days - rhs.days,
             months: self.months - rhs.months,
-            hours: self.hours - rhs.hours,
-            minutes: self.minutes - rhs.minutes,
-            seconds: self.seconds - rhs.seconds,
-            nanoseconds: self.nanoseconds - rhs.nanoseconds,
+            days: self.days - rhs.days,
+            microseconds: self.microseconds - rhs.microseconds,
         }
     }
 }
 
 impl SubAssign for Interval {
     fn sub_assign(&mut self, rhs: Self) {
-        self.years -= rhs.years;
-        self.days -= rhs.days;
         self.months -= rhs.months;
-        self.hours -= rhs.hours;
-        self.minutes -= rhs.minutes;
-        self.seconds -= rhs.seconds;
-        self.nanoseconds -= rhs.nanoseconds;
+        self.days -= rhs.days;
+        self.microseconds -= rhs.microseconds;
     }
 }
 
-impl From<Duration> for Interval {
-    fn from(dt: Duration) -> Self {
-        Self {
-            seconds: dt.as_secs() as i64,
-            nanoseconds: dt.subsec_nanos() as i64,
-            ..Self::ZERO
-        }
+impl TryFrom<Duration> for Interval {
+    type Error = crate::Error;
+
+    /// Attempts to convert a [`Duration`] into an [`Interval`].
+    ///
+    /// Since an interval stores rich relative information, it cannot assume
+    /// that a month is a set number of days since the number of days vary between
+    /// 28 to 31.
+    ///
+    /// If the number of seconds in this duration cannot fit the in the interval then
+    /// an [`crate::Error`] is returned.
+    fn try_from(value: Duration) -> Result<Self, Self::Error> {
+        let (days, seconds) = divmod!(value.as_secs(), 86400);
+        let days = i32::try_from(days).map_err(|_| crate::Error::OutOfRange)?;
+        let micros = seconds
+            .saturating_mul(MICROS_PER_SEC as u64)
+            .saturating_add(value.subsec_micros() as u64);
+        let micros = i64::try_from(micros).map_err(|_| crate::Error::OutOfRange)?;
+        Ok(Self {
+            months: 0,
+            days,
+            microseconds: micros,
+        })
     }
 }
 
@@ -704,7 +528,7 @@ impl Add<Duration> for Interval {
     type Output = Self;
 
     fn add(self, rhs: Duration) -> Self::Output {
-        self + Self::from(rhs)
+        self + Self::try_from(rhs).expect("duration overflowed")
     }
 }
 
@@ -712,21 +536,7 @@ impl Sub<Duration> for Interval {
     type Output = Self;
 
     fn sub(self, rhs: Duration) -> Self::Output {
-        self - Self::from(rhs)
-    }
-}
-
-impl AddAssign<Duration> for Interval {
-    fn add_assign(&mut self, rhs: Duration) {
-        self.seconds += rhs.as_secs() as i64;
-        self.nanoseconds += rhs.subsec_nanos() as i64;
-    }
-}
-
-impl SubAssign<Duration> for Interval {
-    fn sub_assign(&mut self, rhs: Duration) {
-        self.seconds -= rhs.as_secs() as i64;
-        self.nanoseconds -= rhs.subsec_nanos() as i64;
+        self - Self::try_from(rhs).expect("duration overflowed")
     }
 }
 
@@ -760,36 +570,37 @@ impl core::fmt::Display for Interval {
             return f.write_str("PT0S");
         }
         f.write_char('P')?;
-        if self.years != 0 {
-            write!(f, "{}Y", self.years)?;
+        if self.years() != 0 {
+            write!(f, "{}Y", self.years())?;
         }
 
-        if self.months != 0 {
-            write!(f, "{}M", self.months)?;
+        if self.months() != 0 {
+            write!(f, "{}M", self.months())?;
         }
 
         if self.days != 0 {
             write!(f, "{}D", self.days)?;
         }
 
-        if self.hours != 0 || self.minutes != 0 || self.seconds != 0 || self.nanoseconds != 0 {
+        if self.microseconds != 0 {
             f.write_char('T')?;
         }
 
-        if self.hours != 0 {
-            write!(f, "{}H", self.hours)?;
+        if self.hours() != 0 {
+            write!(f, "{}H", self.hours())?;
         }
 
-        if self.minutes != 0 {
-            write!(f, "{}M", self.minutes)?;
+        if self.minutes() != 0 {
+            write!(f, "{}M", self.minutes())?;
         }
 
-        if self.nanoseconds == 0 {
-            if self.seconds != 0 {
-                write!(f, "{}S", self.seconds)?;
+        let microseconds = self.microseconds();
+        if microseconds == 0 {
+            if self.seconds() != 0 {
+                write!(f, "{}S", self.seconds())?;
             }
         } else {
-            let as_frac = (self.seconds as f64) + (self.nanoseconds as f64) / (NANOS_PER_SEC as f64);
+            let as_frac = (self.microseconds % MICROS_PER_MIN) as f64 / MICROS_PER_SEC as f64;
             if as_frac != 0.0 {
                 write!(f, "{}S", as_frac)?
             }
@@ -814,6 +625,31 @@ impl ToIsoFormat for Interval {
 }
 
 #[cfg(feature = "parsing")]
+#[derive(Copy, Clone, Default)]
+struct ParseState {
+    years: i16,
+    months: i32,
+    days: i32,
+    hours: i32,
+    minutes: i32,
+    seconds: i32,
+    microseconds: i32,
+}
+
+#[cfg(feature = "parsing")]
+impl ParseState {
+    fn to_micros(self) -> Option<i64> {
+        let hours = (self.hours as i64).checked_mul(MICROS_PER_HOUR)?;
+        let minutes = (self.minutes as i64).checked_mul(MICROS_PER_MIN)?;
+        let seconds = (self.seconds as i64).checked_mul(MICROS_PER_SEC)?;
+        hours
+            .checked_add(minutes)?
+            .checked_add(seconds)?
+            .checked_add(self.microseconds as i64)
+    }
+}
+
+#[cfg(feature = "parsing")]
 impl FromIsoFormat for Interval {
     /// Parses an ISO-8601 formatted string to an [`Interval`].
     ///
@@ -824,7 +660,8 @@ impl FromIsoFormat for Interval {
     /// The string can start with an optional sign, denoted by the ASCII negative or positive symbol.
     /// If negative, the whole period is negated. The accepted units are `Y`, `M`, `D`, `H`, and `S`.
     /// They must be in uppercase. Up to 9 digits of precision are supported by all units except years,
-    /// which must be up to 5 digits. Note that fractions are only supported in the seconds position.
+    /// which must be up to 5 digits. Note that fractions are only supported in the seconds position
+    /// and only up to 6 digits of precision are supported.
     ///
     /// Some example strings:
     ///
@@ -841,7 +678,7 @@ impl FromIsoFormat for Interval {
         parser.expect(b'P')?;
         let mut time_units = parser.advance_if_equal(b'T').is_some();
         let mut parsed_once = false;
-        let mut result = Self::ZERO;
+        let mut result = ParseState::default();
 
         // This parser technically accepts repeated units when it shouldn't be possible
         // e.g. P10M30M
@@ -877,7 +714,7 @@ impl FromIsoFormat for Interval {
                 }
                 Some(b'M') => {
                     if time_units {
-                        result.minutes = value as i64;
+                        result.minutes = value;
                     } else {
                         result.months = value;
                     }
@@ -898,14 +735,14 @@ impl FromIsoFormat for Interval {
                     if !time_units {
                         return Err(ParseError::UnexpectedChar('S'));
                     }
-                    result.seconds = value as i64;
+                    result.seconds = value;
                 }
                 Some(b'.') => {
                     if !time_units {
                         return Err(ParseError::UnexpectedChar('.'));
                     }
 
-                    let mut nanos = i32::try_from(parser.parse_nanoseconds()?)?;
+                    let mut micros = i32::try_from(parser.parse_microseconds()?)?;
                     parser.expect(b'S')?;
 
                     // Expect end of string
@@ -914,10 +751,10 @@ impl FromIsoFormat for Interval {
                     }
 
                     if value < 0 {
-                        nanos = -nanos;
+                        micros = -micros;
                     }
-                    result.nanoseconds = nanos as i64;
-                    result.seconds = value as i64;
+                    result.microseconds = micros;
+                    result.seconds = value;
                     break;
                 }
                 Some(b) => return Err(ParseError::UnexpectedChar(b as char)),
@@ -926,7 +763,24 @@ impl FromIsoFormat for Interval {
             parsed_once = true;
         }
 
-        Ok(if negative { -result } else { result })
+        let months = (result.years as i32 * 12)
+            .checked_add(result.months)
+            .ok_or(ParseError::OutOfBounds)?;
+        let days = result.days;
+        let microseconds = result.to_micros().ok_or(ParseError::OutOfBounds)?;
+        Ok(if negative {
+            Self {
+                months: -months,
+                days: -days,
+                microseconds: -microseconds,
+            }
+        } else {
+            Self {
+                months,
+                days,
+                microseconds,
+            }
+        })
     }
 }
 

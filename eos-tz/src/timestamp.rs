@@ -1,6 +1,6 @@
 use eos::{
     gregorian::{MAX_EPOCH_DAYS, MIN_EPOCH_DAYS},
-    DateTime, Interval, TimeZone, Utc,
+    DateTime, TimeZone, Utc,
 };
 
 /// A naive Unix timestamp.
@@ -62,7 +62,7 @@ impl NaiveTimestamp {
 
     /// Converts the naive timestamp into a UTC [`DateTime`].
     pub(crate) fn to_utc(self) -> DateTime<Utc> {
-        DateTime::UNIX_EPOCH + Interval::from_seconds(self.into_inner())
+        eos::Timestamp::from_seconds(self.0).to_utc()
     }
 
     // Turns a NaiveTimestamp into a eos::Timestamp from a UtcOffset

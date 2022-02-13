@@ -1,5 +1,5 @@
 use crate::{
-    interval::{NANOS_PER_HOUR, NANOS_PER_MIN, NANOS_PER_SEC},
+    interval::{MICROS_PER_HOUR, MICROS_PER_MIN, MICROS_PER_SEC, NANOS_PER_HOUR, NANOS_PER_MIN, NANOS_PER_SEC},
     step::Advance,
     utils::{divmod, ensure_in_range},
     Date, DateTime, Interval, Utc,
@@ -177,6 +177,13 @@ impl Time {
             + self.minute as u64 * NANOS_PER_MIN
             + self.second as u64 * NANOS_PER_SEC
             + self.nanosecond as u64
+    }
+
+    pub(crate) fn total_micros(&self) -> i64 {
+        self.hour as i64 * MICROS_PER_HOUR
+            + self.minute as i64 * MICROS_PER_MIN
+            + self.second as i64 * MICROS_PER_SEC
+            + self.nanosecond as i64 / 1_000
     }
 
     /// Converts nanoseconds into a date representation and returns the left-over days.

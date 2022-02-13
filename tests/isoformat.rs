@@ -218,96 +218,126 @@ fn test_date_isoformat() {
 fn test_interval_isoformat() {
     assert_eq!(eos::Interval::ZERO.to_iso_format(), "PT0S");
     assert_eq!((1.days() + 3.months() + 1.years()).to_iso_format(), "P1Y3M1D");
+    assert_eq!((3.seconds() + 500.milliseconds()).to_iso_format(), "PT3.5S");
+}
+
+#[test]
+fn test_interval_normalization_equivalency() {
     assert_eq!(
-        (2.years() + 1.months() + 2.days() + 10.minutes()).to_iso_format(),
-        "P2Y1M2DT10M"
+        (2.years() + 1.months() + 2.days() + 10.minutes()),
+        Interval::from_iso_format("P2Y1M2DT10M").unwrap()
     );
     assert_eq!(
-        (9.hours() + 75.minutes() + (-94).seconds()).to_iso_format(),
-        "PT9H75M-94S"
+        (9.hours() + 75.minutes() + (-94).seconds()),
+        Interval::from_iso_format("PT9H75M-94S").unwrap()
     );
     assert_eq!(
-        (9.hours() + 75.minutes() + (-94).seconds() + 24.milliseconds()).to_iso_format(),
-        "PT9H75M-93.976S"
+        (9.hours() + 75.minutes() + (-94).seconds() + 24.milliseconds()),
+        Interval::from_iso_format("PT9H75M-93.976S").unwrap()
     );
     assert_eq!(
-        ((-88).hours() + 69.minutes() + (-53).seconds() + (-18).milliseconds()).to_iso_format(),
-        "PT-88H69M-53.018S"
+        ((-88).hours() + 69.minutes() + (-53).seconds() + (-18).milliseconds()),
+        Interval::from_iso_format("PT-88H69M-53.018S").unwrap()
     );
     assert_eq!(
-        (96.hours() + (-63).minutes() + (-15).seconds() + 47.milliseconds()).to_iso_format(),
-        "PT96H-63M-14.953S"
+        (96.hours() + (-63).minutes() + (-15).seconds() + 47.milliseconds()),
+        Interval::from_iso_format("PT96H-63M-14.953S").unwrap()
     );
     assert_eq!(
-        ((-67).hours() + 24.minutes() + 62.seconds()).to_iso_format(),
-        "PT-67H24M62S"
+        ((-67).hours() + 24.minutes() + 62.seconds()),
+        Interval::from_iso_format("PT-67H24M62S").unwrap()
     );
     assert_eq!(
-        ((-67).hours() + 24.minutes() + 62.seconds() + 64.milliseconds()).to_iso_format(),
-        "PT-67H24M62.064S"
+        ((-67).hours() + 24.minutes() + 62.seconds() + 64.milliseconds()),
+        Interval::from_iso_format("PT-67H24M62.064S").unwrap()
     );
     assert_eq!(
-        ((-91).hours() + 59.minutes() + 72.seconds() + 22.milliseconds()).to_iso_format(),
-        "PT-91H59M72.022S"
+        ((-91).hours() + 59.minutes() + 72.seconds() + 22.milliseconds()),
+        Interval::from_iso_format("PT-91H59M72.022S").unwrap()
     );
     assert_eq!(
-        (84.hours() + 25.minutes() + (-76).seconds() + (-67).milliseconds()).to_iso_format(),
-        "PT84H25M-76.067S"
+        (84.hours() + 25.minutes() + (-76).seconds() + (-67).milliseconds()),
+        Interval::from_iso_format("PT84H25M-76.067S").unwrap()
     );
     assert_eq!(
-        ((-80).hours() + 62.minutes() + (-20).seconds() + (-28).milliseconds()).to_iso_format(),
-        "PT-80H62M-20.028S"
+        ((-80).hours() + 62.minutes() + (-20).seconds() + (-28).milliseconds()),
+        Interval::from_iso_format("PT-80H62M-20.028S").unwrap()
     );
     assert_eq!(
-        ((-73).hours() + (-75).minutes() + (-75).seconds() + (-22).milliseconds()).to_iso_format(),
-        "PT-73H-75M-75.022S"
-    );
-    assert_eq!((7.hours() + 2.minutes() + 37.seconds()).to_iso_format(), "PT7H2M37S");
-    assert_eq!(
-        (27.hours() + 50.minutes() + 19.seconds()).to_iso_format(),
-        "PT27H50M19S"
+        ((-73).hours() + (-75).minutes() + (-75).seconds() + (-22).milliseconds()),
+        Interval::from_iso_format("PT-73H-75M-75.022S").unwrap()
     );
     assert_eq!(
-        ((-38).hours() + 95.minutes() + 12.seconds()).to_iso_format(),
-        "PT-38H95M12S"
+        (7.hours() + 2.minutes() + 37.seconds()),
+        Interval::from_iso_format("PT7H2M37S").unwrap()
     );
     assert_eq!(
-        (75.hours() + 94.minutes() + 88.seconds()).to_iso_format(),
-        "PT75H94M88S"
-    );
-    assert_eq!(((-47).years() + 43.months() + 20.days()).to_iso_format(), "P-47Y43M20D");
-    assert_eq!(((-68).years() + 83.months() + 35.days()).to_iso_format(), "P-68Y83M35D");
-    assert_eq!((7.years() + (-4).months() + 58.days()).to_iso_format(), "P7Y-4M58D");
-    assert_eq!(
-        ((-12).years() + (-16).months() + (-69).days()).to_iso_format(),
-        "P-12Y-16M-69D"
-    );
-    assert_eq!((80.years() + (-43).months() + 92.days()).to_iso_format(), "P80Y-43M92D");
-    assert_eq!(
-        ((-93).years() + (-87).months() + 99.days()).to_iso_format(),
-        "P-93Y-87M99D"
-    );
-    assert_eq!((46.years() + 16.months() + (-33).days()).to_iso_format(), "P46Y16M-33D");
-    assert_eq!((46.years() + 42.months() + 1.days()).to_iso_format(), "P46Y42M1D");
-    assert_eq!(
-        ((-39).years() + (-36).months() + (-55).days()).to_iso_format(),
-        "P-39Y-36M-55D"
-    );
-    assert_eq!((50.years() + 87.months() + (-90).days()).to_iso_format(), "P50Y87M-90D");
-    assert_eq!(
-        ((-41).years() + (-69).months() + (-19).days()).to_iso_format(),
-        "P-41Y-69M-19D"
-    );
-    assert_eq!((92.years() + 46.months() + 93.days()).to_iso_format(), "P92Y46M93D");
-    assert_eq!(
-        ((-63).years() + 81.months() + 89.days() + 30.hours() + (-23).minutes() + 68.seconds() + (-99).milliseconds())
-            .to_iso_format(),
-        "P-63Y81M89DT30H-23M67.901S"
+        (27.hours() + 50.minutes() + 19.seconds()),
+        Interval::from_iso_format("PT27H50M19S").unwrap()
     );
     assert_eq!(
-        ((-76).years() + 5.months() + 85.days() + 84.hours() + 20.minutes() + 59.seconds() + (-51).milliseconds())
-            .to_iso_format(),
-        "P-76Y5M85DT84H20M58.949S"
+        ((-38).hours() + 95.minutes() + 12.seconds()),
+        Interval::from_iso_format("PT-38H95M12S").unwrap()
+    );
+    assert_eq!(
+        (75.hours() + 94.minutes() + 88.seconds()),
+        Interval::from_iso_format("PT75H94M88S").unwrap()
+    );
+    assert_eq!(
+        ((-47).years() + 43.months() + 20.days()),
+        Interval::from_iso_format("P-47Y43M20D").unwrap()
+    );
+    assert_eq!(
+        ((-68).years() + 83.months() + 35.days()),
+        Interval::from_iso_format("P-68Y83M35D").unwrap()
+    );
+    assert_eq!(
+        (7.years() + (-4).months() + 58.days()),
+        Interval::from_iso_format("P7Y-4M58D").unwrap()
+    );
+    assert_eq!(
+        ((-12).years() + (-16).months() + (-69).days()),
+        Interval::from_iso_format("P-12Y-16M-69D").unwrap()
+    );
+    assert_eq!(
+        (80.years() + (-43).months() + 92.days()),
+        Interval::from_iso_format("P80Y-43M92D").unwrap()
+    );
+    assert_eq!(
+        ((-93).years() + (-87).months() + 99.days()),
+        Interval::from_iso_format("P-93Y-87M99D").unwrap()
+    );
+    assert_eq!(
+        (46.years() + 16.months() + (-33).days()),
+        Interval::from_iso_format("P46Y16M-33D").unwrap()
+    );
+    assert_eq!(
+        (46.years() + 42.months() + 1.days()),
+        Interval::from_iso_format("P46Y42M1D").unwrap()
+    );
+    assert_eq!(
+        ((-39).years() + (-36).months() + (-55).days()),
+        Interval::from_iso_format("P-39Y-36M-55D").unwrap()
+    );
+    assert_eq!(
+        (50.years() + 87.months() + (-90).days()),
+        Interval::from_iso_format("P50Y87M-90D").unwrap()
+    );
+    assert_eq!(
+        ((-41).years() + (-69).months() + (-19).days()),
+        Interval::from_iso_format("P-41Y-69M-19D").unwrap()
+    );
+    assert_eq!(
+        (92.years() + 46.months() + 93.days()),
+        Interval::from_iso_format("P92Y46M93D").unwrap()
+    );
+    assert_eq!(
+        ((-63).years() + 81.months() + 89.days() + 30.hours() + (-23).minutes() + 68.seconds() + (-99).milliseconds()),
+        Interval::from_iso_format("P-63Y81M89DT30H-23M67.901S").unwrap()
+    );
+    assert_eq!(
+        ((-76).years() + 5.months() + 85.days() + 84.hours() + 20.minutes() + 59.seconds() + (-51).milliseconds()),
+        Interval::from_iso_format("P-76Y5M85DT84H20M58.949S").unwrap()
     );
     assert_eq!(
         ((-50).years()
@@ -316,9 +346,8 @@ fn test_interval_isoformat() {
             + (-31).hours()
             + (-59).minutes()
             + 94.seconds()
-            + (-79).milliseconds())
-        .to_iso_format(),
-        "P-50Y55M98DT-31H-59M93.921S"
+            + (-79).milliseconds()),
+        Interval::from_iso_format("P-50Y55M98DT-31H-59M93.921S").unwrap()
     );
     assert_eq!(
         ((-79).years()
@@ -327,9 +356,8 @@ fn test_interval_isoformat() {
             + 29.hours()
             + (-34).minutes()
             + (-73).seconds()
-            + 1.milliseconds())
-        .to_iso_format(),
-        "P-79Y-38M73DT29H-34M-72.999S"
+            + 1.milliseconds()),
+        Interval::from_iso_format("P-79Y-38M73DT29H-34M-72.999S").unwrap()
     );
     assert_eq!(
         (4.years()
@@ -338,9 +366,8 @@ fn test_interval_isoformat() {
             + 79.hours()
             + 60.minutes()
             + (-29).seconds()
-            + (-9).milliseconds())
-        .to_iso_format(),
-        "P4Y-100M-54DT79H60M-29.009S"
+            + (-9).milliseconds()),
+        Interval::from_iso_format("P4Y-100M-54DT79H60M-29.009S").unwrap()
     );
     assert_eq!(
         ((-89).years()
@@ -349,9 +376,8 @@ fn test_interval_isoformat() {
             + 66.hours()
             + (-71).minutes()
             + (-7).seconds()
-            + 93.milliseconds())
-        .to_iso_format(),
-        "P-89Y-52M-95DT66H-71M-6.907S"
+            + 93.milliseconds()),
+        Interval::from_iso_format("P-89Y-52M-95DT66H-71M-6.907S").unwrap()
     );
     assert_eq!(
         (36.years()
@@ -360,29 +386,28 @@ fn test_interval_isoformat() {
             + (-51).hours()
             + (-18).minutes()
             + 56.seconds()
-            + (-28).milliseconds())
-        .to_iso_format(),
-        "P36Y-85M-12DT-51H-18M55.972S"
+            + (-28).milliseconds()),
+        Interval::from_iso_format("P36Y-85M-12DT-51H-18M55.972S").unwrap()
     );
     assert_eq!(
-        (78.years() + (-16).months() + (-11).days() + 87.hours() + 58.minutes() + 68.seconds()).to_iso_format(),
-        "P78Y-16M-11DT87H58M68S"
+        (78.years() + (-16).months() + (-11).days() + 87.hours() + 58.minutes() + 68.seconds()),
+        Interval::from_iso_format("P78Y-16M-11DT87H58M68S").unwrap()
     );
     assert_eq!(
-        ((-2).years() + (-36).months() + 41.days() + (-95).hours() + 62.seconds()).to_iso_format(),
-        "P-2Y-36M41DT-95H62S"
+        ((-2).years() + (-36).months() + 41.days() + (-95).hours() + 62.seconds()),
+        Interval::from_iso_format("P-2Y-36M41DT-95H62S").unwrap()
     );
     assert_eq!(
-        (26.years() + 88.months() + 96.hours() + 68.seconds()).to_iso_format(),
-        "P26Y88MT96H68S"
+        (26.years() + 88.months() + 96.hours() + 68.seconds()),
+        Interval::from_iso_format("P26Y88MT96H68S").unwrap()
     );
     assert_eq!(
-        ((-8).years() + (-60).months() + 35.minutes() + 44.milliseconds()).to_iso_format(),
-        "P-8Y-60MT35M0.044S"
+        ((-8).years() + (-60).months() + 35.minutes() + 44.milliseconds()),
+        Interval::from_iso_format("P-8Y-60MT35M0.044S").unwrap()
     );
     assert_eq!(
-        (35.days() + 25.hours() + 80.seconds() + (-10).milliseconds()).to_iso_format(),
-        "P35DT25H79.99S"
+        (35.days() + 25.hours() + 80.seconds() + (-10).milliseconds()),
+        Interval::from_iso_format("P35DT25H79.99S").unwrap()
     );
 }
 

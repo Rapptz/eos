@@ -13,35 +13,36 @@ fn zero() {
     assert_eq!(zero.seconds(), 0);
     assert_eq!(zero.milliseconds(), 0);
     assert_eq!(zero.microseconds(), 0);
-    assert_eq!(zero.nanoseconds(), 0);
 }
 
 #[test]
 fn from_unit() {
     assert_eq!(Interval::from_years(2).years(), 2);
-    assert_eq!(Interval::from_months(1234).months(), 1234);
+    // 1234 months -> 102 years, 10 months
+    assert_eq!(Interval::from_months(1234).months(), 10);
     assert_eq!(Interval::from_weeks(1234).weeks(), 1234);
     assert_eq!(Interval::from_days(1234).days(), 1234);
     assert_eq!(Interval::from_hours(1234).hours(), 1234);
-    assert_eq!(Interval::from_minutes(1234).minutes(), 1234);
-    assert_eq!(Interval::from_seconds(1234).seconds(), 1234);
-    assert_eq!(Interval::from_milliseconds(1234).milliseconds(), 1234);
+    // 1234 minutes -> 1200 hours, 34 minutes
+    assert_eq!(Interval::from_minutes(1234).minutes(), 34);
+    // 1234 seconds -> 1200 minutes (20 hours), 34 seconds
+    assert_eq!(Interval::from_seconds(1234).seconds(), 34);
+    // 1234ms -> 1s, 234ms
+    assert_eq!(Interval::from_milliseconds(1234).milliseconds(), 234);
     assert_eq!(Interval::from_microseconds(1234).microseconds(), 1234);
-    assert_eq!(Interval::from_nanoseconds(1234).nanoseconds(), 1234);
 }
 
 #[test]
 fn from_literal() {
     assert_eq!(2.years().years(), 2);
-    assert_eq!(1234.months().months(), 1234);
+    assert_eq!(1234.months().months(), 10);
     assert_eq!(1234.weeks().weeks(), 1234);
     assert_eq!(1234.days().days(), 1234);
     assert_eq!(1234.hours().hours(), 1234);
-    assert_eq!(1234.minutes().minutes(), 1234);
-    assert_eq!(1234.seconds().seconds(), 1234);
-    assert_eq!(1234.milliseconds().milliseconds(), 1234);
+    assert_eq!(1234.minutes().minutes(), 34);
+    assert_eq!(1234.seconds().seconds(), 34);
+    assert_eq!(1234.milliseconds().milliseconds(), 234);
     assert_eq!(1234.microseconds().microseconds(), 1234);
-    assert_eq!(1234.nanoseconds().nanoseconds(), 1234);
 }
 
 #[test]
@@ -51,13 +52,19 @@ fn default() {
 
 #[test]
 fn from_std_duration() {
-    assert_eq!(Interval::from(Duration::from_micros(100)).microseconds(), 100);
-    assert_eq!(Interval::from(Duration::from_secs(100)).seconds(), 100);
-    assert_eq!(Interval::from(Duration::from_millis(100)).milliseconds(), 100);
+    assert_eq!(
+        Interval::try_from(Duration::from_micros(100)).unwrap().microseconds(),
+        100
+    );
+    // 100s -> 1m40s
+    assert_eq!(Interval::try_from(Duration::from_secs(100)).unwrap().seconds(), 40);
+    assert_eq!(
+        Interval::try_from(Duration::from_millis(100)).unwrap().milliseconds(),
+        100
+    );
 
-    let paired = Interval::from(Duration::from_secs_f32(2.8));
+    let paired = Interval::try_from(Duration::from_secs_f32(2.8)).unwrap();
     assert_eq!(paired.seconds(), 2);
-    assert_eq!(paired.nanoseconds(), 800_000_000);
     assert_eq!(paired.microseconds(), 800_000);
     assert_eq!(paired.milliseconds(), 800);
 }
@@ -76,7 +83,6 @@ fn noop_date_addition() {
     assert_eq!(date!(2001 - 1 - 31) + 10.microseconds(), date!(2001 - 1 - 31));
     assert_eq!(date!(2001 - 1 - 31) + 10.hours(), date!(2001 - 1 - 31));
     assert_eq!(date!(2001 - 1 - 31) + 10.milliseconds(), date!(2001 - 1 - 31));
-    assert_eq!(date!(2001 - 1 - 31) + 10.nanoseconds(), date!(2001 - 1 - 31));
 }
 
 #[test]
@@ -87,8 +93,8 @@ fn add_to_time() {
 
 #[test]
 fn out_of_bounds_wrapping_time() {
-    assert_eq!(time!(23:59:59) + Interval::from_seconds(i64::MAX), time!(23:59:59));
-    assert_eq!(time!(23:59:59) - Interval::from_seconds(i64::MAX), time!(23:59:59));
+    assert_eq!(time!(23:59:59) + 2.seconds(), time!(00:00:01));
+    assert_eq!(time!(23:59:59) - 24.hours(), time!(23:59:59));
 }
 
 #[test]
@@ -329,176 +335,155 @@ fn random_double_units_to_datetimes() {
 fn diff_between_dates() {
     assert_eq!(
         date!(1064 - 7 - 31) - date!(325 - 2 - 28),
-        Interval::default().with_years(739).with_months(5).with_days(3)
+        (739).years() + (5).months() + (3).days()
     );
     assert_eq!(
         date!(325 - 2 - 28) - date!(1064 - 7 - 31),
-        Interval::default().with_years(-739).with_months(-5)
+        (-739).years() + (-5).months()
     );
 
     assert_eq!(
         date!(113 - 6 - 30) - date!(550 - 2 - 28),
-        Interval::default().with_years(-436).with_months(-7).with_days(-28)
+        (-436).years() + (-7).months() + (-28).days()
     );
-    assert_eq!(
-        date!(1948 - 9 - 30) - date!(309 - 9 - 30),
-        Interval::default().with_years(1639)
-    );
+    assert_eq!(date!(1948 - 9 - 30) - date!(309 - 9 - 30), (1639).years());
     assert_eq!(
         date!(1292 - 9 - 30) - date!(199 - 4 - 30),
-        Interval::default().with_years(1093).with_months(5)
+        (1093).years() + (5).months()
     );
     assert_eq!(
         date!(1915 - 3 - 31) - date!(1765 - 1 - 31),
-        Interval::default().with_years(150).with_months(2)
+        (150).years() + (2).months()
     );
     assert_eq!(
         date!(476 - 10 - 31) - date!(731 - 5 - 31),
-        Interval::default().with_years(-254).with_months(-7)
+        (-254).years() + (-7).months()
     );
     assert_eq!(
         date!(41 - 4 - 30) - date!(1235 - 8 - 31),
-        Interval::default().with_years(-1194).with_months(-4)
+        (-1194).years() + (-4).months()
     );
     assert_eq!(
         date!(9 - 7 - 31) - date!(1390 - 4 - 30),
-        Interval::default().with_years(-1380).with_months(-8).with_days(-30)
+        (-1380).years() + (-8).months() + (-30).days()
     );
     assert_eq!(
         date!(1479 - 8 - 31) - date!(2048 - 5 - 31),
-        Interval::default().with_years(-568).with_months(-9)
+        (-568).years() + (-9).months()
     );
     assert_eq!(
         date!(1965 - 1 - 31) - date!(1515 - 7 - 31),
-        Interval::default().with_years(449).with_months(6)
+        (449).years() + (6).months()
     );
     assert_eq!(
         date!(538 - 7 - 31) - date!(1760 - 1 - 31),
-        Interval::default().with_years(-1221).with_months(-6)
+        (-1221).years() + (-6).months()
     );
     assert_eq!(
         date!(1904 - 7 - 31) - date!(1127 - 2 - 28),
-        Interval::default().with_years(777).with_months(5).with_days(3)
+        (777).years() + (5).months() + (3).days()
     );
-    assert_eq!(
-        date!(631 - 6 - 30) - date!(529 - 9 - 30),
-        Interval::default().with_years(101).with_months(9)
-    );
+    assert_eq!(date!(631 - 6 - 30) - date!(529 - 9 - 30), (101).years() + (9).months());
     assert_eq!(
         date!(2021 - 11 - 30) - date!(1351 - 10 - 31),
-        Interval::default().with_years(670).with_months(1)
+        (670).years() + (1).months()
     );
     assert_eq!(
         date!(1600 - 8 - 31) - date!(1345 - 4 - 30),
-        Interval::default().with_years(255).with_months(4).with_days(1)
+        (255).years() + (4).months() + (1).days()
     );
-    assert_eq!(
-        date!(87 - 8 - 31) - date!(205 - 9 - 30),
-        Interval::default().with_years(-118).with_days(-30)
-    );
-    assert_eq!(
-        date!(816 - 10 - 31) - date!(1496 - 10 - 31),
-        Interval::default().with_years(-680)
-    );
+    assert_eq!(date!(87 - 8 - 31) - date!(205 - 9 - 30), (-118).years() + (-30).days());
+    assert_eq!(date!(816 - 10 - 31) - date!(1496 - 10 - 31), (-680).years());
     assert_eq!(
         date!(260 - 5 - 31) - date!(1733 - 2 - 28),
-        Interval::default().with_years(-1472).with_months(-8).with_days(-28)
+        (-1472).years() + (-8).months() + (-28).days()
     );
     assert_eq!(
         date!(100 - 3 - 31) - date!(1213 - 5 - 31),
-        Interval::default().with_years(-1113).with_months(-2)
+        (-1113).years() + (-2).months()
     );
     assert_eq!(
         date!(1170 - 6 - 30) - date!(1980 - 7 - 31),
-        Interval::default().with_years(-810).with_months(-1)
+        (-810).years() + (-1).months()
     );
     assert_eq!(
         date!(337 - 10 - 31) - date!(40 - 11 - 30),
-        Interval::default().with_years(296).with_months(11).with_days(1)
+        (296).years() + (11).months() + (1).days()
     );
     assert_eq!(
         date!(1102 - 12 - 31) - date!(687 - 11 - 30),
-        Interval::default().with_years(415).with_months(1).with_days(1)
+        (415).years() + (1).months() + (1).days()
     );
-    assert_eq!(
-        date!(1820 - 5 - 31) - date!(1737 - 3 - 31),
-        Interval::default().with_years(83).with_months(2)
-    );
+    assert_eq!(date!(1820 - 5 - 31) - date!(1737 - 3 - 31), (83).years() + (2).months());
     assert_eq!(
         date!(1046 - 11 - 30) - date!(1382 - 5 - 31),
-        Interval::default().with_years(-335).with_months(-6)
+        (-335).years() + (-6).months()
     );
     assert_eq!(
         date!(1138 - 2 - 28) - date!(408 - 3 - 31),
-        Interval::default().with_years(729).with_months(11)
+        (729).years() + (11).months()
     );
-    assert_eq!(
-        date!(1187 - 1 - 31) - date!(430 - 7 - 31),
-        Interval::default().with_years(756).with_months(6)
-    );
+    assert_eq!(date!(1187 - 1 - 31) - date!(430 - 7 - 31), (756).years() + (6).months());
     assert_eq!(
         date!(1422 - 11 - 30) - date!(1357 - 3 - 31),
-        Interval::default().with_years(65).with_months(8)
+        (65).years() + (8).months()
     );
     assert_eq!(
         date!(1259 - 2 - 28) - date!(430 - 3 - 31),
-        Interval::default().with_years(828).with_months(11)
+        (828).years() + (11).months()
     );
     assert_eq!(
         date!(880 - 12 - 31) - date!(982 - 8 - 31),
-        Interval::default().with_years(-101).with_months(-8)
+        (-101).years() + (-8).months()
     );
     assert_eq!(
         date!(400 - 6 - 30) - date!(750 - 9 - 30),
-        Interval::default().with_years(-350).with_months(-3)
+        (-350).years() + (-3).months()
     );
     assert_eq!(
         date!(1930 - 12 - 31) - date!(1506 - 3 - 31),
-        Interval::default().with_years(424).with_months(9)
+        (424).years() + (9).months()
     );
     assert_eq!(
         date!(4 - 1 - 31) - date!(1408 - 7 - 31),
-        Interval::default().with_years(-1404).with_months(-6)
+        (-1404).years() + (-6).months()
     );
     assert_eq!(
         date!(1555 - 4 - 30) - date!(2027 - 3 - 31),
-        Interval::default().with_years(-471).with_months(-11)
+        (-471).years() + (-11).months()
     );
     assert_eq!(
         date!(252 - 9 - 30) - date!(1680 - 1 - 31),
-        Interval::default().with_years(-1427).with_months(-4)
+        (-1427).years() + (-4).months()
     );
     assert_eq!(
         date!(419 - 8 - 31) - date!(516 - 6 - 30),
-        Interval::default().with_years(-96).with_months(-9).with_days(-30)
+        (-96).years() + (-9).months() + (-30).days()
     );
     assert_eq!(
         date!(1311 - 8 - 31) - date!(1013 - 11 - 30),
-        Interval::default().with_years(297).with_months(9).with_days(1)
+        (297).years() + (9).months() + (1).days()
     );
     assert_eq!(
         date!(1395 - 6 - 30) - date!(76 - 8 - 31),
-        Interval::default().with_years(1318).with_months(10)
+        (1318).years() + (10).months()
     );
-    assert_eq!(
-        date!(930 - 3 - 31) - date!(1829 - 3 - 31),
-        Interval::default().with_years(-899)
-    );
+    assert_eq!(date!(930 - 3 - 31) - date!(1829 - 3 - 31), (-899).years());
     assert_eq!(
         date!(1560 - 3 - 31) - date!(1683 - 6 - 30),
-        Interval::default().with_years(-123).with_months(-2).with_days(-30)
+        (-123).years() + (-2).months() + (-30).days()
     );
     assert_eq!(
         date!(31 - 3 - 31) - date!(1984 - 12 - 31),
-        Interval::default().with_years(-1953).with_months(-9)
+        (-1953).years() + (-9).months()
     );
     assert_eq!(
         date!(685 - 9 - 30) - date!(1706 - 11 - 30),
-        Interval::default().with_years(-1021).with_months(-2)
+        (-1021).years() + (-2).months()
     );
     assert_eq!(
         date!(877 - 1 - 31) - date!(43 - 9 - 30),
-        Interval::default().with_years(833).with_months(4).with_days(1)
+        (833).years() + (4).months() + (1).days()
     );
 }
 
@@ -506,160 +491,151 @@ fn diff_between_dates() {
 fn diff_between_times() {
     assert_eq!(
         time!(18:56:51) - time!(15:16:55),
-        Interval::default().with_hours(3).with_minutes(39).with_seconds(56)
+        (3).hours() + (39).minutes() + (56).seconds()
     );
     assert_eq!(
         time!(10:20:14) - time!(22:35:34),
-        Interval::default().with_hours(-12).with_minutes(-15).with_seconds(-20)
+        (-12).hours() + (-15).minutes() + (-20).seconds()
     );
     assert_eq!(
         time!(18:21:9) - time!(9:22:45),
-        Interval::default().with_hours(8).with_minutes(58).with_seconds(24)
+        (8).hours() + (58).minutes() + (24).seconds()
     );
-    assert_eq!(
-        time!(8:1:56) - time!(8:56:45),
-        Interval::default().with_minutes(-54).with_seconds(-49)
-    );
+    assert_eq!(time!(8:1:56) - time!(8:56:45), (-54).minutes() + (-49).seconds());
     assert_eq!(
         time!(3:25:57) - time!(14:29:4),
-        Interval::default().with_hours(-11).with_minutes(-3).with_seconds(-7)
+        (-11).hours() + (-3).minutes() + (-7).seconds()
     );
-    assert_eq!(time!(12:15:18) - time!(12:56:18), Interval::default().with_minutes(-41));
+    assert_eq!(time!(12:15:18) - time!(12:56:18), (-41).minutes());
     assert_eq!(
         time!(20:46:27) - time!(7:33:18),
-        Interval::default().with_hours(13).with_minutes(13).with_seconds(9)
+        (13).hours() + (13).minutes() + (9).seconds()
     );
     assert_eq!(
         time!(0:40:9) - time!(17:23:27),
-        Interval::default().with_hours(-16).with_minutes(-43).with_seconds(-18)
+        (-16).hours() + (-43).minutes() + (-18).seconds()
     );
     assert_eq!(
         time!(10:12:13) - time!(17:28:11),
-        Interval::default().with_hours(-7).with_minutes(-15).with_seconds(-58)
+        (-7).hours() + (-15).minutes() + (-58).seconds()
     );
     assert_eq!(
         time!(3:54:15) - time!(13:32:5),
-        Interval::default().with_hours(-9).with_minutes(-37).with_seconds(-50)
+        (-9).hours() + (-37).minutes() + (-50).seconds()
     );
     assert_eq!(
         time!(7:18:32) - time!(1:28:51),
-        Interval::default().with_hours(5).with_minutes(49).with_seconds(41)
+        (5).hours() + (49).minutes() + (41).seconds()
     );
     assert_eq!(
         time!(5:42:46) - time!(23:25:18),
-        Interval::default().with_hours(-17).with_minutes(-42).with_seconds(-32)
+        (-17).hours() + (-42).minutes() + (-32).seconds()
     );
-    assert_eq!(
-        time!(20:12:46) - time!(10:12:45),
-        Interval::default().with_hours(10).with_seconds(1)
-    );
+    assert_eq!(time!(20:12:46) - time!(10:12:45), (10).hours() + (1).seconds());
     assert_eq!(
         time!(2:48:24) - time!(22:47:37),
-        Interval::default().with_hours(-19).with_minutes(-59).with_seconds(-13)
+        (-19).hours() + (-59).minutes() + (-13).seconds()
     );
     assert_eq!(
         time!(9:50:11) - time!(13:40:3),
-        Interval::default().with_hours(-3).with_minutes(-49).with_seconds(-52)
+        (-3).hours() + (-49).minutes() + (-52).seconds()
     );
     assert_eq!(
         time!(22:14:21) - time!(1:17:59),
-        Interval::default().with_hours(20).with_minutes(56).with_seconds(22)
+        (20).hours() + (56).minutes() + (22).seconds()
     );
     assert_eq!(
         time!(23:30:37) - time!(21:50:13),
-        Interval::default().with_hours(1).with_minutes(40).with_seconds(24)
+        (1).hours() + (40).minutes() + (24).seconds()
     );
     assert_eq!(
         time!(5:6:54) - time!(16:6:27),
-        Interval::default().with_hours(-10).with_minutes(-59).with_seconds(-33)
+        (-10).hours() + (-59).minutes() + (-33).seconds()
     );
     assert_eq!(
         time!(16:15:53) - time!(19:45:50),
-        Interval::default().with_hours(-3).with_minutes(-29).with_seconds(-57)
+        (-3).hours() + (-29).minutes() + (-57).seconds()
     );
     assert_eq!(
         time!(14:6:15) - time!(4:59:21),
-        Interval::default().with_hours(9).with_minutes(6).with_seconds(54)
+        (9).hours() + (6).minutes() + (54).seconds()
     );
     assert_eq!(
         time!(6:54:44) - time!(12:36:43),
-        Interval::default().with_hours(-5).with_minutes(-41).with_seconds(-59)
+        (-5).hours() + (-41).minutes() + (-59).seconds()
     );
     assert_eq!(
         time!(3:13:54) - time!(23:6:2),
-        Interval::default().with_hours(-19).with_minutes(-52).with_seconds(-8)
+        (-19).hours() + (-52).minutes() + (-8).seconds()
     );
-    assert_eq!(
-        time!(0:52:35) - time!(6:52:41),
-        Interval::default().with_hours(-6).with_seconds(-6)
-    );
+    assert_eq!(time!(0:52:35) - time!(6:52:41), (-6).hours() + (-6).seconds());
     assert_eq!(
         time!(4:36:7) - time!(7:17:17),
-        Interval::default().with_hours(-2).with_minutes(-41).with_seconds(-10)
+        (-2).hours() + (-41).minutes() + (-10).seconds()
     );
     assert_eq!(
         time!(16:49:17) - time!(8:45:25),
-        Interval::default().with_hours(8).with_minutes(3).with_seconds(52)
+        (8).hours() + (3).minutes() + (52).seconds()
     );
     assert_eq!(
         time!(18:33:56) - time!(12:41:43),
-        Interval::default().with_hours(5).with_minutes(52).with_seconds(13)
+        (5).hours() + (52).minutes() + (13).seconds()
     );
     assert_eq!(
         time!(15:55:59) - time!(20:38:14),
-        Interval::default().with_hours(-4).with_minutes(-42).with_seconds(-15)
+        (-4).hours() + (-42).minutes() + (-15).seconds()
     );
     assert_eq!(
         time!(4:35:9) - time!(1:11:15),
-        Interval::default().with_hours(3).with_minutes(23).with_seconds(54)
+        (3).hours() + (23).minutes() + (54).seconds()
     );
     assert_eq!(
         time!(11:42:55) - time!(9:2:58),
-        Interval::default().with_hours(2).with_minutes(39).with_seconds(57)
+        (2).hours() + (39).minutes() + (57).seconds()
     );
     assert_eq!(
         time!(1:27:3) - time!(14:34:17),
-        Interval::default().with_hours(-13).with_minutes(-7).with_seconds(-14)
+        (-13).hours() + (-7).minutes() + (-14).seconds()
     );
     assert_eq!(
         time!(16:8:54) - time!(6:30:51),
-        Interval::default().with_hours(9).with_minutes(38).with_seconds(3)
+        (9).hours() + (38).minutes() + (3).seconds()
     );
     assert_eq!(
         time!(20:58:7) - time!(3:6:19),
-        Interval::default().with_hours(17).with_minutes(51).with_seconds(48)
+        (17).hours() + (51).minutes() + (48).seconds()
     );
     assert_eq!(
         time!(3:10:20) - time!(22:12:17),
-        Interval::default().with_hours(-19).with_minutes(-1).with_seconds(-57)
+        (-19).hours() + (-1).minutes() + (-57).seconds()
     );
     assert_eq!(
         time!(10:29:21) - time!(0:45:26),
-        Interval::default().with_hours(9).with_minutes(43).with_seconds(55)
+        (9).hours() + (43).minutes() + (55).seconds()
     );
     assert_eq!(
         time!(18:53:42) - time!(21:32:33),
-        Interval::default().with_hours(-2).with_minutes(-38).with_seconds(-51)
+        (-2).hours() + (-38).minutes() + (-51).seconds()
     );
     assert_eq!(
         time!(17:22:25) - time!(3:36:17),
-        Interval::default().with_hours(13).with_minutes(46).with_seconds(8)
+        (13).hours() + (46).minutes() + (8).seconds()
     );
     assert_eq!(
         time!(18:17:37) - time!(20:41:24),
-        Interval::default().with_hours(-2).with_minutes(-23).with_seconds(-47)
+        (-2).hours() + (-23).minutes() + (-47).seconds()
     );
     assert_eq!(
         time!(22:14:39) - time!(19:53:36),
-        Interval::default().with_hours(2).with_minutes(21).with_seconds(3)
+        (2).hours() + (21).minutes() + (3).seconds()
     );
     assert_eq!(
         time!(22:21:31) - time!(11:30:57),
-        Interval::default().with_hours(10).with_minutes(50).with_seconds(34)
+        (10).hours() + (50).minutes() + (34).seconds()
     );
     assert_eq!(
         time!(1:30:29) - time!(23:27:35),
-        Interval::default().with_hours(-21).with_minutes(-57).with_seconds(-6)
+        (-21).hours() + (-57).minutes() + (-6).seconds()
     );
 }
 
@@ -667,384 +643,163 @@ fn diff_between_times() {
 fn diff_between_datetimes() {
     assert_eq!(
         datetime!(2049-11-30 19:51:39) - datetime!(1247-6-30 18:31:7),
-        Interval::default()
-            .with_years(802)
-            .with_months(5)
-            .with_hours(1)
-            .with_minutes(20)
-            .with_seconds(32)
+        (802).years() + (5).months() + (1).hours() + (20).minutes() + (32).seconds()
     );
     assert_eq!(
         datetime!(1826-6-30 11:14:55) - datetime!(1521-11-30 14:58:52),
-        Interval::default()
-            .with_years(304)
-            .with_months(6)
-            .with_days(30)
-            .with_hours(20)
-            .with_minutes(16)
-            .with_seconds(3)
+        (304).years() + (6).months() + (30).days() + (20).hours() + (16).minutes() + (3).seconds()
     );
     assert_eq!(
         datetime!(1191-7-31 17:57:28) - datetime!(530-12-31 23:24:27),
-        Interval::default()
-            .with_years(660)
-            .with_months(6)
-            .with_days(30)
-            .with_hours(18)
-            .with_minutes(33)
-            .with_seconds(1)
+        (660).years() + (6).months() + (30).days() + (18).hours() + (33).minutes() + (1).seconds()
     );
     assert_eq!(
         datetime!(1768-2-29 13:20:33) - datetime!(612-12-31 16:15:22),
-        Interval::default()
-            .with_years(1155)
-            .with_months(1)
-            .with_days(28)
-            .with_hours(21)
-            .with_minutes(5)
-            .with_seconds(11)
+        (1155).years() + (1).months() + (28).days() + (21).hours() + (5).minutes() + (11).seconds()
     );
     assert_eq!(
         datetime!(1378-8-31 9:29:4) - datetime!(1601-5-31 0:12:43),
-        Interval::default()
-            .with_years(-222)
-            .with_months(-8)
-            .with_days(-29)
-            .with_hours(-14)
-            .with_minutes(-43)
-            .with_seconds(-39)
+        (-222).years() + (-8).months() + (-29).days() + (-14).hours() + (-43).minutes() + (-39).seconds()
     );
     assert_eq!(
         datetime!(1086-7-31 1:31:2) - datetime!(108-12-31 20:46:43),
-        Interval::default()
-            .with_years(977)
-            .with_months(6)
-            .with_days(30)
-            .with_hours(4)
-            .with_minutes(44)
-            .with_seconds(19)
+        (977).years() + (6).months() + (30).days() + (4).hours() + (44).minutes() + (19).seconds()
     );
     assert_eq!(
         datetime!(166-12-31 15:2:32) - datetime!(213-2-28 20:57:16),
-        Interval::default()
-            .with_years(-46)
-            .with_months(-1)
-            .with_days(-28)
-            .with_hours(-5)
-            .with_minutes(-54)
-            .with_seconds(-44)
+        (-46).years() + (-1).months() + (-28).days() + (-5).hours() + (-54).minutes() + (-44).seconds()
     );
     assert_eq!(
         datetime!(1191-9-30 11:35:53) - datetime!(321-6-30 0:4:34),
-        Interval::default()
-            .with_years(870)
-            .with_months(3)
-            .with_hours(11)
-            .with_minutes(31)
-            .with_seconds(19)
+        (870).years() + (3).months() + (11).hours() + (31).minutes() + (19).seconds()
     );
     assert_eq!(
         datetime!(1384-8-31 23:24:41) - datetime!(307-3-31 21:40:56),
-        Interval::default()
-            .with_years(1077)
-            .with_months(5)
-            .with_hours(1)
-            .with_minutes(43)
-            .with_seconds(45)
+        (1077).years() + (5).months() + (1).hours() + (43).minutes() + (45).seconds()
     );
     assert_eq!(
         datetime!(1673-12-31 23:24:50) - datetime!(1422-9-30 5:53:12),
-        Interval::default()
-            .with_years(251)
-            .with_months(3)
-            .with_days(1)
-            .with_hours(17)
-            .with_minutes(31)
-            .with_seconds(38)
+        (251).years() + (3).months() + (1).days() + (17).hours() + (31).minutes() + (38).seconds()
     );
     assert_eq!(
         datetime!(1145-12-31 7:24:7) - datetime!(788-10-31 5:37:18),
-        Interval::default()
-            .with_years(357)
-            .with_months(2)
-            .with_hours(1)
-            .with_minutes(46)
-            .with_seconds(49)
+        (357).years() + (2).months() + (1).hours() + (46).minutes() + (49).seconds()
     );
     assert_eq!(
         datetime!(639-11-30 15:3:39) - datetime!(1103-12-31 9:23:21),
-        Interval::default()
-            .with_years(-464)
-            .with_days(-30)
-            .with_hours(-18)
-            .with_minutes(-19)
-            .with_seconds(-42)
+        (-464).years() + (-30).days() + (-18).hours() + (-19).minutes() + (-42).seconds()
     );
     assert_eq!(
         datetime!(174-2-28 12:23:17) - datetime!(1140-4-30 5:42:59),
-        Interval::default()
-            .with_years(-966)
-            .with_months(-1)
-            .with_days(-29)
-            .with_hours(-17)
-            .with_minutes(-19)
-            .with_seconds(-42)
+        (-966).years() + (-1).months() + (-29).days() + (-17).hours() + (-19).minutes() + (-42).seconds()
     );
     assert_eq!(
         datetime!(1089-7-31 5:24:26) - datetime!(1058-3-31 11:14:1),
-        Interval::default()
-            .with_years(31)
-            .with_months(3)
-            .with_days(30)
-            .with_hours(18)
-            .with_minutes(10)
-            .with_seconds(25)
+        (31).years() + (3).months() + (30).days() + (18).hours() + (10).minutes() + (25).seconds()
     );
     assert_eq!(
         datetime!(386-7-31 19:5:15) - datetime!(1652-5-31 14:15:16),
-        Interval::default()
-            .with_years(-1265)
-            .with_months(-9)
-            .with_days(-30)
-            .with_hours(-19)
-            .with_minutes(-10)
-            .with_seconds(-1)
+        (-1265).years() + (-9).months() + (-30).days() + (-19).hours() + (-10).minutes() + (-1).seconds()
     );
     assert_eq!(
         datetime!(39-7-31 0:27:35) - datetime!(1705-8-31 13:17:34),
-        Interval::default()
-            .with_years(-1666)
-            .with_months(-1)
-            .with_hours(-12)
-            .with_minutes(-49)
-            .with_seconds(-59)
+        (-1666).years() + (-1).months() + (-12).hours() + (-49).minutes() + (-59).seconds()
     );
     assert_eq!(
         datetime!(199-11-30 14:46:55) - datetime!(1250-3-31 11:8:7),
-        Interval::default()
-            .with_years(-1050)
-            .with_months(-3)
-            .with_days(-30)
-            .with_hours(-20)
-            .with_minutes(-21)
-            .with_seconds(-12)
+        (-1050).years() + (-3).months() + (-30).days() + (-20).hours() + (-21).minutes() + (-12).seconds()
     );
     assert_eq!(
         datetime!(210-5-31 5:35:51) - datetime!(1139-8-31 1:23:44),
-        Interval::default()
-            .with_years(-929)
-            .with_months(-2)
-            .with_days(-29)
-            .with_hours(-19)
-            .with_minutes(-47)
-            .with_seconds(-53)
+        (-929).years() + (-2).months() + (-29).days() + (-19).hours() + (-47).minutes() + (-53).seconds()
     );
     assert_eq!(
         datetime!(1427-8-31 4:35:58) - datetime!(989-3-31 18:14:33),
-        Interval::default()
-            .with_years(438)
-            .with_months(4)
-            .with_days(30)
-            .with_hours(10)
-            .with_minutes(21)
-            .with_seconds(25)
+        (438).years() + (4).months() + (30).days() + (10).hours() + (21).minutes() + (25).seconds()
     );
     assert_eq!(
         datetime!(677-3-31 23:25:27) - datetime!(1952-12-31 7:27:0),
-        Interval::default()
-            .with_years(-1275)
-            .with_months(-8)
-            .with_days(-29)
-            .with_hours(-8)
-            .with_minutes(-1)
-            .with_seconds(-33)
+        (-1275).years() + (-8).months() + (-29).days() + (-8).hours() + (-1).minutes() + (-33).seconds()
     );
     assert_eq!(
         datetime!(72-5-31 15:47:33) - datetime!(142-7-31 16:37:42),
-        Interval::default()
-            .with_years(-70)
-            .with_months(-2)
-            .with_minutes(-50)
-            .with_seconds(-9)
+        (-70).years() + (-2).months() + (-50).minutes() + (-9).seconds()
     );
     assert_eq!(
         datetime!(1569-4-30 6:46:1) - datetime!(1557-1-31 14:19:0),
-        Interval::default()
-            .with_years(12)
-            .with_months(2)
-            .with_days(29)
-            .with_hours(16)
-            .with_minutes(27)
-            .with_seconds(1)
+        (12).years() + (2).months() + (29).days() + (16).hours() + (27).minutes() + (1).seconds()
     );
     assert_eq!(
         datetime!(671-7-31 7:59:36) - datetime!(137-3-31 2:40:53),
-        Interval::default()
-            .with_years(534)
-            .with_months(4)
-            .with_hours(5)
-            .with_minutes(18)
-            .with_seconds(43)
+        (534).years() + (4).months() + (5).hours() + (18).minutes() + (43).seconds()
     );
     assert_eq!(
         datetime!(828-9-30 1:13:15) - datetime!(948-7-31 22:19:5),
-        Interval::default()
-            .with_years(-119)
-            .with_months(-10)
-            .with_hours(-21)
-            .with_minutes(-5)
-            .with_seconds(-50)
+        (-119).years() + (-10).months() + (-21).hours() + (-5).minutes() + (-50).seconds()
     );
     assert_eq!(
         datetime!(2027-11-30 2:41:32) - datetime!(237-7-31 23:42:54),
-        Interval::default()
-            .with_years(1790)
-            .with_months(3)
-            .with_days(29)
-            .with_hours(2)
-            .with_minutes(58)
-            .with_seconds(38)
+        (1790).years() + (3).months() + (29).days() + (2).hours() + (58).minutes() + (38).seconds()
     );
     assert_eq!(
         datetime!(671-6-30 5:43:54) - datetime!(398-1-31 1:22:39),
-        Interval::default()
-            .with_years(273)
-            .with_months(5)
-            .with_hours(4)
-            .with_minutes(21)
-            .with_seconds(15)
+        (273).years() + (5).months() + (4).hours() + (21).minutes() + (15).seconds()
     );
     assert_eq!(
         datetime!(1238-6-30 10:28:40) - datetime!(1073-11-30 10:45:51),
-        Interval::default()
-            .with_years(164)
-            .with_months(6)
-            .with_days(30)
-            .with_hours(23)
-            .with_minutes(42)
-            .with_seconds(49)
+        (164).years() + (6).months() + (30).days() + (23).hours() + (42).minutes() + (49).seconds()
     );
     assert_eq!(
         datetime!(389-2-28 13:2:18) - datetime!(1174-1-31 1:34:9),
-        Interval::default()
-            .with_years(-784)
-            .with_months(-10)
-            .with_days(-30)
-            .with_hours(-12)
-            .with_minutes(-31)
-            .with_seconds(-51)
+        (-784).years() + (-10).months() + (-30).days() + (-12).hours() + (-31).minutes() + (-51).seconds()
     );
     assert_eq!(
         datetime!(1522-6-30 6:58:44) - datetime!(834-10-31 4:14:6),
-        Interval::default()
-            .with_years(687)
-            .with_months(8)
-            .with_hours(2)
-            .with_minutes(44)
-            .with_seconds(38)
+        (687).years() + (8).months() + (2).hours() + (44).minutes() + (38).seconds()
     );
     assert_eq!(
         datetime!(731-12-31 17:36:52) - datetime!(1729-2-28 5:47:40),
-        Interval::default()
-            .with_years(-997)
-            .with_months(-1)
-            .with_days(-27)
-            .with_hours(-12)
-            .with_minutes(-10)
-            .with_seconds(-48)
+        (-997).years() + (-1).months() + (-27).days() + (-12).hours() + (-10).minutes() + (-48).seconds()
     );
     assert_eq!(
         datetime!(458-6-30 22:21:7) - datetime!(1575-5-31 21:24:59),
-        Interval::default()
-            .with_years(-1116)
-            .with_months(-10)
-            .with_days(-30)
-            .with_hours(-23)
-            .with_minutes(-3)
-            .with_seconds(-52)
+        (-1116).years() + (-10).months() + (-30).days() + (-23).hours() + (-3).minutes() + (-52).seconds()
     );
     assert_eq!(
         datetime!(878-3-31 17:12:50) - datetime!(1595-9-30 10:31:53),
-        Interval::default()
-            .with_years(-717)
-            .with_months(-5)
-            .with_days(-29)
-            .with_hours(-17)
-            .with_minutes(-19)
-            .with_seconds(-3)
+        (-717).years() + (-5).months() + (-29).days() + (-17).hours() + (-19).minutes() + (-3).seconds()
     );
     assert_eq!(
         datetime!(1545-1-31 15:52:59) - datetime!(1671-12-31 17:16:24),
-        Interval::default()
-            .with_years(-126)
-            .with_months(-11)
-            .with_hours(-1)
-            .with_minutes(-23)
-            .with_seconds(-25)
+        (-126).years() + (-11).months() + (-1).hours() + (-23).minutes() + (-25).seconds()
     );
     assert_eq!(
         datetime!(333-10-31 23:29:51) - datetime!(206-8-31 22:8:25),
-        Interval::default()
-            .with_years(127)
-            .with_months(2)
-            .with_hours(1)
-            .with_minutes(21)
-            .with_seconds(26)
+        (127).years() + (2).months() + (1).hours() + (21).minutes() + (26).seconds()
     );
     assert_eq!(
         datetime!(630-2-28 0:16:53) - datetime!(1941-8-31 10:19:3),
-        Interval::default()
-            .with_years(-1311)
-            .with_months(-6)
-            .with_hours(-10)
-            .with_minutes(-2)
-            .with_seconds(-10)
+        (-1311).years() + (-6).months() + (-10).hours() + (-2).minutes() + (-10).seconds()
     );
     assert_eq!(
         datetime!(1121-9-30 18:1:43) - datetime!(274-1-31 4:0:20),
-        Interval::default()
-            .with_years(847)
-            .with_months(8)
-            .with_hours(14)
-            .with_minutes(1)
-            .with_seconds(23)
+        (847).years() + (8).months() + (14).hours() + (1).minutes() + (23).seconds()
     );
     assert_eq!(
         datetime!(1084-6-30 17:22:19) - datetime!(460-3-31 18:54:27),
-        Interval::default()
-            .with_years(624)
-            .with_months(2)
-            .with_days(29)
-            .with_hours(22)
-            .with_minutes(27)
-            .with_seconds(52)
+        (624).years() + (2).months() + (29).days() + (22).hours() + (27).minutes() + (52).seconds()
     );
     assert_eq!(
         datetime!(1211-3-31 2:37:40) - datetime!(676-11-30 8:45:55),
-        Interval::default()
-            .with_years(534)
-            .with_months(4)
-            .with_hours(17)
-            .with_minutes(51)
-            .with_seconds(45)
+        (534).years() + (4).months() + (17).hours() + (51).minutes() + (45).seconds()
     );
     assert_eq!(
         datetime!(218-6-30 15:10:51) - datetime!(1872-1-31 12:36:34),
-        Interval::default()
-            .with_years(-1653)
-            .with_months(-6)
-            .with_days(-30)
-            .with_hours(-21)
-            .with_minutes(-25)
-            .with_seconds(-43)
+        (-1653).years() + (-6).months() + (-30).days() + (-21).hours() + (-25).minutes() + (-43).seconds()
     );
     assert_eq!(
         datetime!(152-5-31 12:42:17) - datetime!(1906-5-31 18:18:52),
-        Interval::default()
-            .with_years(-1754)
-            .with_hours(-5)
-            .with_minutes(-36)
-            .with_seconds(-35)
+        (-1754).years() + (-5).hours() + (-36).minutes() + (-35).seconds()
     );
 }
 
@@ -1052,385 +807,162 @@ fn diff_between_datetimes() {
 fn diff_between_different_offset_datetimes() {
     assert_eq!(
         datetime!(1604-2-29 17:59:39 -14:20) - datetime!(987-8-31 14:47:0 +11:30),
-        Interval::default()
-            .with_years(616)
-            .with_months(6)
-            .with_days(1)
-            .with_hours(5)
-            .with_minutes(2)
-            .with_seconds(39)
+        (616).years() + (6).months() + (1).days() + (5).hours() + (2).minutes() + (39).seconds()
     );
     assert_eq!(
         datetime!(1132-9-30 13:24:47 -10:20) - datetime!(941-1-31 16:45:27 +16:00),
-        Interval::default()
-            .with_years(191)
-            .with_months(8)
-            .with_hours(22)
-            .with_minutes(59)
-            .with_seconds(20)
+        (191).years() + (8).months() + (22).hours() + (59).minutes() + (20).seconds()
     );
     assert_eq!(
         datetime!(1513-1-31 8:52:21 -08:35) - datetime!(597-12-31 16:38:22 +11:25),
-        Interval::default()
-            .with_years(915)
-            .with_months(1)
-            .with_hours(12)
-            .with_minutes(13)
-            .with_seconds(59)
+        (915).years() + (1).months() + (12).hours() + (13).minutes() + (59).seconds()
     );
     assert_eq!(
         datetime!(703-2-28 2:51:22 +03:45) - datetime!(444-6-30 4:34:21 +09:25),
-        Interval::default()
-            .with_years(258)
-            .with_months(8)
-            .with_hours(3)
-            .with_minutes(57)
-            .with_seconds(1)
+        (258).years() + (8).months() + (3).hours() + (57).minutes() + (1).seconds()
     );
     assert_eq!(
         datetime!(670-12-31 10:19:43 +10:10) - datetime!(75-7-31 14:2:0 -14:25),
-        Interval::default()
-            .with_years(595)
-            .with_months(4)
-            .with_days(29)
-            .with_hours(19)
-            .with_minutes(42)
-            .with_seconds(43)
+        (595).years() + (4).months() + (29).days() + (19).hours() + (42).minutes() + (43).seconds()
     );
     assert_eq!(
         datetime!(173-3-31 16:23:42 -19:05) - datetime!(613-8-31 16:39:50 +16:25),
-        Interval::default()
-            .with_years(-440)
-            .with_months(-4)
-            .with_days(-28)
-            .with_hours(-12)
-            .with_minutes(-46)
-            .with_seconds(-8)
+        (-440).years() + (-4).months() + (-28).days() + (-12).hours() + (-46).minutes() + (-8).seconds()
     );
     assert_eq!(
         datetime!(15-9-30 9:3:2 +18:30) - datetime!(899-10-31 22:16:51 +13:15),
-        Interval::default()
-            .with_years(-884)
-            .with_months(-1)
-            .with_hours(-18)
-            .with_minutes(-28)
-            .with_seconds(-49)
+        (-884).years() + (-1).months() + (-18).hours() + (-28).minutes() + (-49).seconds()
     );
     assert_eq!(
         datetime!(877-3-31 17:54:21 +13:40) - datetime!(1609-2-28 21:29:7 +20:35),
-        Interval::default()
-            .with_years(-731)
-            .with_months(-10)
-            .with_days(-27)
-            .with_hours(-20)
-            .with_minutes(-39)
-            .with_seconds(-46)
+        (-731).years() + (-10).months() + (-27).days() + (-20).hours() + (-39).minutes() + (-46).seconds()
     );
     assert_eq!(
         datetime!(404-3-31 16:6:38 -10:00) - datetime!(169-4-30 9:43:34 -09:05),
-        Interval::default()
-            .with_years(234)
-            .with_months(11)
-            .with_days(1)
-            .with_hours(7)
-            .with_minutes(18)
-            .with_seconds(4)
+        (234).years() + (11).months() + (1).days() + (7).hours() + (18).minutes() + (4).seconds()
     );
     assert_eq!(
         datetime!(640-12-31 15:18:5 +20:00) - datetime!(534-3-31 7:14:37 -07:20),
-        Interval::default()
-            .with_years(106)
-            .with_months(8)
-            .with_days(30)
-            .with_hours(4)
-            .with_minutes(43)
-            .with_seconds(28)
+        (106).years() + (8).months() + (30).days() + (4).hours() + (43).minutes() + (28).seconds()
     );
     assert_eq!(
         datetime!(293-10-31 12:20:53 -08:15) - datetime!(442-12-31 16:34:7 -15:40),
-        Interval::default()
-            .with_years(-149)
-            .with_months(-2)
-            .with_hours(-11)
-            .with_minutes(-38)
-            .with_seconds(-14)
+        (-149).years() + (-2).months() + (-11).hours() + (-38).minutes() + (-14).seconds()
     );
     assert_eq!(
         datetime!(1489-11-30 5:32:19 +22:35) - datetime!(1352-5-31 18:40:46 +12:30),
-        Interval::default()
-            .with_years(137)
-            .with_months(5)
-            .with_days(29)
-            .with_minutes(46)
-            .with_seconds(33)
+        (137).years() + (5).months() + (29).days() + (46).minutes() + (33).seconds()
     );
     assert_eq!(
         datetime!(402-4-30 6:32:46 -13:10) - datetime!(2035-9-30 2:21:48 -17:45),
-        Interval::default()
-            .with_years(-1633)
-            .with_months(-5)
-            .with_minutes(-24)
-            .with_seconds(-2)
+        (-1633).years() + (-5).months() + (-24).minutes() + (-2).seconds()
     );
     assert_eq!(
         datetime!(1128-12-31 11:14:18 +18:05) - datetime!(1547-4-30 16:49:27 +20:45),
-        Interval::default()
-            .with_years(-418)
-            .with_months(-3)
-            .with_days(-30)
-            .with_hours(-2)
-            .with_minutes(-55)
-            .with_seconds(-9)
+        (-418).years() + (-3).months() + (-30).days() + (-2).hours() + (-55).minutes() + (-9).seconds()
     );
     assert_eq!(
         datetime!(69-7-31 1:45:59 +16:15) - datetime!(311-6-30 12:33:13 -06:45),
-        Interval::default()
-            .with_years(-241)
-            .with_months(-11)
-            .with_hours(-9)
-            .with_minutes(-47)
-            .with_seconds(-14)
+        (-241).years() + (-11).months() + (-9).hours() + (-47).minutes() + (-14).seconds()
     );
     assert_eq!(
         datetime!(869-2-28 9:26:44 +14:10) - datetime!(1856-10-31 9:31:19 -19:40),
-        Interval::default()
-            .with_years(-987)
-            .with_months(-8)
-            .with_days(-1)
-            .with_hours(-9)
-            .with_minutes(-54)
-            .with_seconds(-35)
+        (-987).years() + (-8).months() + (-1).days() + (-9).hours() + (-54).minutes() + (-35).seconds()
     );
     assert_eq!(
         datetime!(2040-3-31 3:24:17 +13:20) - datetime!(1827-5-31 12:38:57 +14:20),
-        Interval::default()
-            .with_years(212)
-            .with_months(9)
-            .with_days(30)
-            .with_hours(15)
-            .with_minutes(45)
-            .with_seconds(20)
+        (212).years() + (9).months() + (30).days() + (15).hours() + (45).minutes() + (20).seconds()
     );
     assert_eq!(
         datetime!(171-10-31 4:12:47 -14:35) - datetime!(538-3-31 19:39:23 +10:35),
-        Interval::default()
-            .with_years(-366)
-            .with_months(-4)
-            .with_days(-29)
-            .with_hours(-14)
-            .with_minutes(-16)
-            .with_seconds(-36)
+        (-366).years() + (-4).months() + (-29).days() + (-14).hours() + (-16).minutes() + (-36).seconds()
     );
     assert_eq!(
         datetime!(1079-8-31 15:45:42 -13:05) - datetime!(1096-6-30 23:22:35 -23:20),
-        Interval::default()
-            .with_years(-16)
-            .with_months(-9)
-            .with_days(-30)
-            .with_hours(-17)
-            .with_minutes(-51)
-            .with_seconds(-53)
+        (-16).years() + (-9).months() + (-30).days() + (-17).hours() + (-51).minutes() + (-53).seconds()
     );
     assert_eq!(
         datetime!(539-3-31 1:21:43 -05:30) - datetime!(854-1-31 11:56:58 -14:10),
-        Interval::default()
-            .with_years(-314)
-            .with_months(-10)
-            .with_hours(-19)
-            .with_minutes(-15)
-            .with_seconds(-15)
+        (-314).years() + (-10).months() + (-19).hours() + (-15).minutes() + (-15).seconds()
     );
     assert_eq!(
         datetime!(99-7-31 3:48:31 +04:40) - datetime!(129-6-30 10:34:25 +03:20),
-        Interval::default()
-            .with_years(-29)
-            .with_months(-10)
-            .with_days(-30)
-            .with_hours(-8)
-            .with_minutes(-5)
-            .with_seconds(-54)
+        (-29).years() + (-10).months() + (-30).days() + (-8).hours() + (-5).minutes() + (-54).seconds()
     );
     assert_eq!(
         datetime!(1190-10-31 14:10:29 -17:25) - datetime!(1278-11-30 18:26:55 -15:10),
-        Interval::default()
-            .with_years(-88)
-            .with_days(-30)
-            .with_hours(-2)
-            .with_minutes(-1)
-            .with_seconds(-26)
+        (-88).years() + (-30).days() + (-2).hours() + (-1).minutes() + (-26).seconds()
     );
     assert_eq!(
         datetime!(695-4-30 7:37:50 +13:45) - datetime!(673-9-30 4:12:56 +15:15),
-        Interval::default()
-            .with_years(21)
-            .with_months(7)
-            .with_hours(4)
-            .with_minutes(54)
-            .with_seconds(54)
+        (21).years() + (7).months() + (4).hours() + (54).minutes() + (54).seconds()
     );
     assert_eq!(
         datetime!(1180-9-30 15:48:47 +14:10) - datetime!(628-1-31 6:55:35 +14:20),
-        Interval::default()
-            .with_years(552)
-            .with_months(8)
-            .with_hours(9)
-            .with_minutes(3)
-            .with_seconds(12)
+        (552).years() + (8).months() + (9).hours() + (3).minutes() + (12).seconds()
     );
     assert_eq!(
         datetime!(1763-10-31 3:15:31 +13:35) - datetime!(790-1-31 13:46:6 -12:35),
-        Interval::default()
-            .with_years(973)
-            .with_months(8)
-            .with_days(29)
-            .with_hours(11)
-            .with_minutes(19)
-            .with_seconds(25)
+        (973).years() + (8).months() + (29).days() + (11).hours() + (19).minutes() + (25).seconds()
     );
     assert_eq!(
         datetime!(993-1-31 3:54:26 -04:10) - datetime!(1349-7-31 5:45:34 +12:55),
-        Interval::default()
-            .with_years(-356)
-            .with_months(-5)
-            .with_days(-27)
-            .with_hours(-8)
-            .with_minutes(-46)
-            .with_seconds(-8)
+        (-356).years() + (-5).months() + (-27).days() + (-8).hours() + (-46).minutes() + (-8).seconds()
     );
     assert_eq!(
         datetime!(1906-10-31 17:45:41 -16:25) - datetime!(1484-11-30 21:52:55 -00:50),
-        Interval::default()
-            .with_years(421)
-            .with_months(11)
-            .with_days(1)
-            .with_hours(11)
-            .with_minutes(27)
-            .with_seconds(46)
+        (421).years() + (11).months() + (1).days() + (11).hours() + (27).minutes() + (46).seconds()
     );
     assert_eq!(
         datetime!(1435-10-31 15:54:22 +06:05) - datetime!(1663-10-31 12:11:51 +10:25),
-        Interval::default()
-            .with_years(-227)
-            .with_months(-11)
-            .with_days(-29)
-            .with_hours(-15)
-            .with_minutes(-57)
-            .with_seconds(-29)
+        (-227).years() + (-11).months() + (-29).days() + (-15).hours() + (-57).minutes() + (-29).seconds()
     );
     assert_eq!(
         datetime!(2001-8-31 8:50:49 +20:10) - datetime!(1955-2-28 20:2:29 +06:45),
-        Interval::default()
-            .with_years(46)
-            .with_months(6)
-            .with_days(1)
-            .with_hours(23)
-            .with_minutes(23)
-            .with_seconds(20)
+        (46).years() + (6).months() + (1).days() + (23).hours() + (23).minutes() + (20).seconds()
     );
     assert_eq!(
         datetime!(1293-12-31 4:23:27 -22:15) - datetime!(150-11-30 8:17:8 -00:15),
-        Interval::default()
-            .with_years(1143)
-            .with_months(1)
-            .with_days(1)
-            .with_hours(18)
-            .with_minutes(6)
-            .with_seconds(19)
+        (1143).years() + (1).months() + (1).days() + (18).hours() + (6).minutes() + (19).seconds()
     );
     assert_eq!(
         datetime!(2007-2-28 11:38:41 -20:25) - datetime!(2047-10-31 23:5:51 -03:20),
-        Interval::default()
-            .with_years(-40)
-            .with_months(-7)
-            .with_days(-30)
-            .with_hours(-18)
-            .with_minutes(-22)
-            .with_seconds(-10)
+        (-40).years() + (-7).months() + (-30).days() + (-18).hours() + (-22).minutes() + (-10).seconds()
     );
     assert_eq!(
         datetime!(495-5-31 11:18:31 -15:00) - datetime!(1084-6-30 23:17:53 -08:55),
-        Interval::default()
-            .with_years(-589)
-            .with_days(-30)
-            .with_hours(-5)
-            .with_minutes(-54)
-            .with_seconds(-22)
+        (-589).years() + (-30).days() + (-5).hours() + (-54).minutes() + (-22).seconds()
     );
     assert_eq!(
         datetime!(1659-1-31 0:54:20 -17:15) - datetime!(239-3-31 19:17:2 +09:40),
-        Interval::default()
-            .with_years(1419)
-            .with_months(10)
-            .with_hours(8)
-            .with_minutes(32)
-            .with_seconds(18)
+        (1419).years() + (10).months() + (8).hours() + (32).minutes() + (18).seconds()
     );
     assert_eq!(
         datetime!(1401-2-28 6:6:15 -17:00) - datetime!(907-11-30 16:52:52 -00:30),
-        Interval::default()
-            .with_years(493)
-            .with_months(3)
-            .with_hours(5)
-            .with_minutes(43)
-            .with_seconds(23)
+        (493).years() + (3).months() + (5).hours() + (43).minutes() + (23).seconds()
     );
     assert_eq!(
         datetime!(605-4-30 10:16:3 -09:30) - datetime!(1615-6-30 15:39:33 +09:15),
-        Interval::default()
-            .with_years(-1010)
-            .with_months(-1)
-            .with_days(-29)
-            .with_hours(-10)
-            .with_minutes(-38)
-            .with_seconds(-30)
+        (-1010).years() + (-1).months() + (-29).days() + (-10).hours() + (-38).minutes() + (-30).seconds()
     );
     assert_eq!(
         datetime!(1353-11-30 9:15:32 -21:55) - datetime!(1341-6-30 16:30:45 -19:00),
-        Interval::default()
-            .with_years(12)
-            .with_months(4)
-            .with_days(30)
-            .with_hours(19)
-            .with_minutes(39)
-            .with_seconds(47)
+        (12).years() + (4).months() + (30).days() + (19).hours() + (39).minutes() + (47).seconds()
     );
     assert_eq!(
         datetime!(967-9-30 5:6:10 +06:45) - datetime!(929-12-31 15:26:30 -11:05),
-        Interval::default()
-            .with_years(37)
-            .with_months(8)
-            .with_days(28)
-            .with_hours(19)
-            .with_minutes(49)
-            .with_seconds(40)
+        (37).years() + (8).months() + (28).days() + (19).hours() + (49).minutes() + (40).seconds()
     );
     assert_eq!(
         datetime!(336-12-31 16:11:39 +07:20) - datetime!(1696-8-31 15:18:23 -01:25),
-        Interval::default()
-            .with_years(-1359)
-            .with_months(-8)
-            .with_hours(-7)
-            .with_minutes(-51)
-            .with_seconds(-44)
+        (-1359).years() + (-8).months() + (-7).hours() + (-51).minutes() + (-44).seconds()
     );
     assert_eq!(
         datetime!(1211-1-31 12:38:44 +12:50) - datetime!(1382-3-31 4:5:59 -23:25),
-        Interval::default()
-            .with_years(-171)
-            .with_months(-2)
-            .with_days(-1)
-            .with_hours(-3)
-            .with_minutes(-42)
-            .with_seconds(-15)
+        (-171).years() + (-2).months() + (-1).days() + (-3).hours() + (-42).minutes() + (-15).seconds()
     );
     assert_eq!(
         datetime!(718-6-30 7:8:5 -20:15) - datetime!(920-6-30 3:51:19 +08:45),
-        Interval::default()
-            .with_years(-201)
-            .with_months(-11)
-            .with_days(-28)
-            .with_hours(-15)
-            .with_minutes(-43)
-            .with_seconds(-14)
+        (-201).years() + (-11).months() + (-28).days() + (-15).hours() + (-43).minutes() + (-14).seconds()
     );
 }

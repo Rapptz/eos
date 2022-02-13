@@ -31,7 +31,6 @@ mod private {
 /// assert_eq!(10.seconds(), Interval::from_seconds(10));
 /// assert_eq!(10.milliseconds(), Interval::from_milliseconds(10));
 /// assert_eq!(10.microseconds(), Interval::from_microseconds(10));
-/// assert_eq!(10.nanoseconds(), Interval::from_nanoseconds(10));
 /// ```
 ///
 /// Negative numbers:
@@ -47,15 +46,14 @@ mod private {
 /// assert_eq!((-10).seconds(), Interval::from_seconds(-10));
 /// assert_eq!((-10).milliseconds(), Interval::from_milliseconds(-10));
 /// assert_eq!((-10).microseconds(), Interval::from_microseconds(-10));
-/// assert_eq!((-10).nanoseconds(), Interval::from_nanoseconds(-10));
 /// ```
 ///
 /// Arithmetic:
 ///
 /// ```rust
 /// use eos::{Interval, ext::IntervalLiteral};
-/// assert_eq!(1.years() + 3.months(), Interval::from_years(1).with_months(3));
-/// assert_eq!(10.seconds() + 500.milliseconds(), Interval::from_seconds(10).with_milliseconds(500));
+/// assert_eq!(1.years() + 3.months(), Interval::from_years(1) + Interval::from_months(3));
+/// assert_eq!(10.seconds() + 500.milliseconds(), Interval::from_seconds(10) + Interval::from_milliseconds(500));
 /// ```
 pub trait IntervalLiteral: private::Sealed {
     /// Creates a [`Interval`] representing the specified number of years.
@@ -84,9 +82,6 @@ pub trait IntervalLiteral: private::Sealed {
 
     /// Creates a [`Interval`] representing the specified number of microseconds.
     fn microseconds(self) -> Interval;
-
-    /// Creates a [`Interval`] representing the specified number of nanoseconds.
-    fn nanoseconds(self) -> Interval;
 }
 
 macro_rules! impl_for_literal {
@@ -137,14 +132,9 @@ macro_rules! impl_for_literal {
                 fn microseconds(self) -> Interval {
                     Interval::from_microseconds(self as _)
                 }
-
-                #[inline]
-                fn nanoseconds(self) -> Interval {
-                    Interval::from_nanoseconds(self as _)
-                }
             }
         )+
     };
 }
 
-impl_for_literal!(i64 u64 i32 u32);
+impl_for_literal!(i32);
