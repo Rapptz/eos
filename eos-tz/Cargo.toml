@@ -7,7 +7,7 @@ rust-version = "1.57"
 description = "IANA database TimeZone extension for eos"
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/Rapptz/eos"
+repository = "https://github.com/Rapptz/eos/tree/master/eos-tz"
 keywords = ["date", "time", "timezone", "tzdb"]
 categories = ["date-and-time"]
 
