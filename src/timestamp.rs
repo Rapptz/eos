@@ -156,8 +156,8 @@ impl Timestamp {
     }
 }
 
-impl std::fmt::Debug for Timestamp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for Timestamp {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if self.nanoseconds == 0 {
             f.debug_tuple("Timestamp").field(&self.seconds).finish()
         } else {

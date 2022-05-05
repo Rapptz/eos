@@ -1,14 +1,17 @@
+use core::fmt::Write;
 use core::{
     cmp::Ordering,
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     time::Duration,
 };
-use std::fmt::Write;
 
 use crate::{
     utils::{divmod, divrem},
     Date, DateTime, Time, TimeZone, UtcOffset,
 };
+
+#[cfg(feature = "formatting")]
+use alloc::string::{String, ToString};
 
 #[cfg(feature = "formatting")]
 use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
@@ -606,7 +609,7 @@ impl Add<DateTime> for Interval {
 }
 
 impl core::fmt::Display for Interval {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if self == &Self::ZERO {
             return f.write_str("PT0S");
         }

@@ -101,8 +101,15 @@
 //! [strftime]: https://en.cppreference.com/w/cpp/chrono/c/strftime
 //! [`java.time`]: https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
 
-use crate::{utils::divmod, Date, DateTime, Time, TimeZone, Weekday};
-use core::{fmt::Write, iter::Peekable, str::Bytes};
+use crate::{Date, DateTime, Time, TimeZone, Weekday};
+use alloc::{string::String, vec::Vec};
+use core::fmt::Write;
+
+#[cfg(feature = "parsing")]
+use core::{iter::Peekable, str::Bytes};
+
+#[cfg(feature = "std")]
+use crate::utils::divmod;
 
 /// The error type that occurs during parsing a string.
 ///
@@ -217,8 +224,9 @@ pub trait ToIsoFormat {
     fn to_iso_format(&self) -> String;
 }
 
-#[cfg(feature = "formatting")]
-impl ToIsoFormat for core::time::Duration {
+// This requires std due to f64::div_euclid and f64::rem_euclid not being available
+#[cfg(all(feature = "formatting", feature = "std"))]
+impl ToIsoFormat for std::time::Duration {
     fn to_iso_format_with_precision(&self, _precision: IsoFormatPrecision) -> String {
         self.to_iso_format()
     }
@@ -1065,7 +1073,7 @@ pub enum Error {
 }
 
 impl core::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Error::UnknownSpecifier(c) => write!(f, "unknown specifier `{}`", *c as char),
             Error::SpecifierNotFound => write!(f, "expected specifier after `%`, `%_`, or `%#`"),
@@ -1281,7 +1289,7 @@ macro_rules! format_dt {
     };
 }
 
-#[cfg(feature = "formatting")]
+#[cfg(all(feature = "macros", feature = "formatting"))]
 pub use format_dt;
 
 /// A wrapper type that formats [`Date`] instances with the given format spec.
@@ -1529,7 +1537,7 @@ impl<'a, 'b, Spec> core::fmt::Display for TimeFormatter<'a, 'b, Spec>
 where
     Spec: AsRef<[FormatSpec<'b>]>,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         for spec in self.spec.as_ref() {
             match spec.kind {
                 FormatSpecKind::Raw(s) => f.write_str(s)?,
@@ -1580,7 +1588,7 @@ where
     Spec: AsRef<[FormatSpec<'b>]>,
     Tz: TimeZone,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         for spec in self.spec.as_ref() {
             match spec.kind {
                 FormatSpecKind::Raw(s) => f.write_str(s)?,
@@ -1688,7 +1696,7 @@ impl<'a, Tz> core::fmt::Display for Rfc3339Formatter<'a, Tz>
 where
     Tz: TimeZone,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let (h, m, _) = self.dt.offset().into_hms();
         let m = m.abs();
         let time = self.dt.time();

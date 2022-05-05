@@ -286,7 +286,7 @@ impl UtcOffset {
 }
 
 impl core::fmt::Display for UtcOffset {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let (m, s) = (self.minutes.abs(), self.seconds.abs());
         if s > 0 {
             write!(f, "{:+03}:{:02}:{:02}", self.hours, m, s)
@@ -815,8 +815,9 @@ impl Utc {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct System(pub(crate) systemtime::SystemTime);
 
+#[cfg(feature = "system")]
 impl core::fmt::Debug for System {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("System")
             .field("offset", &self.0.offset())
             .field("name", &self.0.name())
@@ -839,6 +840,7 @@ impl System {
     }
 }
 
+#[cfg(feature = "system")]
 impl TimeZone for System {
     fn name(&self, _ts: Timestamp) -> Option<&str> {
         self.0.name()

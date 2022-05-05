@@ -5,16 +5,19 @@ use crate::{
     },
     step::Advance,
     utils::{divrem, ensure_in_range},
-    DateTime, Error, Interval, Time, TimeZone, Utc,
+    DateTime, Interval, Time, TimeZone, Utc,
 };
 
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 #[cfg(feature = "system")]
-use crate::sys::systemtime::get_system_time_components;
+use crate::{sys::systemtime::get_system_time_components, Error};
 
 #[cfg(feature = "formatting")]
 use crate::fmt::ToIsoFormat;
+
+#[cfg(feature = "formatting")]
+use alloc::string::{String, ToString};
 
 #[cfg(feature = "parsing")]
 use crate::fmt::{FromIsoFormat, ParseError, Parser};

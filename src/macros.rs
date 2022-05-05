@@ -375,7 +375,11 @@ macro_rules! datetime {
     }};
 }
 
+#[cfg(feature = "macros")]
 pub use date;
+#[cfg(feature = "macros")]
 pub use datetime;
+#[cfg(feature = "macros")]
 pub use time;
+#[cfg(feature = "macros")]
 pub use utc_offset;

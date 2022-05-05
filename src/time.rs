@@ -11,6 +11,9 @@ use core::{
 };
 
 #[cfg(feature = "formatting")]
+use alloc::string::String;
+
+#[cfg(feature = "formatting")]
 use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
 
 #[cfg(feature = "parsing")]

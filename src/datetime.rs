@@ -3,12 +3,12 @@ use crate::{
     timestamp::Timestamp,
     timezone::{Utc, UtcOffset},
     utils::divmod,
-    Date, IsoWeekDate, System, Time, TimeZone, Weekday,
+    Date, Interval, IsoWeekDate, Time, TimeZone, Weekday,
 };
-use crate::{Error, Interval};
 
 #[cfg(feature = "system")]
-use crate::sys::systemtime;
+use crate::{sys::systemtime, Error, System};
+
 use core::time::Duration;
 use core::{
     cmp::Ordering,
@@ -18,6 +18,9 @@ use core::{
 
 #[cfg(feature = "std")]
 use std::time::SystemTime;
+
+#[cfg(feature = "formatting")]
+use alloc::string::{String, ToString};
 
 #[cfg(feature = "formatting")]
 use crate::fmt::{IsoFormatPrecision, ToIsoFormat};
@@ -103,9 +106,9 @@ impl DateTime<Utc> {
     }
 }
 
+#[cfg(feature = "system")]
 impl DateTime<System> {
     /// Returns the current [`DateTime`] in local time.
-    #[cfg(feature = "system")]
     #[inline]
     pub fn now() -> Result<Self, Error> {
         let (dt, local) = systemtime::get_system_time_components()?;

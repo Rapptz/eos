@@ -150,7 +150,7 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
             timezone.resolve(date, time).lenient()
         };
 
-        std::mem::swap(&mut self.start, &mut dt);
+        core::mem::swap(&mut self.start, &mut dt);
         Some(dt)
     }
 }

@@ -178,6 +178,7 @@ where
         self
     }
 
+    #[cfg(feature = "parsing")]
     pub(crate) fn fix_leap_seconds(&mut self) {
         if self.second == 60 {
             self.second -= 1;

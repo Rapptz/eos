@@ -58,7 +58,10 @@ pub use error::Error;
 pub use interval::Interval;
 pub use time::Time;
 pub use timestamp::Timestamp;
-pub use timezone::{DateTimeResolution, DateTimeResolutionKind, System, TimeZone, Utc, UtcOffset};
+pub use timezone::{DateTimeResolution, DateTimeResolutionKind, TimeZone, Utc, UtcOffset};
+
+#[cfg(feature = "system")]
+pub use timezone::System;
 
 // Internal helper for the macro_rules
 #[doc(hidden)]
