@@ -4,7 +4,9 @@ This is just a data repository for the underlying IANA [tzdb][tzdb] for use with
 
 ## Versioning
 
-The versioning for this repository follows a calendar style versioning system similar to the underlying database itself. The lettering (e.g. `e`) is turned into a digit. Therefore, `2021e` of the IANA database is turned into `2021.5.0`.
+The versioning for this repository follows a calendar style versioning system similar to the underlying database itself. The lettering (e.g. `e`) is turned into a digit. Therefore, `2021e` of the IANA database is turned into `2021.5`. Due to Cargo requiring the usage of Semantic Versioning, the library will prefix all releases with a `1`. Therefore the final version number for `2021e` becomes `1.2021.5`.
+
+This has the added benefit of allowing users to just specify `1` as the version to get the latest up to date timezone data.
 
 ## Updating
 

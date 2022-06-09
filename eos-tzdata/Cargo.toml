@@ -1,6 +1,6 @@
 [package]
 name = "eos-tzdata"
-version = "2021.5.0"
+version = "1.2022.1"
 edition = "2021"
 authors = ["Rapptz"]
 rust-version = "1.57"
