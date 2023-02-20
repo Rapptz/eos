@@ -10,7 +10,7 @@ There already exist well established libraries in the ecosystem to deal with bot
 
 Special care has been taken to ensure timezones are implemented properly. To that end, there is no concept of a naive date time. The default timezone of a `DateTime` type is UTC. All operations done on a `DateTime` are timezone aware. For example, comparisons are done by comparing the same instant of time in UTC or within the same timezone. Despite having timezone support, the `chrono` crate [does not do this][chrono-cmp]. Which can lead to surprising behaviour.
 
-Since timezone information can be a bit heavy on resources and not something every applicationw wants to concern itself with, the IANA database backed `TimeZone` implementation is in another crate, [`eos-tz`][eos-tz]. The base library only has `Utc`, `UtcOffset`, and `System` for their concrete timezone implementations.
+Since timezone information can be a bit heavy on resources and not something every application wants to concern itself with, the IANA database backed `TimeZone` implementation is in another crate, [`eos-tz`][eos-tz]. The base library only has `Utc`, `UtcOffset`, and `System` for their concrete timezone implementations.
 
 ### Features
 
