@@ -63,7 +63,7 @@ fn from_std_duration() {
         100
     );
 
-    let paired = Interval::try_from(Duration::from_secs_f32(2.8)).unwrap();
+    let paired = Interval::try_from(Duration::new(2, 800_000_000)).unwrap();
     assert_eq!(paired.seconds(), 2);
     assert_eq!(paired.microseconds(), 800_000);
     assert_eq!(paired.milliseconds(), 800);
