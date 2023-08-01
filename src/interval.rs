@@ -433,7 +433,7 @@ impl Interval {
     pub(crate) fn get_time_duration(&self) -> (bool, Duration) {
         let (seconds, microseconds) = divmod!(self.microseconds, MICROS_PER_SEC);
         let nanoseconds = (microseconds as u32).saturating_mul(1_000);
-        (seconds < 0, Duration::new(seconds.abs() as u64, nanoseconds))
+        (seconds < 0, Duration::new(seconds.unsigned_abs(), nanoseconds))
     }
 }
 

@@ -343,7 +343,7 @@ impl<'a> Parser<'a> {
         for _ in 0..9 {
             match self.advance_if(u8::is_ascii_digit) {
                 Some(c) => {
-                    n = n * 10 + (c as u8 - b'0') as i32;
+                    n = n * 10 + (c - b'0') as i32;
                     read_any = true;
                 }
                 None => break,
@@ -367,7 +367,7 @@ impl<'a> Parser<'a> {
         for _ in 0..9 {
             match self.advance_if(u8::is_ascii_digit) {
                 Some(c) => {
-                    n = n * 10 + (c as u8 - b'0') as u32;
+                    n = n * 10 + (c - b'0') as u32;
                     read_any = true;
                 }
                 None => break,
@@ -390,7 +390,7 @@ impl<'a> Parser<'a> {
         for _ in 0..N {
             match self.advance_if(u8::is_ascii_digit) {
                 Some(c) => {
-                    n = n * 10 + (c as u8 - b'0') as u16;
+                    n = n * 10 + (c - b'0') as u16;
                     read_any = true;
                 }
                 None => break,
@@ -1499,7 +1499,7 @@ where
                     // This one's a bit special since the padding depends on whether
                     // it's 4 or 5 digits
                     let year = self.date.year();
-                    let padding = if year < -9999 || year > 9999 { 5 } else { 4 };
+                    let padding = if !(-9999..=9999).contains(&year) { 5 } else { 4 };
                     pad_number(f, year, spec.padding, padding)?;
                 }
                 FormatSpecKind::SignedYear => {
@@ -1507,12 +1507,12 @@ where
                     let year = self.date.year();
                     match spec.padding {
                         FormatSpecPadding::Zero => {
-                            let padding = if year < -9999 || year > 9999 { 6 } else { 5 };
+                            let padding = if !(-9999..=9999).contains(&year) { 6 } else { 5 };
                             write!(f, "{:+0width$}", year, width = padding)?
                         }
                         FormatSpecPadding::Empty => write!(f, "{:+}", year)?,
                         FormatSpecPadding::Space => {
-                            let padding = if year < -9999 || year > 9999 { 6 } else { 5 };
+                            let padding = if !(-9999..=9999).contains(&year) { 6 } else { 5 };
                             write!(f, "{:+width$}", year, width = padding)?
                         }
                     }
@@ -1613,7 +1613,7 @@ where
                     // This one's a bit special since the padding depends on whether
                     // it's 4 or 5 digits
                     let year = self.dt.year();
-                    let padding = if year < -9999 || year > 9999 { 5 } else { 4 };
+                    let padding = if !(-9999..=9999).contains(&year) { 5 } else { 4 };
                     pad_number(f, year, spec.padding, padding)?;
                 }
                 FormatSpecKind::SignedYear => {
@@ -1621,12 +1621,12 @@ where
                     let year = self.dt.year();
                     match spec.padding {
                         FormatSpecPadding::Zero => {
-                            let padding = if year < -9999 || year > 9999 { 6 } else { 5 };
+                            let padding = if !(-9999..=9999).contains(&year) { 6 } else { 5 };
                             write!(f, "{:+0width$}", year, width = padding)?
                         }
                         FormatSpecPadding::Empty => write!(f, "{:+}", year)?,
                         FormatSpecPadding::Space => {
-                            let padding = if year < -9999 || year > 9999 { 6 } else { 5 };
+                            let padding = if !(-9999..=9999).contains(&year) { 6 } else { 5 };
                             write!(f, "{:+width$}", year, width = padding)?
                         }
                     }
