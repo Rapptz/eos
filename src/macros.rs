@@ -47,7 +47,6 @@ macro_rules! const_assert {
         $crate::const_assert!($cond, concat!("compile time assertion failed: ", stringify!($cond)));
     };
     ($cond:expr, $($t:tt)+) => {
-        #[forbid(const_err)]
         const _: () = {
             if !$cond {
                 core::panic!($($t)+)
