@@ -23,7 +23,7 @@ const MICROS_PER_SEC: u64 = 1_000_000;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Timestamp {
     seconds: i64,
-    nanoseconds: u32,
+    pub(crate) nanoseconds: u32,
 }
 
 impl Timestamp {

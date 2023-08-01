@@ -360,6 +360,19 @@ impl Interval {
             return Self::ZERO;
         }
 
+        // This is a minor trick when dealing with times that don't
+        // cross a day boundary when taking into consideration timezones
+        // Essentially, comparing the two instances and if they're less than 86400 seconds
+        // then that could be used directly instead
+        let end_ts = end.timestamp();
+        let start_ts = start.timestamp();
+        let diff = end_ts.as_seconds() - start_ts.as_seconds();
+        if diff > -84600 && diff < 86400 {
+            let nano_diff = end_ts.nanoseconds as i32 - start_ts.nanoseconds as i32;
+            let extra = nano_diff.div_euclid(1_000);
+            return Self::from_microseconds(diff * MICROS_PER_SEC + extra as i64);
+        }
+
         // We need to adjust for when overshooting might be possible.
         // For example, getting the days between March 10th 10AM and March 12th 2AM
         // would naively return 2 days when in reality it's 1 day (and 16 hours).

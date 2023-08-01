@@ -966,3 +966,16 @@ fn diff_between_different_offset_datetimes() {
         (-201).years() + (-11).months() + (-28).days() + (-15).hours() + (-43).minutes() + (-14).seconds()
     );
 }
+
+#[test]
+fn diff_between_small_times_with_offsets() {
+    assert_eq!(
+        datetime!(2023-06-30 21:00:20 -04:00) - datetime!(2023-07-01 00:59:20 +00:00),
+        (1).minutes()
+    );
+
+    assert_eq!(
+        datetime!(2023-07-01 00:59:20 +00:00) - datetime!(2023-06-30 21:00:20 +00:00),
+        3.hours() + 59.minutes()
+    );
+}
