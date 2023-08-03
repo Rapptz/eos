@@ -21,6 +21,8 @@ struct TimeZoneData {
 }
 
 /// An IANA database backed timezone.
+///
+/// The internal data is backed by an [`std::sync::Arc`] so it's cheap to clone.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimeZone(Arc<TimeZoneData>);
 
