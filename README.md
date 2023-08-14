@@ -28,6 +28,7 @@ Since timezone information can be a bit heavy on resources and not something eve
 **Optional features:**
 
 - [`serde`](https://serde.rs): Enable custom Serialize/Deserialize implementations. Requires `parsing` as well.
+- [`rusqlite`](https://github.com/rusqlite/rusqlite): Enable implementations of [`ToSql`](https://docs.rs/rusqlite/latest/rusqlite/types/trait.ToSql.html) and [`FromSql`](https://docs.rs/rusqlite/latest/rusqlite/types/trait.FromSql.html) for the date and time types in the library. Requires `parsing` as well.
 
 ### Acknowledgements
 

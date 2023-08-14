@@ -25,7 +25,8 @@ system = ["libc"]
 
 [dependencies]
 eos-format-spec-macro = { path = "eos-format-spec-macro", optional = true }
-serde = { version = "1.0.136", default-features = false, optional = true }
+serde = { version = "1", default-features = false, optional = true }
+rusqlite = { version = "0.29", optional = true }
 
 [dev-dependencies]
 serde_json = { version = "1" } # For testing Serde integration

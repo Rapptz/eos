@@ -50,6 +50,7 @@ mod timestamp;
 mod timezone;
 pub mod unit;
 mod utils;
+pub mod extra;
 
 pub use builder::Builder;
 pub use date::{Date, IsoWeekDate, Weekday};
