@@ -2,8 +2,6 @@
 
 use crate::Interval;
 
-///! Extension traits
-
 mod private {
     pub trait Sealed {}
     impl Sealed for i64 {}
