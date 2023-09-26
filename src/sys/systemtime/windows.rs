@@ -59,7 +59,7 @@ fn windows_utf16_to_utf8(s: &[u16]) -> Option<String> {
 #[link(name = "kernel32")]
 extern "system" {
     fn GetTimeZoneInformation(lpTimeZoneInformation: *mut TIME_ZONE_INFORMATION) -> u32;
-    fn GetSystemTime(lpSystemTime: *mut SYSTEMTIME);
+    fn GetLocalTime(lpSystemTime: *mut SYSTEMTIME);
 }
 
 impl SystemTime {
@@ -128,7 +128,7 @@ pub(crate) fn get_system_time_components() -> Result<(DateTime<Utc>, SystemTime)
     // Since this is the case then it's safe to just call it as-is and assume it's valid
     let dt = unsafe {
         let mut out = MaybeUninit::uninit();
-        GetSystemTime(out.as_mut_ptr());
+        GetLocalTime(out.as_mut_ptr());
         out.assume_init()
     };
 
