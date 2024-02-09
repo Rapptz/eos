@@ -10,7 +10,7 @@ on:
       - "eos-tzdata/**"
       - "!eos-tzdata/VERSION"
       - "!eos-tzdata/src/data.rs"
-      - "!eos-tzdata/src/README//md"
+      - "!eos-tzdata/src/README.md"
 
 concurrency:
   # since this runs on an interval this should be fine
@@ -31,12 +31,6 @@ jobs:
       - name: Install Python deps
         run: |
           python -m pip install -U requests
-
-      - name: Revert last commit if it was GitHub Actions
-        run: |
-          if [[ "$(git show -s --format='%ae' HEAD)" == *"github-actions"* ]]; then
-            git reset --hard HEAD^;
-          fi
 
       - name: Run update script
         run: |
