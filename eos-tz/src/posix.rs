@@ -518,7 +518,7 @@ fn parse_offset(parser: &mut Parser) -> ParseResult<UtcOffset> {
 
     let minutes = match parser.next_if(|x| *x == ':') {
         Some(_) => match parser.next().zip(parser.next()) {
-            Some((c, d)) => ((c as u8 - b'0') * 10 + (d as u8 - b'0')),
+            Some((c, d)) => (c as u8 - b'0') * 10 + (d as u8 - b'0'),
             None => return Err(ParseError::InvalidPosixTz),
         },
         None => 0u8,
@@ -526,7 +526,7 @@ fn parse_offset(parser: &mut Parser) -> ParseResult<UtcOffset> {
 
     let seconds = match parser.next_if(|x| *x == ':') {
         Some(_) => match parser.next().zip(parser.next()) {
-            Some((c, d)) => ((c as u8 - b'0') * 10 + (d as u8 - b'0')),
+            Some((c, d)) => (c as u8 - b'0') * 10 + (d as u8 - b'0'),
             None => return Err(ParseError::InvalidPosixTz),
         },
         None => 0u8,
@@ -551,7 +551,7 @@ fn parse_time(parser: &mut Parser) -> ParseResult<i64> {
 
     let minute = match parser.next_if(|x| *x == ':') {
         Some(_) => match parser.next().zip(parser.next()) {
-            Some((c, d)) => ((c as u8 - b'0') * 10 + (d as u8 - b'0')),
+            Some((c, d)) => (c as u8 - b'0') * 10 + (d as u8 - b'0'),
             None => return Err(ParseError::InvalidPosixTz),
         },
         None => 0u8,
@@ -559,7 +559,7 @@ fn parse_time(parser: &mut Parser) -> ParseResult<i64> {
 
     let second = match parser.next_if(|x| *x == ':') {
         Some(_) => match parser.next().zip(parser.next()) {
-            Some((c, d)) => ((c as u8 - b'0') * 10 + (d as u8 - b'0')),
+            Some((c, d)) => (c as u8 - b'0') * 10 + (d as u8 - b'0'),
             None => return Err(ParseError::InvalidPosixTz),
         },
         None => 0u8,

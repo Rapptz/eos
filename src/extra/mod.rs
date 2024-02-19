@@ -4,4 +4,3 @@
 
 #[cfg(all(feature = "parsing", feature = "formatting", feature = "rusqlite"))]
 pub mod rusqlite;
-

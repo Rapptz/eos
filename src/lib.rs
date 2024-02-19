@@ -40,6 +40,7 @@ mod date;
 mod datetime;
 mod error;
 pub mod ext;
+pub mod extra;
 pub mod gregorian;
 mod interval;
 pub mod iter;
@@ -50,7 +51,6 @@ mod timestamp;
 mod timezone;
 pub mod unit;
 mod utils;
-pub mod extra;
 
 pub use builder::Builder;
 pub use date::{Date, IsoWeekDate, Weekday};

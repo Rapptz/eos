@@ -48,7 +48,9 @@ fn is_valid_path<P: AsRef<std::path::Path>>(path: P) -> bool {
 #[cfg(all(not(feature = "bundled"), target_family = "windows"))]
 macro_rules! __get_impl {
     ($zone:ident) => {
-        panic!("windows does not have a data source to retrieve from, consider using the `bundled` feature")
+        match $zone {
+            _ => panic!("windows does not have a data source to retrieve from, consider using the `bundled` feature"),
+        }
     };
 }
 
@@ -376,13 +378,10 @@ impl eos::TimeZone for TimeZone {
 
 #[cfg(test)]
 mod tests {
-    use eos::datetime;
-
-    use super::*;
-
     #[test]
     #[cfg(feature = "bundled")]
     fn test_bundled_loading() {
+        use eos::datetime;
         use eos::TimeZone;
 
         let dt = datetime!(1911-12-30 00:00);
