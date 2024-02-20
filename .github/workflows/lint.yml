@@ -1,5 +1,8 @@
 name: Lint and docs
 
+env:
+  ALL_FEATURES: --features "eos-tz/bundled default rusqlite rusqlite/bundled serde"
+
 on:
   push:
   pull_request:
@@ -19,7 +22,7 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all --check -- --color=always
       - name: Run clippy
-        run: cargo clippy --workspace --all-features --color=always
+        run: cargo clippy --workspace ${{ env.ALL_FEATURES }} --color=always
 
 
   check-docs:
@@ -29,4 +32,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo doc --workspace --all-features --no-deps --color=always
+      - run: cargo doc --workspace ${{ env.ALL_FEATURES }} --no-deps --color=always

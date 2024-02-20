@@ -162,7 +162,7 @@ impl TimeZone {
         for p in TZ_SEARCH_PATHS {
             if let Ok(suffix) = actual_path.strip_prefix(p) {
                 if let Some(zone_id) = suffix.to_str() {
-                    let file = std::fs::File::open(actual_path).map_err(|_| Error::InvalidZonePath)?;
+                    let file = std::fs::File::open(&actual_path).map_err(|_| Error::InvalidZonePath)?;
                     let buf = std::io::BufReader::new(file);
                     return Ok(Self::load(buf, zone_id.to_owned())?);
                 }
@@ -254,35 +254,6 @@ impl TimeZone {
         self.0.transitions.get(idx)
     }
 }
-
-/// A macro to return a [`TimeZone`] for the given zone identifier.
-///
-/// This requires that the `bundled` feature is enabled, since that's
-/// where it gets the backing data from.
-///
-/// # Examples
-///
-/// ```no_run
-/// use eos_tz::zone;
-///
-/// let tz = zone!("America/New_York");
-/// ```
-///
-/// # Panics
-///
-/// Panics if the backing TZif data could not be parsed. This should be unlikely or impossible
-/// and denotes a bug with the library.
-#[macro_export]
-#[cfg(feature = "bundled")]
-macro_rules! zone {
-    ($zone_id:literal) => {{
-        const DATA: &'static [u8] = eos_tzdata::tzif!($zone_id);
-        $crate::TimeZone::load(std::io::Cursor::new(DATA), std::string::String::from($zone_id)).unwrap()
-    }};
-}
-
-#[cfg(feature = "bundled")]
-pub use zone;
 
 impl eos::TimeZone for TimeZone {
     fn name(&self, ts: eos::Timestamp) -> Option<&str> {
@@ -440,6 +411,7 @@ mod tests {
     fn test_bundled_loading() {
         use eos::datetime;
         use eos::TimeZone;
+        use crate::zone;
 
         let dt = datetime!(1911-12-30 00:00);
         let tz = zone!("Africa/Abidjan");
