@@ -28,6 +28,8 @@ pub enum Error {
     /// prone to path traversal, such as `America/../New_York`. Only keys
     /// like `America/New_York` are valid.
     InvalidZonePath,
+    /// Could not get the local time or timezone information
+    NoLocalTime,
 }
 
 impl std::fmt::Display for ParseError {
@@ -49,6 +51,7 @@ impl std::fmt::Display for Error {
             Error::Parse(e) => e.fmt(f),
             Error::NotFound => f.write_str("timezone could not be located"),
             Error::InvalidZonePath => f.write_str("invalid timezone path"),
+            Error::NoLocalTime => f.write_str("could not fetch local time or timezone"),
         }
     }
 }
@@ -94,6 +97,7 @@ impl std::error::Error for Error {
             Error::Parse(e) => Some(e),
             Error::NotFound => None,
             Error::InvalidZonePath => None,
+            Error::NoLocalTime => None,
         }
     }
 }

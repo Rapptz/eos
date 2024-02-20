@@ -15,13 +15,12 @@ categories = ["date-and-time"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["alloc", "std", "macros", "system", "formatting", "parsing"]
+default = ["alloc", "std", "macros", "formatting", "parsing"]
 std = ["alloc"]
 formatting = ["alloc"]
 parsing = ["alloc"]
 alloc = []
 macros = ["eos-format-spec-macro"]
-system = ["libc"]
 
 [dependencies]
 eos-format-spec-macro = { path = "eos-format-spec-macro", optional = true }
@@ -31,9 +30,6 @@ rusqlite = { version = "0.29", optional = true }
 [dev-dependencies]
 serde_json = { version = "1" } # For testing Serde integration
 serde_derive = { version = "1", default-features = false } # For testing Serde integration
-
-[target.'cfg(target_family = "unix")'.dependencies]
-libc = { version = "0.2", optional = true, default-features = false } # this could use the weak dep feature
 
 [workspace]
 members = [

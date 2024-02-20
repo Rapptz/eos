@@ -10,7 +10,13 @@ In the future it may be possible to directly load timezone information from the 
 
 ## Features
 
-Unlike the parent library, this doesn't work in `no_std` targets. Therefore there is no feature to disable the `std` integration. This is due to the usage of File I/O and allocation. Likewise, this library uses the default set of features of the parent library without a way to customise it. This includes features such as `macros` or `localtime`.
+Unlike the parent library, this doesn't work in `no_std` targets. Therefore there is no feature to disable the `std` integration. This is due to the usage of File I/O and allocation. Likewise, this library uses the default set of features of the parent library without a way to customise it. This includes features such as `macros`.
+
+**Default features**:
+
+- `localtime`: Support for the `Local` timezone type.
+
+**Optional features**
 
 - `bundled`: Bundle the data of the `tzdb` at compile time directly into the executable. This bundles the data from the `eos-tzdata` crate.
 

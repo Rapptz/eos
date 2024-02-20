@@ -1,15 +1,10 @@
 //! Convert most of the [Time Strings](http://sqlite.org/lang_datefunc.html) to our types.
 
-// use chrono::{DateTime, FixedOffset, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
-
 use crate::{
     fmt::{FromIsoFormat, ParseError, Parser, ToIsoFormat},
     Date, DateTime, Time, Utc, UtcOffset,
 };
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
-
-#[cfg(feature = "system")]
-use crate::System;
 
 /// This is basically RFC3339 except the offset is optional. SQLite internally
 /// stores all datetimes as UTC time, so an omitted offset is equivalent to UTC
@@ -125,33 +120,6 @@ impl FromSql for DateTime<Utc> {
     }
 }
 
-/// Converts to an RFC3339 timestamp (i.e. `"YYYY-MM-DD HH:MM:SS.SSSSSS[+-]HH:MM"`).
-#[cfg(feature = "system")]
-impl ToSql for DateTime<System> {
-    #[inline]
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(self.to_rfc3339().to_string()))
-    }
-}
-
-/// Converts from an RFC3339 timestamp (e.g. `"YYYY-MM-DD HH:MM:SS.SSSSSS[+-]HH:MM"`) into `DateTime<System>`.
-///
-/// This also supports formats that place a T between the date and time components.
-impl FromSql for DateTime<System> {
-    #[inline]
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        let string = value.as_str()?;
-
-        match parse_sqlite3_format(string) {
-            Ok(dt) => match System::new() {
-                Ok(system) => Ok(dt.in_timezone(system)),
-                Err(err) => Err(FromSqlError::Other(Box::new(err))),
-            },
-            Err(err) => Err(FromSqlError::Other(Box::new(err))),
-        }
-    }
-}
-
 /// Converts to an RFC3339 timestamp with timezone (e.g. `"YYYY-MM-DD HH:MM:SS.SSSSSS[+-]HH:MM"`).
 impl ToSql for DateTime<UtcOffset> {
     #[inline]
@@ -181,7 +149,7 @@ mod test {
         Connection, Result,
     };
 
-    use crate::{date, datetime, time, Date, DateTime, Interval, System, Time, Utc, UtcOffset};
+    use crate::{date, datetime, time, Date, DateTime, Interval, Time, Utc, UtcOffset};
 
     fn checked_memory_handle() -> Result<Connection> {
         let db = Connection::open_in_memory()?;
@@ -281,8 +249,6 @@ mod test {
         let result: Result<Time> = db.query_row("SELECT CURRENT_TIME", [], |r| r.get(0));
         assert!(result.is_ok());
         let result: Result<Date> = db.query_row("SELECT CURRENT_DATE", [], |r| r.get(0));
-        assert!(result.is_ok());
-        let result: Result<DateTime<System>> = db.query_row("SELECT CURRENT_TIMESTAMP", [], |r| r.get(0));
         assert!(result.is_ok());
         let result: Result<DateTime<Utc>> = db.query_row("SELECT CURRENT_TIMESTAMP", [], |r| r.get(0));
         assert!(result.is_ok());

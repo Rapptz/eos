@@ -10,9 +10,6 @@ use crate::{
 
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
-#[cfg(feature = "system")]
-use crate::{sys::systemtime::get_system_time_components, Error};
-
 #[cfg(feature = "formatting")]
 use crate::fmt::ToIsoFormat;
 
@@ -278,14 +275,6 @@ impl Date {
     #[inline]
     pub const fn __new_unchecked_from_macro(year: i16, month: u8, day: u8) -> Self {
         Self { year, month, day }
-    }
-
-    /// Creates a new [`Date`] representing today's date in local time.
-    #[cfg(feature = "system")]
-    #[inline]
-    pub fn today() -> Result<Self, Error> {
-        let (dt, _) = get_system_time_components()?;
-        Ok(*dt.date())
     }
 
     /// Creates a new [`Date`] representing today's date in UTC.

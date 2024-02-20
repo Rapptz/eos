@@ -6,9 +6,6 @@ use crate::{
     Date, Interval, IsoWeekDate, Time, TimeZone, Weekday,
 };
 
-#[cfg(feature = "system")]
-use crate::{sys::systemtime, Error, System};
-
 use core::time::Duration;
 use core::{
     cmp::Ordering,
@@ -103,16 +100,6 @@ impl DateTime<Utc> {
         let (days, time) = Time::adjust_from_nanos(self.time.total_nanos() as i64 + offset_nanos);
         self.date = self.date.add_days(days);
         self.time = time;
-    }
-}
-
-#[cfg(feature = "system")]
-impl DateTime<System> {
-    /// Returns the current [`DateTime`] in local time.
-    #[inline]
-    pub fn now() -> Result<Self, Error> {
-        let (dt, local) = systemtime::get_system_time_components()?;
-        Ok(dt.with_timezone(System(local)))
     }
 }
 

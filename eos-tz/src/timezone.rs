@@ -156,6 +156,63 @@ impl TimeZone {
         Err(Error::NotFound)
     }
 
+    #[cfg(target_family = "unix")]
+    pub(crate) fn etc_localtime() -> Result<Self, Error> {
+        let actual_path = std::fs::canonicalize("/etc/localtime").map_err(|_| Error::InvalidZonePath)?;
+        for p in TZ_SEARCH_PATHS {
+            if let Ok(suffix) = actual_path.strip_prefix(p) {
+                if let Some(zone_id) = suffix.to_str() {
+                    let file = std::fs::File::open(actual_path).map_err(|_| Error::InvalidZonePath)?;
+                    let buf = std::io::BufReader::new(file);
+                    return Ok(Self::load(buf, zone_id.to_owned())?);
+                }
+            }
+        }
+
+        Err(Error::NoLocalTime)
+    }
+
+    /// Loads a `TimeZone` from a POSIX `TZ` environment variable string,
+    /// as described in the [POSIX documentation].
+    ///
+    /// # OS-specific behavior
+    ///
+    /// Per the documentation, if the string starts with `:` the lookup
+    /// strategy is implementation defined. In [GNU libc] and [musl libc]
+    /// this is interpreted as looking for a TZif file. This works similar
+    /// to [`TimeZone::locate`].
+    ///
+    /// On Windows platforms, the `:` is interpreted as an error.
+    ///
+    /// [POSIX documentation]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html
+    /// [GNU libc]: https://ftp.gnu.org/old-gnu/Manuals/glibc-2.2.3/html_node/libc_431.html
+    /// [musl libc]: https://wiki.musl-libc.org/environment-variables
+    pub fn from_tz_str(tz: &str) -> Result<Self, Error> {
+        if tz.is_empty() {
+            return Err(Error::NotFound);
+        }
+
+        #[cfg(target_family = "windows")]
+        if tz.starts_with(':') {
+            return Err(Error::InvalidZonePath);
+        }
+
+        #[cfg(target_family = "unix")]
+        if let Some(path) = tz.strip_prefix(':') {
+            return Self::locate(path);
+        }
+
+        let posix = PosixTimeZone::new(tz)?;
+        let inner = TimeZoneData {
+            id: tz.to_owned(),
+            transitions: Vec::new(),
+            ttypes: Vec::new(),
+            fixed: <PosixTimeZone as eos::TimeZone>::is_fixed(&posix),
+            posix: Some(posix),
+        };
+        Ok(Self(Arc::new(inner)))
+    }
+
     /// Load a `TimeZone` from either the bundled data source or
     /// the system provided timezone database. The bundled data source
     /// takes priority over the system provided timezone.

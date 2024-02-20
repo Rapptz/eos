@@ -12,8 +12,16 @@ use crate::{error::ParseError, timestamp::NaiveTimestamp};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum DstTransitionRule {
+    /// The Julian day. The first element is 1 <= n <= 365.
+    /// Leap days aren't counted and it's impossible to refer to February 29.
+    /// The second element is offset in seconds from midnight when the transition takes place.
     JulianDay(u16, i64),
+    /// A zero-based Julian day. The first element is 0 <= n <= 365. Leap days are counted.
+    /// The second element is offset in seconds from midnight when the transition takes place.
     Day(u16, i64),
+    /// The `weekday` (0 <= weekday <= 6) of week `n` (1 <= n <= 5) of the `month` (1 <= month <= 12).
+    /// A value of `n == 5` means the last `weekday` of the `month`. `weekday == 0` is Sunday.
+    /// The offset is seconds from midnight when the transition takes place.
     Calendar { month: u8, n: u8, weekday: u8, offset: i64 },
 }
 
@@ -107,11 +115,11 @@ impl std::fmt::Display for DstTransitionRule {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct DstTransitionInfo {
-    abbr: String,
-    offset: UtcOffset,
-    start: DstTransitionRule,
-    end: DstTransitionRule,
-    base_offset: UtcOffset,
+    pub(crate) abbr: String,
+    pub(crate) offset: UtcOffset,
+    pub(crate) start: DstTransitionRule,
+    pub(crate) end: DstTransitionRule,
+    pub(crate) base_offset: UtcOffset,
 }
 
 impl DstTransitionInfo {
@@ -161,9 +169,9 @@ impl DstTransitionInfo {
 /// [RFC8536]: https://datatracker.ietf.org/doc/html/rfc8536#section-3.3
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PosixTimeZone {
-    std_abbr: String,
-    std_offset: UtcOffset,
-    dst: Option<DstTransitionInfo>,
+    pub(crate) std_abbr: String,
+    pub(crate) std_offset: UtcOffset,
+    pub(crate) dst: Option<DstTransitionInfo>,
 }
 
 impl PosixTimeZone {

@@ -15,7 +15,10 @@ categories = ["date-and-time"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+default = ["localtime", "cached-localtime"]
 bundled = ["eos-tzdata"]
+localtime = []
+cached-localtime = []
 
 [dependencies]
 eos-tzdata = { version = "1", path = "../eos-tzdata", optional = true }
