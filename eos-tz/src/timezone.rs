@@ -157,6 +157,7 @@ impl TimeZone {
     }
 
     #[cfg(target_family = "unix")]
+    #[cfg(feature = "localtime")]
     pub(crate) fn etc_localtime() -> Result<Self, Error> {
         let actual_path = std::fs::canonicalize("/etc/localtime").map_err(|_| Error::InvalidZonePath)?;
         for p in TZ_SEARCH_PATHS {
@@ -409,9 +410,9 @@ mod tests {
     #[test]
     #[cfg(feature = "bundled")]
     fn test_bundled_loading() {
+        use crate::zone;
         use eos::datetime;
         use eos::TimeZone;
-        use crate::zone;
 
         let dt = datetime!(1911-12-30 00:00);
         let tz = zone!("Africa/Abidjan");
