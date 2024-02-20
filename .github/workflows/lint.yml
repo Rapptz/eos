@@ -2,8 +2,8 @@ name: Lint and docs
 
 on:
   push:
-    branches: [master]
   pull_request:
+    types: [ opened, reopened, synchronize ]
 
 jobs:
   lint:
