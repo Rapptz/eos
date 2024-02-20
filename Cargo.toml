@@ -30,6 +30,7 @@ rusqlite = { version = "0.29", optional = true }
 [dev-dependencies]
 serde_json = { version = "1" } # For testing Serde integration
 serde_derive = { version = "1", default-features = false } # For testing Serde integration
+rusqlite = { version = "0.29", features = ["bundled"] } # For testing rusqlite integration
 
 [workspace]
 members = [
