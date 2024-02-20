@@ -11,16 +11,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
-      runs-on: ${{ matrix.os }}
-
-      steps:
-        - uses: actions/checkout@v4
-        - uses: dtolnay/rust-toolchain@stable
-        - uses: Swatinem/rust-cache@v2
-        - name: Run rustfmt
-          run: cargo fmt --all --check -- --color=always
-        - name: Run clippy
-          run: cargo clippy --workspace --all-features --color=always
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run rustfmt
+        run: cargo fmt --all --check -- --color=always
+      - name: Run clippy
+        run: cargo clippy --workspace --all-features --color=always
 
 
   check-docs:
