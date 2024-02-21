@@ -199,7 +199,9 @@ def update_package(version: str, zonenames: typing.List[str], zoneinfo_dir: path
     with open(REPO_ROOT / 'Cargo.toml', 'r+', encoding='utf-8', newline='\n') as fp:
         contents = fp.read()
         updated = CARGO_TOML_VERSION.sub(f'version = "1.{package_version}"', contents, count=1)
+        fp.seek(0)
         fp.write(updated)
+        fp.truncate()
 
 
 def find_latest_version() -> str:
@@ -245,7 +247,7 @@ def translate_version(iana_version: str) -> str:
     # and so on).
     if len(patch_letters) > 1 and not all(c == 'z' for c in patch_letters[0:-1]):
         raise ValueError(
-            f'Invalid IANA version number (only the last character may be a letter ' f'other than z), found: {iana_version}'
+            f'Invalid IANA version number (only the last character may be a letter other than z), found: {iana_version}'
         )
 
     final_patch_number = ord(patch_letters[-1]) - ord('a') + 1
