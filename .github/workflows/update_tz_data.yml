@@ -9,8 +9,9 @@ on:
       # if we change any of the non-generated items in tzdata, recheck
       - "eos-tzdata/**"
       - "!eos-tzdata/VERSION"
+      - "!eos-tzdata/Cargo.toml"
       - "!eos-tzdata/src/data.rs"
-      - "!eos-tzdata/src/README.md"
+      - "!eos-tzdata/README.md"
 
 concurrency:
   # since this runs on an interval this should be fine
@@ -54,6 +55,5 @@ jobs:
           body: |
             Update eos-tzdata with latest version.
           branch: update/eos-tzdata
-          branch-suffix: timestamp
           title: "[Automated] Update eos-tzdata"
           # reviewers: Rapptz
