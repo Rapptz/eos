@@ -321,3 +321,124 @@ pub mod timestamp {
         }
     }
 }
+
+/// Serialize and deserialize to and from a UNIX timestamp in milliseconds.
+///
+/// Note that there's no nanosecond precision!
+///
+/// This is intended to be used with the [`with`] field attribute in `serde`.
+///
+/// [`with`]: https://serde.rs/field-attrs.html#with
+///
+/// # Example
+///
+/// ```
+/// # use serde_derive::{Deserialize, Serialize};
+/// use eos::{datetime, DateTime, Utc};
+///
+/// #[derive(Serialize, Deserialize)]
+/// struct T {
+///     #[serde(with = "eos::serde::timestamp_ms")]
+///     dt: DateTime<Utc>,
+/// }
+///
+/// let t = T { dt: datetime!(2022-02-01 12:34:56) };
+/// let string = serde_json::to_string(&t)?;
+/// assert_eq!(string, r#"{"dt":1643718896000}"#);
+/// # Ok::<_, serde_json::Error>(())
+/// ```
+pub mod timestamp_ms {
+
+    use super::*;
+
+    /// Serialize a UTC datetime into a UNIX timestamp in milliseconds.
+    ///
+    /// This is intended to be used with the [`serialize_with`] field attribute in `serde`.
+    ///
+    /// [`serialize_with`]: https://serde.rs/field-attrs.html#serialize_with
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use serde_derive::{Deserialize, Serialize};
+    /// use eos::{datetime, DateTime, Utc};
+    ///
+    /// #[derive(Serialize, Deserialize)]
+    /// struct T {
+    ///     #[serde(serialize_with = "eos::serde::timestamp_ms::serialize")]
+    ///     dt: DateTime<Utc>,
+    /// }
+    ///
+    /// let t = T { dt: datetime!(2022-02-01 12:34:56) };
+    /// let string = serde_json::to_string(&t)?;
+    /// assert_eq!(string, r#"{"dt":1643718896000}"#);
+    /// # Ok::<_, serde_json::Error>(())
+    /// ```
+    pub fn serialize<S>(dt: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::Error;
+        let ms = i64::try_from(dt.timestamp().as_milliseconds()).map_err(S::Error::custom)?;
+        serializer.serialize_i64(ms)
+    }
+
+    /// Deserialize a UTC datetime from a UNIX timestamp in milliseconds.
+    ///
+    /// This is intended to be used with the [`deserialize_with`] field attribute in `serde`.
+    ///
+    /// [`deserialize_with`]: https://serde.rs/field-attrs.html#deserialize_with
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use serde_derive::{Deserialize, Serialize};
+    /// use eos::{datetime, DateTime, Utc};
+    ///
+    /// #[derive(Serialize, Deserialize)]
+    /// struct T {
+    ///     #[serde(deserialize_with = "eos::serde::timestamp_ms::deserialize")]
+    ///     dt: DateTime<Utc>,
+    /// }
+    ///
+    /// let t: T = serde_json::from_str(r#"{"dt":1643718896000}"#)?;
+    /// # Ok::<_, serde_json::Error>(())
+    /// ```
+    pub fn deserialize<'de, D>(d: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        d.deserialize_i64(TimestampVisitor)
+    }
+
+    struct TimestampVisitor;
+
+    impl<'de> de::Visitor<'de> for TimestampVisitor {
+        type Value = DateTime<Utc>;
+
+        fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+            formatter.write_str("a UNIX timestamp in milliseconds")
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(DateTime::from_timestamp(
+                crate::Timestamp::from_milliseconds(value),
+                Utc,
+            ))
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            let value = i64::try_from(value).map_err(E::custom)?;
+            Ok(DateTime::from_timestamp(
+                crate::Timestamp::from_milliseconds(value),
+                Utc,
+            ))
+        }
+    }
+}
