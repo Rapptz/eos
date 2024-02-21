@@ -1208,7 +1208,7 @@ impl Sub<Duration> for DateTime {
 
 #[cfg(feature = "std")]
 impl From<SystemTime> for DateTime {
-    /// Creates
+    /// Creates a [`DateTime`] from the given system time.
     fn from(time: SystemTime) -> Self {
         match time.duration_since(SystemTime::UNIX_EPOCH) {
             Ok(duration) => Self::UNIX_EPOCH + duration,
