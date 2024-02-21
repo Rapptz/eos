@@ -26,6 +26,7 @@ pub const MAPPINGS: [ZoneEntry; {length}] = [
 {data}
 ];
 """
+CARGO_TOML_VERSION = re.compile(r'^version = \"1\.(?P<version>\d{4,}\.\d+)\"', re.MULTILINE)
 
 
 def download_tzdb_tarballs(
@@ -148,17 +149,17 @@ def is_already_latest_version(version: str) -> bool:
         rhs = tuple(map(int, other.split('.')))
         return lhs <= rhs
 
+
 def python_bytes_to_rust(b: bytes) -> str:
     # turn b'1\x9f10' to the Rust version with double quotes
-    inner = ''.join(
-        chr(a) if 0x7F >= a >= 0x20 and a not in (0x22, 0x5c) else f'\\x{a:02x}'
-        for a in b
-    )
+    inner = ''.join(chr(a) if 0x7F >= a >= 0x20 and a not in (0x22, 0x5C) else f'\\x{a:02x}' for a in b)
     return f'b"{inner}"'
+
 
 def convert_to_rust_struct(name: str, tzif: bytes) -> str:
     # name is always ASCII without " as far as I'm aware
     return f'    ZoneEntry {{ zone: "{name}", data: {python_bytes_to_rust(tzif)} }},\n'
+
 
 def update_package(version: str, zonenames: typing.List[str], zoneinfo_dir: pathlib.Path):
     """Creates the tzdata package."""
@@ -170,6 +171,7 @@ def update_package(version: str, zonenames: typing.List[str], zoneinfo_dir: path
     # Sort the zone names by lexicographical position
     zonenames = sorted(zonenames)
 
+    # fmt: off
     # Generate a compile mapping of zone name -> byte data
     zone_to_bytes = {
         name: open(zoneinfo_dir / name, 'rb').read()
@@ -182,6 +184,7 @@ def update_package(version: str, zonenames: typing.List[str], zoneinfo_dir: path
         convert_to_rust_struct(name, tzif)
         for name, tzif in zone_to_bytes.items()
     ]
+    # fmt: on
 
     # Create the actual src/data.rs
     with open(PKG_BASE / 'data.rs', 'w', encoding='utf-8', newline='\n') as fp:
@@ -191,6 +194,13 @@ def update_package(version: str, zonenames: typing.List[str], zoneinfo_dir: path
     # Write the actual VERSION
     with open(REPO_ROOT / 'VERSION', 'w') as f:
         f.write(package_version)
+
+    # Update the Cargo.toml version
+    with open(REPO_ROOT / 'Cargo.toml', 'r+', encoding='utf-8', newline='\n') as fp:
+        contents = fp.read()
+        updated = CARGO_TOML_VERSION.sub(f'version = "1.{package_version}"', contents, count=1)
+        fp.write(updated)
+
 
 def find_latest_version() -> str:
     r = requests.get(IANA_LATEST_LOCATION)
