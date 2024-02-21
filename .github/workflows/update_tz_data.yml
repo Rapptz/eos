@@ -39,14 +39,14 @@ jobs:
           python update.py
 
       - name: Check if tzdata has been updated
+        id: diff-check
         run: |
-          ! git diff --exit-code eos-tzdata/VERSION
+          git diff --exit-code eos-tzdata/VERSION || echo "NO_CHANGE=true" >> "${GITHUB_OUTPUT}"
 
       - name: Commit and PR changes
         # the --exit-code above will return 1 (fail) if the file given has changed
-        # we negate that with `!`
-        # success() ensures the previous job succeeds
-        if: ${{ success() }}
+        # this checks that the conclusion of that job is a failure, meaning changes
+        if: steps.diff-check.outputs.NO_CHANGE == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           add-paths: |
