@@ -25,7 +25,7 @@ use crate::sys::localtime::LocalTime;
 /// [`GetTimeZoneInformation`]: https://docs.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-gettimezoneinformation
 ///
 #[cfg(feature = "localtime")]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Local(pub(crate) LocalTime);
 
 #[cfg(feature = "localtime")]

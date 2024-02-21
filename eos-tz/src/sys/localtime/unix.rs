@@ -1,6 +1,6 @@
 use crate::TimeZone;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq)]
 pub(crate) struct LocalTime {
     inner: TimeZone,
 }

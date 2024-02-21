@@ -1,0 +1,35 @@
+name: Lint and docs
+
+env:
+  ALL_FEATURES: --features "eos-tz/bundled default rusqlite rusqlite/bundled serde"
+
+on:
+  push:
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run rustfmt
+        run: cargo fmt --all --check -- --color=always
+      - name: Run clippy
+        run: cargo clippy --workspace ${{ env.ALL_FEATURES }} --color=always
+
+
+  check-docs:
+    runs-on: ubuntu-latest
+    name: Check rustdoc
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo doc --workspace ${{ env.ALL_FEATURES }} --no-deps --color=always

@@ -3,7 +3,7 @@ name = "eos"
 version = "0.1.0"
 edition = "2021"
 authors = ["Rapptz"]
-rust-version = "1.63"
+rust-version = "1.70"
 description = "A simple and easy to use datetime library for Rust"
 license = "Apache-2.0"
 readme = "README.md"
@@ -30,6 +30,7 @@ rusqlite = { version = "0.29", optional = true }
 [dev-dependencies]
 serde_json = { version = "1" } # For testing Serde integration
 serde_derive = { version = "1", default-features = false } # For testing Serde integration
+rusqlite = { version = "0.29", features = ["bundled"] } # For testing rusqlite integration
 
 [workspace]
 members = [

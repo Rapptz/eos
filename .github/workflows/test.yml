@@ -1,0 +1,47 @@
+name: Run tests
+
+env:
+  ALL_FEATURES: --features "eos-tz/bundled default rusqlite rusqlite/bundled serde"
+
+on:
+  push:
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+
+jobs:
+  all_features:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+    name: Compile tests and examples on ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace ${{ env.ALL_FEATURES }} --color=always
+
+  rust_msrv:
+    name: Check Rust MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.70.0"
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace ${{ env.ALL_FEATURES }} --color=always
+
+  check_features:
+    name: Check feature compilation matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --tests --workspace --color=always --no-default-features
+      - run: cargo test --tests --workspace --color=always --no-default-features --features=alloc
+      - run: cargo test --tests --workspace --color=always --no-default-features --features=formatting
+      - run: cargo test --tests --workspace --color=always --no-default-features --features=parsing
+      - run: cargo test --tests --workspace --color=always --no-default-features --features=macros
