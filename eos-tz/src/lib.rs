@@ -16,6 +16,10 @@ pub use timezone::TimeZone;
 #[cfg(feature = "localtime")]
 pub use local::Local;
 
+#[cfg(feature = "bundled")]
+#[doc(hidden)]
+pub use eos_tzdata;
+
 /// A macro to return a [`TimeZone`] for the given zone identifier.
 ///
 /// This requires that the `bundled` feature is enabled, since that's
@@ -37,7 +41,7 @@ pub use local::Local;
 #[cfg(feature = "bundled")]
 macro_rules! zone {
     ($zone_id:literal) => {{
-        const DATA: &'static [u8] = eos_tzdata::tzif!($zone_id);
+        const DATA: &'static [u8] = $crate::eos_tzdata::tzif!($zone_id);
         $crate::TimeZone::load(std::io::Cursor::new(DATA), std::string::String::from($zone_id)).unwrap()
     }};
 }
