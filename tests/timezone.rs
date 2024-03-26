@@ -31,12 +31,12 @@ impl AmericanTimeZone {
     fn is_dst(&self, utc: &DateTime<Utc>) -> bool {
         // Luckily it's not a hard task to convert these transitions into UTC.
         // DST starts at 06:59:59 and DST ends at 05:59:59 and the date remains the same
-        let start = this_or_next_sunday(*DST_START.with_year(utc.year()).unwrap().date());
+        let start = this_or_next_sunday(DST_START.with_year(utc.year()).unwrap().date());
         assert_eq!(start.weekday(), Weekday::Sunday);
         assert_eq!(start.month(), 3);
         assert!(start.day() > 7);
 
-        let end = this_or_next_sunday(*DST_END.with_year(utc.year()).unwrap().date());
+        let end = this_or_next_sunday(DST_END.with_year(utc.year()).unwrap().date());
         assert_eq!(end.weekday(), Weekday::Sunday);
         assert_eq!(end.month(), 11);
         assert!(end.day() <= 7);
@@ -81,11 +81,12 @@ impl TimeZone for AmericanTimeZone {
     where
         Self: Sized,
     {
-        let start = this_or_next_sunday(*DST_START.with_year(date.year()).unwrap().date());
-        let end = this_or_next_sunday(*DST_END.with_year(date.year()).unwrap().date());
-        let start_dt = (&start, DST_START.time());
-        let end_dt = (&end, DST_END.time());
-        let dt = (&date, &time);
+        let start = this_or_next_sunday(DST_START.with_year(date.year()).unwrap().date());
+        let end = this_or_next_sunday(DST_END.with_year(date.year()).unwrap().date());
+        // TODO: optimize?
+        let start_dt = (start, DST_START.time());
+        let end_dt = (end, DST_END.time());
+        let dt = (date, time);
 
         let dst_offset = self.offset.saturating_add(utc_offset!(+01:00));
         if date == end && time.hour() >= 1 && time.hour() < 2 {
@@ -163,7 +164,7 @@ const DST_END_2021: DateTime = datetime!(2021-11-7 1:00 am);
 fn test_from_utc() {
     for tz in [&EAST, &CENTRAL, &MOUNTAIN, &PACIFIC] {
         let local = tz.convert_utc(DT);
-        assert_eq!(local - DT.with_timezone(*tz), Interval::from(*local.offset()));
+        assert_eq!(local - DT.with_timezone(*tz), Interval::from(local.offset()));
         assert_eq!(local, DT);
     }
 
@@ -218,7 +219,7 @@ fn test_from_utc() {
 #[test]
 fn test_datetime_resolve() -> Result<(), eos::Error> {
     let local = datetime!(2021-11-07 1:30 am);
-    let resolve = EAST.resolve(*local.date(), *local.time());
+    let resolve = EAST.resolve(local.date(), local.time());
     assert!(resolve.is_ambiguous());
     assert_eq!(resolve.earlier()?, datetime!(2021-11-07 1:30 am -04:00));
     assert_eq!(resolve.later()?, datetime!(2021-11-07 1:30 am -05:00));
@@ -226,14 +227,14 @@ fn test_datetime_resolve() -> Result<(), eos::Error> {
 
     // This is not ambiguous
     let unambiguous = datetime!(2021-11-07 12:30 am);
-    let resolve = EAST.resolve(*unambiguous.date(), *unambiguous.time());
+    let resolve = EAST.resolve(unambiguous.date(), unambiguous.time());
     assert!(resolve.is_unambiguous());
     assert_eq!(resolve.earlier()?, datetime!(2021-11-07 12:30 am -04:00));
     assert_eq!(resolve.lenient(), datetime!(2021-11-07 12:30 am -04:00));
 
     // This is missing
     let missing = datetime!(2021-03-14 02:30 am);
-    let resolve = EAST.resolve(*missing.date(), *missing.time());
+    let resolve = EAST.resolve(missing.date(), missing.time());
     assert!(resolve.is_missing());
     assert!(resolve.earlier().is_err());
     assert!(resolve.later().is_err());

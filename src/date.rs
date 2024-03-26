@@ -283,7 +283,7 @@ impl Date {
     #[must_use]
     pub fn today_utc() -> Self {
         let dt = crate::DateTime::utc_now();
-        *dt.date()
+        dt.date()
     }
 
     /// Creates a new [`Date`] from a given year, month, and day.

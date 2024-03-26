@@ -286,16 +286,16 @@ mod tests {
     #[test]
     fn test_basic_construction() -> Result<(), Error> {
         let dt = Builder::new().month(12).day(31).year(2022).build()?;
-        assert_eq!(dt.date(), &Date::new(2022, 12, 31).unwrap());
-        assert_eq!(dt.time(), &Time::MIDNIGHT);
+        assert_eq!(dt.date(), Date::new(2022, 12, 31).unwrap());
+        assert_eq!(dt.time(), Time::MIDNIGHT);
         Ok(())
     }
 
     #[test]
     fn test_ordinal_construction() -> Result<(), Error> {
         let dt = Builder::new().year(2020).ordinal(60).build()?;
-        assert_eq!(dt.date(), &Date::new(2020, 2, 29).unwrap());
-        assert_eq!(dt.time(), &Time::MIDNIGHT);
+        assert_eq!(dt.date(), Date::new(2020, 2, 29).unwrap());
+        assert_eq!(dt.time(), Time::MIDNIGHT);
         Ok(())
     }
 

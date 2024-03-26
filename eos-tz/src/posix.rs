@@ -236,7 +236,7 @@ impl PosixTimeZone {
     }
 
     pub(crate) fn shift_utc(&self, utc: &mut eos::DateTime<eos::Utc>) {
-        let ts = NaiveTimestamp::new(utc.date(), utc.time());
+        let ts = NaiveTimestamp::new(&utc.date(), &utc.time());
         match self.dst.as_ref() {
             None => {
                 utc.shift(self.std_offset);
@@ -703,7 +703,7 @@ mod tests {
 
         // UTC times are always unambiguous
         let dt = datetime!(2012-02-29 3:00 am);
-        let resolved = result.resolve(*dt.date(), *dt.time());
+        let resolved = result.resolve(dt.date(), dt.time());
         assert!(resolved.is_unambiguous());
         let resolved = resolved.lenient();
         assert_eq!(resolved, dt);
@@ -756,7 +756,7 @@ mod tests {
         }
 
         let local = datetime!(2021-11-07 1:30 am);
-        let resolve = result.clone().resolve(*local.date(), *local.time());
+        let resolve = result.clone().resolve(local.date(), local.time());
         assert!(resolve.is_ambiguous());
         assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2021-11-07 1:30 am -04:00));
         assert_eq!(resolve.clone().later().unwrap(), datetime!(2021-11-07 1:30 am -05:00));
@@ -764,7 +764,7 @@ mod tests {
 
         // This is not ambiguous
         let unambiguous = datetime!(2021-11-07 12:30 am);
-        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        let resolve = result.clone().resolve(unambiguous.date(), unambiguous.time());
         assert!(resolve.is_unambiguous());
         assert_eq!(
             resolve.clone().earlier().unwrap(),
@@ -774,7 +774,7 @@ mod tests {
 
         // This is missing
         let missing = datetime!(2021-03-14 02:30 am);
-        let resolve = result.resolve(*missing.date(), *missing.time());
+        let resolve = result.resolve(missing.date(), missing.time());
         assert!(resolve.is_missing());
         assert!(resolve.clone().earlier().is_err());
         assert!(resolve.clone().later().is_err());
@@ -825,7 +825,7 @@ mod tests {
         }
 
         let local = datetime!(2022-04-03 2:30 am);
-        let resolve = result.clone().resolve(*local.date(), *local.time());
+        let resolve = result.clone().resolve(local.date(), local.time());
         assert!(resolve.is_ambiguous());
         assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-04-03 2:30 am +11:00));
         assert_eq!(resolve.clone().later().unwrap(), datetime!(2022-04-03 2:30 am +10:00));
@@ -833,14 +833,14 @@ mod tests {
 
         // This is not ambiguous
         let unambiguous = datetime!(2022-04-03 1:30 am);
-        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        let resolve = result.clone().resolve(unambiguous.date(), unambiguous.time());
         assert!(resolve.is_unambiguous());
         assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-04-03 1:30 am +11:00));
         assert_eq!(resolve.lenient(), datetime!(2022-04-03 1:30 am +11:00));
 
         // This is missing
         let missing = datetime!(2021-10-03 02:30 am);
-        let resolve = result.resolve(*missing.date(), *missing.time());
+        let resolve = result.resolve(missing.date(), missing.time());
         assert!(resolve.is_missing());
         assert!(resolve.clone().earlier().is_err());
         assert!(resolve.clone().later().is_err());
@@ -899,7 +899,7 @@ mod tests {
         // This means the ambiguous times are 2022-04-02 23:00:00 to 2022-04-03 00:00:00
 
         let local = datetime!(2022-04-02 23:30:00);
-        let resolve = result.clone().resolve(*local.date(), *local.time());
+        let resolve = result.clone().resolve(local.date(), local.time());
         assert!(resolve.is_ambiguous());
         assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-04-02 23:30 -03:00));
         assert_eq!(resolve.clone().later().unwrap(), datetime!(2022-04-02 23:30 -04:00));
@@ -907,7 +907,7 @@ mod tests {
 
         // This is not ambiguous
         let unambiguous = datetime!(2022-04-02 22:59:59);
-        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        let resolve = result.clone().resolve(unambiguous.date(), unambiguous.time());
         assert!(resolve.is_unambiguous());
         assert_eq!(
             resolve.clone().earlier().unwrap(),
@@ -917,7 +917,7 @@ mod tests {
 
         // This is missing
         let missing = datetime!(2021-09-05 00:00);
-        let resolve = result.resolve(*missing.date(), *missing.time());
+        let resolve = result.resolve(missing.date(), missing.time());
         assert!(resolve.is_missing());
         assert!(resolve.clone().earlier().is_err());
         assert!(resolve.clone().later().is_err());
@@ -978,7 +978,7 @@ mod tests {
         // The gap skip would mean that'd forward an hour so 2022-03-27 2:30 AM UTC+1
 
         let local = datetime!(2021-10-31 01:30:00);
-        let resolve = result.clone().resolve(*local.date(), *local.time());
+        let resolve = result.clone().resolve(local.date(), local.time());
         assert!(resolve.is_ambiguous());
         assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2021-10-31 01:30 +01:00));
         assert_eq!(resolve.clone().later().unwrap(), datetime!(2021-10-31 01:30 +00:00));
@@ -986,14 +986,14 @@ mod tests {
 
         // This is not ambiguous
         let unambiguous = datetime!(2022-03-27 00:00);
-        let resolve = result.clone().resolve(*unambiguous.date(), *unambiguous.time());
+        let resolve = result.clone().resolve(unambiguous.date(), unambiguous.time());
         assert!(resolve.is_unambiguous());
         assert_eq!(resolve.clone().earlier().unwrap(), datetime!(2022-03-27 00:00 +00:00));
         assert_eq!(resolve.lenient(), datetime!(2022-03-27 00:00 +00:00));
 
         // This is missing
         let missing = datetime!(2022-03-27 01:30);
-        let resolve = result.resolve(*missing.date(), *missing.time());
+        let resolve = result.resolve(missing.date(), missing.time());
         assert!(resolve.is_missing());
         assert!(resolve.clone().earlier().is_err());
         assert!(resolve.clone().later().is_err());
@@ -1049,9 +1049,9 @@ mod tests {
         let posix = PosixTimeZone::new("<-04>4<-03>,M9.1.6/24,M4.1.6/24")?;
         // DST doesn't end until 2040-04-08 00:00
         let dt = datetime!(2040-04-06 00:00);
-        assert!(posix.is_dst(dt.date(), dt.time()));
+        assert!(posix.is_dst(&dt.date(), &dt.time()));
         let end = datetime!(2040-04-08 00:00);
-        assert!(!posix.is_dst(end.date(), end.time()));
+        assert!(!posix.is_dst(&end.date(), &end.time()));
         Ok(())
     }
 

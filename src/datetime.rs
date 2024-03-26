@@ -219,7 +219,7 @@ where
     /// assert_eq!(dt.year(), 2003);
     /// assert_eq!(dt.month(), 4);
     /// assert_eq!(dt.day(), 19);
-    /// assert_eq!(dt.time(), &Time::MIDNIGHT);
+    /// assert_eq!(dt.time(), Time::MIDNIGHT);
     /// assert!(DateTime::<Utc>::new(2013, 2, 29).is_none()); // 2013 was not a leap year
     /// # Some(())
     /// # }
@@ -313,28 +313,14 @@ where
         crate::fmt::Rfc3339Formatter { dt: self }
     }
 
-    /// Returns a reference to the time component.
-    #[must_use]
-    pub fn time(&self) -> &Time {
-        &self.time
+    /// Returns the time component.
+    pub const fn time(&self) -> Time {
+        self.time
     }
 
-    /// Returns a mutable reference to the time component.
-    #[must_use]
-    pub fn time_mut(&mut self) -> &mut Time {
-        &mut self.time
-    }
-
-    /// Returns a reference to the date component.
-    #[must_use]
-    pub fn date(&self) -> &Date {
-        &self.date
-    }
-
-    /// Returns a mutable reference to the date component.
-    #[must_use]
-    pub fn date_mut(&mut self) -> &mut Date {
-        &mut self.date
+    /// Returns the date component.
+    pub const fn date(&self) -> Date {
+        self.date
     }
 
     /// Returns a new [`DateTime`] with the newly specified [`Time`].
@@ -354,21 +340,18 @@ where
     }
 
     /// Returns a reference to the [`TimeZone`] associated with this datetime.
-    #[must_use]
     pub fn timezone(&self) -> &Tz {
         &self.timezone
     }
 
     /// Returns a mutable reference to the [`TimeZone`] associated with this datetime.
-    #[must_use]
     pub fn timezone_mut(&mut self) -> &mut Tz {
         &mut self.timezone
     }
 
-    /// Returns a reference to the [`UtcOffset`] this datetime currently resides in.
-    #[must_use]
-    pub fn offset(&self) -> &UtcOffset {
-        &self.offset
+    /// Returns the [`UtcOffset`] this datetime currently resides in.
+    pub const fn offset(&self) -> UtcOffset {
+        self.offset
     }
 
     /// Returns the time zone name, if any.
