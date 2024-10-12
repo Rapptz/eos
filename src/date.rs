@@ -491,10 +491,33 @@ impl Date {
     }
 
     /// Returns the number of days since the UNIX Epoch (1970-01-01).
+    /// # Examples
+    ///
+    /// ```
+    /// # use eos::date;
+    /// assert_eq!(date!(1978 - 06 - 19).days_since_epoch(), 3091);
+    /// assert_eq!(date!(1969 - 12 - 31).days_since_epoch(), -1);
+    /// # Ok::<_, eos::Error>(())
+    /// ```
     #[inline]
     #[must_use]
     pub const fn days_since_epoch(&self) -> i32 {
         date_to_epoch_days(self.year, self.month, self.day)
+    }
+
+    /// Returs the number of days since another date.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eos::date;
+    /// assert_eq!(date!(2024 - 10 - 12).days_since(date!(1978 - 06 - 19)), 16917);
+    /// # Ok::<_, eos::Error>(())
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn days_since(&self, other: Date) -> i32 {
+        self.days_since_epoch() - other.days_since_epoch()
     }
 
     /// Returns the weekday.
