@@ -497,6 +497,13 @@ impl Date {
         date_to_epoch_days(self.year, self.month, self.day)
     }
 
+    /// Returs the number of days since another date.
+    #[inline]
+    #[must_use]
+    pub const fn days_since(&self, other: Date) -> i32 {
+        self.days_since_epoch() - other.days_since_epoch()
+    }
+
     /// Returns the weekday.
     ///
     /// # Examples
