@@ -491,6 +491,7 @@ impl Date {
     }
 
     /// Returns the number of days since the UNIX Epoch (1970-01-01).
+    ///
     /// # Examples
     ///
     /// ```
@@ -505,7 +506,7 @@ impl Date {
         date_to_epoch_days(self.year, self.month, self.day)
     }
 
-    /// Returs the number of days since another date.
+    /// Returns the number of days since another date.
     ///
     /// # Examples
     ///
