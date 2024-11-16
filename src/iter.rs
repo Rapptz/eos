@@ -135,7 +135,6 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
             }
         }
 
-        let time = self.time.unwrap_or(time);
         let timezone = self.start.timezone.clone();
         let mut dt = if self.fixed {
             DateTime {
