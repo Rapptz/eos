@@ -136,7 +136,7 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
         }
 
         let timezone = self.start.timezone.clone();
-        let mut dt = if self.fixed {
+        let dt = if self.fixed {
             DateTime {
                 date,
                 time,
@@ -149,7 +149,9 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
             timezone.resolve(date, time).lenient()
         };
 
-        core::mem::swap(&mut self.start, &mut dt);
+        self.start.time = dt.time;
+        self.start.date = dt.date;
+        self.start.offset = dt.offset;
         Some(dt)
     }
 }
