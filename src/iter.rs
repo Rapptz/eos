@@ -43,7 +43,7 @@ impl<Tz: TimeZone> Every<Tz> {
         self
     }
 
-    /// Sets the weekend that the recurrence must fall on.
+    /// Sets the weekday that the recurrence must fall on.
     ///
     /// The date is shifted until it falls on this weekend.
     pub fn on(mut self, weekday: Weekday) -> Self {
@@ -79,7 +79,7 @@ impl<Tz: TimeZone> Every<Tz> {
             interval: self.interval,
             until: self.until,
             weekday: self.weekday,
-            time: self.time,
+            first_time: self.time,
             fixed,
         }
     }
@@ -92,7 +92,7 @@ pub struct EveryIter<Tz: TimeZone> {
     interval: Interval,
     until: Option<DateTime<Tz>>,
     weekday: Option<Weekday>,
-    time: Option<Time>,
+    first_time: Option<Time>,
     fixed: bool,
 }
 
@@ -136,7 +136,15 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
         }
 
         let timezone = self.start.timezone.clone();
-        let dt = if self.fixed {
+
+        let dt = if let Some(first_time) = self.first_time.take() {
+            DateTime {
+                date: self.start.date,
+                time: first_time,
+                offset: self.start.offset,
+                timezone,
+            }
+        } else if self.fixed {
             DateTime {
                 date,
                 time,
@@ -153,5 +161,29 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
         self.start.date = dt.date;
         self.start.offset = dt.offset;
         Some(dt)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::time::Duration;
+
+    use crate::{datetime, time, Interval};
+
+    #[test]
+    fn same_day_start() {
+        const HOUR: Duration = Duration::from_secs(60 * 60);
+        const DAY: Duration = Duration::from_secs(60 * 60 * 24);
+
+        let start = datetime!(2024-12-24 6:00);
+        let mut iter = start.every(Interval::from_days(1)).at(time!(07:00)).into_iter();
+
+        let dt = iter.next().unwrap();
+        let duration = dt.duration_since(&start);
+        assert_eq!(duration, HOUR);
+
+        let dt = iter.next().unwrap();
+        let duration = dt.duration_since(&start);
+        assert_eq!(duration, DAY + HOUR);
     }
 }
