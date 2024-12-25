@@ -66,13 +66,6 @@ impl<Tz: TimeZone> Every<Tz> {
             }
         }
         let fixed = self.start.timezone().is_fixed();
-        if let Some(time) = self.time {
-            if fixed {
-                self.start.time = time;
-            } else {
-                self.start = self.start.timezone.resolve(self.start.date, time).lenient();
-            }
-        }
 
         EveryIter {
             start: self.start,
@@ -136,13 +129,11 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
         }
 
         let timezone = self.start.timezone.clone();
-
         let dt = if let Some(first_time) = self.first_time.take() {
-            DateTime {
-                date: self.start.date,
-                time: first_time,
-                offset: self.start.offset,
-                timezone,
+            if first_time > self.start.time {
+                timezone.resolve(self.start.date, first_time).lenient()
+            } else {
+                timezone.resolve(date, first_time).lenient()
             }
         } else if self.fixed {
             DateTime {
@@ -170,11 +161,11 @@ mod tests {
 
     use crate::{datetime, time, Interval};
 
-    #[test]
-    fn same_day_start() {
-        const HOUR: Duration = Duration::from_secs(60 * 60);
-        const DAY: Duration = Duration::from_secs(60 * 60 * 24);
+    const HOUR: Duration = Duration::from_secs(60 * 60);
+    const DAY: Duration = Duration::from_secs(60 * 60 * 24);
 
+    #[test]
+    fn later_same_day_start() {
         let start = datetime!(2024-12-24 6:00);
         let mut iter = start.every(Interval::from_days(1)).at(time!(07:00)).into_iter();
 
@@ -185,5 +176,33 @@ mod tests {
         let dt = iter.next().unwrap();
         let duration = dt.duration_since(&start);
         assert_eq!(duration, DAY + HOUR);
+    }
+
+    #[test]
+    fn earlier_same_day_start() {
+        let start = datetime!(2024-12-24 8:00);
+        let mut iter = start.every(Interval::from_days(1)).at(time!(07:00)).into_iter();
+
+        let dt = iter.next().unwrap();
+        let duration = dt.duration_since(&start);
+        assert_eq!(duration, DAY - HOUR);
+
+        let dt = iter.next().unwrap();
+        let duration = dt.duration_since(&start);
+        assert_eq!(duration, 2 * DAY - HOUR);
+    }
+
+    #[test]
+    fn same_same_day_start() {
+        let start = datetime!(2024-12-24 7:00);
+        let mut iter = start.every(Interval::from_days(1)).at(time!(07:00)).into_iter();
+
+        let dt = iter.next().unwrap();
+        let duration = dt.duration_since(&start);
+        assert_eq!(duration, DAY);
+
+        let dt = iter.next().unwrap();
+        let duration = dt.duration_since(&start);
+        assert_eq!(duration, DAY * 2);
     }
 }
