@@ -948,10 +948,18 @@ impl<'a> FormatSpec<'a> {
                             None => return Err(ParseError::UnexpectedEnd),
                         };
                     }
-                    Some(b'A') => {
-                        parser.expect_str(b"ugust")?;
-                        builder.month(8);
-                    }
+                    Some(b'A') => match parser.advance() {
+                        Some(b'u') => {
+                            parser.expect_str(b"gust")?;
+                            builder.month(8);
+                        }
+                        Some(b'p') => {
+                            parser.expect_str(b"ril")?;
+                            builder.month(4);
+                        }
+                        Some(c) => return Err(ParseError::UnexpectedChar(c as char)),
+                        None => return Err(ParseError::UnexpectedEnd),
+                    },
                     Some(b'S') => {
                         parser.expect_str(b"eptember")?;
                         builder.month(9);
