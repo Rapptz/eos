@@ -218,4 +218,8 @@ fn test_april() {
     let spec = eos::fmt::format_spec!("%B %d, %Y");
     let site_date = eos::DateTime::parse_from_spec("April 3, 2025", spec).unwrap().date();
     assert_eq!(site_date, date!(2025 - 04 - 03));
+
+    let spec = eos::fmt::format_spec!("%b %d, %Y");
+    let site_date = eos::DateTime::parse_from_spec("Apr 3, 2025", spec).unwrap().date();
+    assert_eq!(site_date, date!(2025 - 04 - 03));
 }
