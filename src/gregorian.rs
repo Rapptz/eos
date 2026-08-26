@@ -107,7 +107,12 @@ pub const MAX_EPOCH_DAYS: i32 = date_to_epoch_days(i16::MAX, 12, 31);
 /// Note that 0 is Sunday and 6 is Saturday.
 #[inline]
 pub const fn end_of_year_weekday(year: i16) -> u8 {
-    let count = year + year / 4 - year / 100 + year / 400;
+    // Widen to i32 and use floor division (`div_euclid`) so the leap-day count is
+    // correct for negative years and cannot overflow `i16` for years far from zero.
+    // Truncating `i16` division rounds towards zero, which yields the wrong weekday
+    // for negative years (and `year + year / 4` overflows `i16` for large years).
+    let year = year as i32;
+    let count = year + year.div_euclid(4) - year.div_euclid(100) + year.div_euclid(400);
     count.rem_euclid(7) as u8
 }
 
@@ -229,5 +234,36 @@ mod tests {
                 assert_eq!(weekday_difference(x, y), TESTS[x as usize][y as usize]);
             }
         }
+    }
+
+    #[test]
+    fn test_end_of_year_weekday_and_iso_weeks_full_range() {
+        // `end_of_year_weekday` must agree with the epoch-based weekday for every
+        // representable year (including negative years, where truncating division
+        // used to give the wrong answer, and years far from zero, where the old
+        // `i16` arithmetic used to overflow). `iso_weeks_in_year` must likewise be
+        // correct for the whole range.
+        for year in i16::MIN..=i16::MAX {
+            let expected = weekday_from_days(date_to_epoch_days(year, 12, 31));
+            assert_eq!(
+                end_of_year_weekday(year),
+                expected,
+                "end_of_year_weekday wrong for {year}"
+            );
+
+            if year > i16::MIN {
+                let prev = weekday_from_days(date_to_epoch_days(year - 1, 12, 31));
+                let expected_weeks = if expected == 4 || prev == 3 { 53 } else { 52 };
+                assert_eq!(
+                    iso_weeks_in_year(year),
+                    expected_weeks,
+                    "iso_weeks_in_year wrong for {year}"
+                );
+            }
+        }
+
+        // Spot checks around zero: ISO year -2 has 53 weeks, -3 has 52.
+        assert_eq!(iso_weeks_in_year(-2), 53);
+        assert_eq!(iso_weeks_in_year(-3), 52);
     }
 }
