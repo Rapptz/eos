@@ -3,8 +3,8 @@ use std::mem::MaybeUninit;
 use eos::UtcOffset;
 
 use crate::{
-    posix::{DstTransitionInfo, DstTransitionRule},
     PosixTimeZone,
+    posix::{DstTransitionInfo, DstTransitionRule},
 };
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -57,7 +57,7 @@ fn system_time_to_offset_seconds(s: &SYSTEMTIME) -> i64 {
 }
 
 #[link(name = "kernel32")]
-extern "system" {
+unsafe extern "system" {
     fn GetTimeZoneInformation(lpTimeZoneInformation: *mut TIME_ZONE_INFORMATION) -> u32;
 }
 

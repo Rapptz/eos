@@ -1,4 +1,4 @@
-use crate::{unit, Date, DateTime, Time, TimeZone, Weekday};
+use crate::{Date, DateTime, Time, TimeZone, Weekday, unit};
 use core::time::Duration;
 
 mod private {

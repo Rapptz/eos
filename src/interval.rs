@@ -6,8 +6,8 @@ use core::{
 };
 
 use crate::{
-    utils::{divmod, divrem},
     Date, DateTime, Time, TimeZone, UtcOffset,
+    utils::{divmod, divrem},
 };
 
 #[cfg(feature = "formatting")]
@@ -463,18 +463,10 @@ fn years_between(start: &Date, end: &Date) -> i16 {
         // In this case we need to check whether we actually landed at date
         // If we haven't overshot our date then we really are N years away
         // Otherwise we're in "year and N months" territory.
-        if &location <= end {
-            diff
-        } else {
-            diff - 1
-        }
+        if &location <= end { diff } else { diff - 1 }
     } else {
         // This operates the same way except in the opposite direction
-        if &location >= end {
-            diff
-        } else {
-            diff + 1
-        }
+        if &location >= end { diff } else { diff + 1 }
     }
 }
 
@@ -485,11 +477,7 @@ fn months_between(start: &Date, end: &Date) -> i32 {
     let location = start.add_months(diff);
 
     if start <= end {
-        if &location <= end {
-            diff
-        } else {
-            diff - 1
-        }
+        if &location <= end { diff } else { diff - 1 }
     } else if &location >= end {
         diff
     } else {

@@ -6,7 +6,7 @@
 
 // This was last updated for 2021e
 
-use eos::{datetime, ext::IntervalLiteral, utc_offset, DateTime, TimeZone, Utc, UtcOffset};
+use eos::{DateTime, TimeZone, Utc, UtcOffset, datetime, ext::IntervalLiteral, utc_offset};
 use eos_tz::zone;
 
 const TEST_DATA: [(&str, &[u8]); 12] = [

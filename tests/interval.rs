@@ -1,5 +1,5 @@
 use core::time::Duration;
-use eos::{date, datetime, ext::IntervalLiteral, time, Interval};
+use eos::{Interval, date, datetime, ext::IntervalLiteral, time};
 
 #[test]
 fn zero() {

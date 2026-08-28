@@ -137,11 +137,7 @@ pub(crate) const fn find_iso_week_start_epoch(year: i16, epoch: i32) -> i32 {
         return iso_week_start_epoch_from_year(year - 1);
     }
     let next_start = iso_week_start_epoch_from_year(year + 1);
-    if epoch >= next_start {
-        next_start
-    } else {
-        start
-    }
+    if epoch >= next_start { next_start } else { start }
 }
 
 /// Returns the difference between two weekdays.
@@ -152,11 +148,7 @@ pub(crate) const fn find_iso_week_start_epoch(year: i16, epoch: i32) -> i32 {
 #[inline]
 pub const fn weekday_difference(x: u8, y: u8) -> u8 {
     let x = x.wrapping_sub(y);
-    if x <= 6 {
-        x
-    } else {
-        x.wrapping_add(7)
-    }
+    if x <= 6 { x } else { x.wrapping_add(7) }
 }
 
 /// Returns the weekday from the days after 1970-01-01.
@@ -172,11 +164,7 @@ pub const fn weekday_from_days(civil: i32) -> u8 {
 /// Note that 0 is Sunday and 6 is Saturday
 #[inline]
 pub const fn next_weekday(wd: u8) -> u8 {
-    if wd < 6 {
-        wd + 1
-    } else {
-        0
-    }
+    if wd < 6 { wd + 1 } else { 0 }
 }
 
 /// Returns the previous weekday, given a weekday.
@@ -184,11 +172,7 @@ pub const fn next_weekday(wd: u8) -> u8 {
 /// Note that 0 is Sunday and 6 is Saturday
 #[inline]
 pub const fn prev_weekday(wd: u8) -> u8 {
-    if wd > 0 {
-        wd - 1
-    } else {
-        6
-    }
+    if wd > 0 { wd - 1 } else { 6 }
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 //! Convert most of the [Time Strings](http://sqlite.org/lang_datefunc.html) to our types.
 
 use crate::{
-    fmt::{FromIsoFormat, ParseError, Parser, ToIsoFormat},
     Date, DateTime, Time, Utc, UtcOffset,
+    fmt::{FromIsoFormat, ParseError, Parser, ToIsoFormat},
 };
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 
@@ -145,11 +145,11 @@ impl FromSql for DateTime<UtcOffset> {
 mod test {
     // Most of these tests are adapted from rusqlite directly
     use rusqlite::{
-        types::{FromSql, ValueRef},
         Connection, Result,
+        types::{FromSql, ValueRef},
     };
 
-    use crate::{date, datetime, time, Date, DateTime, Interval, Time, Utc, UtcOffset};
+    use crate::{Date, DateTime, Interval, Time, Utc, UtcOffset, date, datetime, time};
 
     fn checked_memory_handle() -> Result<Connection> {
         let db = Connection::open_in_memory()?;

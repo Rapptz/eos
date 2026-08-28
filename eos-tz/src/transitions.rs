@@ -1,6 +1,6 @@
 use eos::UtcOffset;
 
-use crate::{timestamp::NaiveTimestamp, ParseError};
+use crate::{ParseError, timestamp::NaiveTimestamp};
 
 /// A transition type in the TZif data.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

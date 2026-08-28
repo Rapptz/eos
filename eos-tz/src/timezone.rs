@@ -384,15 +384,15 @@ impl eos::TimeZone for TimeZone {
         // In that case `trans` is UTC+2 and `prev` is UTC+1
         // To check for missing, we need to check whether the *current* transition is missing.
 
-        if let Some(next) = next {
-            if next.is_ambiguous(ts) {
-                return eos::DateTimeResolution::ambiguous(date, time, trans.offset, next.offset, self.clone());
-            }
+        if let Some(next) = next
+            && next.is_ambiguous(ts)
+        {
+            return eos::DateTimeResolution::ambiguous(date, time, trans.offset, next.offset, self.clone());
         }
-        if trans.is_missing(ts) {
-            if let Some(prev) = prev {
-                return eos::DateTimeResolution::missing(date, time, prev.offset, trans.offset, self.clone());
-            }
+        if trans.is_missing(ts)
+            && let Some(prev) = prev
+        {
+            return eos::DateTimeResolution::missing(date, time, prev.offset, trans.offset, self.clone());
         }
 
         // Assume remaining cases are unambiguous
@@ -411,8 +411,8 @@ mod tests {
     #[cfg(feature = "bundled")]
     fn test_bundled_loading() {
         use crate::zone;
-        use eos::datetime;
         use eos::TimeZone;
+        use eos::datetime;
 
         let dt = datetime!(1911-12-30 00:00);
         let tz = zone!("Africa/Abidjan");

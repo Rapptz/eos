@@ -1,7 +1,7 @@
 use eos::{
-    date, datetime,
-    fmt::{format_spec, FormatSpec, FormatSpecKind},
-    format_dt, time, utc_offset, DateTime, Utc,
+    DateTime, Utc, date, datetime,
+    fmt::{FormatSpec, FormatSpecKind, format_spec},
+    format_dt, time, utc_offset,
 };
 
 #[test]

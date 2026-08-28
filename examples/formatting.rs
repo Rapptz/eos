@@ -1,4 +1,4 @@
-use eos::{format_dt, Utc};
+use eos::{Utc, format_dt};
 
 // Example showcasing different forms of formatting
 

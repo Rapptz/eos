@@ -4,8 +4,9 @@ use std::{
 };
 
 use eos::{
+    Time, UtcOffset,
     gregorian::{date_to_epoch_days, days_in_month, is_leap_year, weekday_difference, weekday_from_days},
-    utc_offset, Time, UtcOffset,
+    utc_offset,
 };
 
 use crate::{error::ParseError, timestamp::NaiveTimestamp};
@@ -657,7 +658,7 @@ impl std::fmt::Display for PosixTimeZone {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // std[offset[dst[offset],start[/time],end[/time]]]
         if self.std_abbr.as_bytes().iter().any(|x| !x.is_ascii_alphabetic()) {
-            write!(f, "<{}>", &self.std_abbr)?;
+            write!(f, "<{}>", self.std_abbr)?;
         } else {
             f.write_str(self.std_abbr.as_str())?;
         }
@@ -670,7 +671,7 @@ impl std::fmt::Display for PosixTimeZone {
             Some(dst) => {
                 display_offset(f, &self.std_offset)?;
                 if dst.abbr.as_bytes().iter().any(|x| !x.is_ascii_alphabetic()) {
-                    write!(f, "<{}>", &dst.abbr)?;
+                    write!(f, "<{}>", dst.abbr)?;
                 } else {
                     f.write_str(dst.abbr.as_str())?;
                 }
@@ -678,7 +679,7 @@ impl std::fmt::Display for PosixTimeZone {
                 if dst.offset != default {
                     display_offset(f, &dst.offset)?;
                 }
-                write!(f, ",{},{}", &dst.start, &dst.end)?;
+                write!(f, ",{},{}", dst.start, dst.end)?;
             }
         }
         Ok(())
@@ -687,7 +688,7 @@ impl std::fmt::Display for PosixTimeZone {
 
 #[cfg(test)]
 mod tests {
-    use eos::{datetime, ext::IntervalLiteral, DateTime, TimeZone, Utc};
+    use eos::{DateTime, TimeZone, Utc, datetime, ext::IntervalLiteral};
 
     use super::*;
 

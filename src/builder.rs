@@ -58,6 +58,12 @@ impl Builder<crate::Utc> {
     }
 }
 
+impl Default for Builder<crate::Utc> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Tz> Builder<Tz>
 where
     Tz: TimeZone,

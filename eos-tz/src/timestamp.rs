@@ -1,6 +1,6 @@
 use eos::{
-    gregorian::{MAX_EPOCH_DAYS, MIN_EPOCH_DAYS},
     DateTime, TimeZone, Utc,
+    gregorian::{MAX_EPOCH_DAYS, MIN_EPOCH_DAYS},
 };
 
 /// A naive Unix timestamp.
@@ -76,9 +76,9 @@ impl std::fmt::Debug for NaiveTimestamp {
         // Give the NaiveTimestamp some more important debugging information
         // such as the UTC time
         if self.0 >= Self::MIN_VALID && self.0 <= Self::MAX_VALID {
-            write!(f, "NaiveTimestamp({}, \"{}\")", &self.0, self.to_utc())
+            write!(f, "NaiveTimestamp({}, \"{}\")", self.0, self.to_utc())
         } else {
-            write!(f, "NaiveTimestamp({})", &self.0)
+            write!(f, "NaiveTimestamp({})", self.0)
         }
     }
 }

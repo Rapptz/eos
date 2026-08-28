@@ -1,9 +1,9 @@
 use crate::{
+    Date, Interval, IsoWeekDate, Time, TimeZone, Weekday,
     step::Advance,
     timestamp::Timestamp,
     timezone::{Utc, UtcOffset},
     utils::divmod,
-    Date, Interval, IsoWeekDate, Time, TimeZone, Weekday,
 };
 
 use core::time::Duration;
@@ -1065,7 +1065,7 @@ where
 {
     fn to_iso_format_with_precision(&self, precision: IsoFormatPrecision) -> String {
         let mut buffer = String::with_capacity(40);
-        write!(&mut buffer, "{}", &self.date).expect("unexpected error when writing string");
+        write!(&mut buffer, "{}", self.date).expect("unexpected error when writing string");
         buffer.push('T');
         crate::time::fmt_iso_time(&mut buffer, &self.time, precision).expect("unexpected error when writing string");
         write!(&mut buffer, "{}", self.offset).expect("unexpected error when writing string");

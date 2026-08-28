@@ -1,7 +1,7 @@
 use crate::{
     date::Date,
     datetime::DateTime,
-    gregorian::{date_from_epoch_days, MAX_EPOCH_DAYS, MIN_EPOCH_DAYS},
+    gregorian::{MAX_EPOCH_DAYS, MIN_EPOCH_DAYS, date_from_epoch_days},
     time::Time,
     timezone::{Utc, UtcOffset},
     utils::{divmod, divrem},

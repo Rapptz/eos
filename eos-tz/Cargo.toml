@@ -1,9 +1,9 @@
 [package]
 name = "eos-tz"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Rapptz"]
-rust-version = "1.70"
+rust-version = "1.88"
 description = "IANA database TimeZone extension for eos"
 license = "Apache-2.0"
 readme = "README.md"

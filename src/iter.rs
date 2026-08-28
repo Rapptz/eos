@@ -60,10 +60,10 @@ impl<Tz: TimeZone> Every<Tz> {
 
     fn build(mut self) -> EveryIter<Tz> {
         // Check if our initial data needs to be shifted
-        if let Some(weekday) = self.weekday {
-            if self.start.weekday() != weekday {
-                self.start = self.start.next(weekday);
-            }
+        if let Some(weekday) = self.weekday
+            && self.start.weekday() != weekday
+        {
+            self.start = self.start.next(weekday);
         }
         let fixed = self.start.timezone().is_fixed();
 
@@ -103,10 +103,10 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
     type Item = DateTime<Tz>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(dt) = &self.until {
-            if &self.start >= dt {
-                return None;
-            }
+        if let Some(dt) = &self.until
+            && &self.start >= dt
+        {
+            return None;
         }
 
         let (sub, duration) = self.interval.get_time_duration();
@@ -122,10 +122,10 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
             .add_months(self.interval.total_months())
             .add_days(self.interval.days() + days);
 
-        if let Some(weekday) = self.weekday {
-            if date.weekday() != weekday {
-                date = date.next(weekday);
-            }
+        if let Some(weekday) = self.weekday
+            && date.weekday() != weekday
+        {
+            date = date.next(weekday);
         }
 
         let timezone = self.start.timezone.clone();
@@ -159,7 +159,7 @@ impl<Tz: TimeZone> Iterator for EveryIter<Tz> {
 mod tests {
     use core::time::Duration;
 
-    use crate::{datetime, time, Interval};
+    use crate::{Interval, datetime, time};
 
     const HOUR: Duration = Duration::from_secs(60 * 60);
     const DAY: Duration = Duration::from_secs(60 * 60 * 24);

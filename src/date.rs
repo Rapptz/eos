@@ -1,11 +1,11 @@
 use crate::{
+    DateTime, Interval, Time, TimeZone, Utc,
     gregorian::{
         date_from_epoch_days, date_to_epoch_days, date_to_ordinal, days_in_month, find_iso_week_start_epoch,
         is_leap_year, iso_week_start_epoch_from_year, iso_weeks_in_year, weekday_from_days,
     },
     step::Advance,
     utils::{divrem, ensure_in_range},
-    DateTime, Interval, Time, TimeZone, Utc,
 };
 
 use core::ops::{Add, AddAssign, Sub, SubAssign};
@@ -376,11 +376,7 @@ impl Date {
                 rem = 12;
             }
             let m = 12 - rem + 1;
-            if m == 1 {
-                (y + 1, m)
-            } else {
-                (y, m)
-            }
+            if m == 1 { (y + 1, m) } else { (y, m) }
         };
         let month = month as u8;
         let year = (self.year as i32 + year).clamp(i16::MIN as i32, i16::MAX as i32) as i16;

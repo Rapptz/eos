@@ -1,4 +1,4 @@
-use crate::{utils::ensure_in_range, Date, DateTime, Error, Time, Timestamp};
+use crate::{Date, DateTime, Error, Time, Timestamp, utils::ensure_in_range};
 
 /// An offset from UTC.
 ///

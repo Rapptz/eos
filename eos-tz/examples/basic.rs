@@ -1,4 +1,4 @@
-use eos::{datetime, Utc};
+use eos::{Utc, datetime};
 
 // A basic example showing how to use the timezone data.
 

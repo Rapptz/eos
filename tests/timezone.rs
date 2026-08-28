@@ -2,8 +2,8 @@
 // https://github.com/python/cpython/blob/3.10/Lib/test/datetimetester.py
 
 use eos::{
-    datetime, ext::IntervalLiteral, time, utc_offset, Date, DateTime, DateTimeResolution, Interval, Time, TimeZone,
-    Timestamp, Utc, UtcOffset, Weekday,
+    Date, DateTime, DateTimeResolution, Interval, Time, TimeZone, Timestamp, Utc, UtcOffset, Weekday, datetime,
+    ext::IntervalLiteral, time, utc_offset,
 };
 
 fn this_or_next_sunday(date: Date) -> Date {

@@ -1,9 +1,9 @@
 [package]
 name = "eos"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Rapptz"]
-rust-version = "1.70"
+rust-version = "1.88"
 description = "A simple and easy to use datetime library for Rust"
 license = "Apache-2.0"
 readme = "README.md"
@@ -25,12 +25,12 @@ macros = ["eos-format-spec-macro"]
 [dependencies]
 eos-format-spec-macro = { path = "eos-format-spec-macro", optional = true }
 serde = { version = "1", default-features = false, optional = true }
-rusqlite = { version = "0.29", optional = true }
+rusqlite = { version = "0.40", optional = true }
 
 [dev-dependencies]
 serde_json = { version = "1" } # For testing Serde integration
 serde_derive = { version = "1", default-features = false } # For testing Serde integration
-rusqlite = { version = "0.29", features = ["bundled"] } # For testing rusqlite integration
+rusqlite = { version = "0.40", features = ["bundled"] } # For testing rusqlite integration
 
 [workspace]
 members = [
