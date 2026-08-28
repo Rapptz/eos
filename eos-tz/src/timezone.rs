@@ -27,7 +27,7 @@ struct TimeZoneData {
 pub struct TimeZone(Arc<TimeZoneData>);
 
 #[cfg(target_family = "unix")]
-const TZ_SEARCH_PATHS: [&'static str; 4] = [
+const TZ_SEARCH_PATHS: [&str; 4] = [
     "/usr/share/zoneinfo",
     "/usr/lib/zoneinfo",
     "/usr/share/lib/zoneinfo",
@@ -161,12 +161,12 @@ impl TimeZone {
     pub(crate) fn etc_localtime() -> Result<Self, Error> {
         let actual_path = std::fs::canonicalize("/etc/localtime").map_err(|_| Error::InvalidZonePath)?;
         for p in TZ_SEARCH_PATHS {
-            if let Ok(suffix) = actual_path.strip_prefix(p) {
-                if let Some(zone_id) = suffix.to_str() {
-                    let file = std::fs::File::open(&actual_path).map_err(|_| Error::InvalidZonePath)?;
-                    let buf = std::io::BufReader::new(file);
-                    return Ok(Self::load(buf, zone_id.to_owned())?);
-                }
+            if let Ok(suffix) = actual_path.strip_prefix(p)
+                && let Some(zone_id) = suffix.to_str()
+            {
+                let file = std::fs::File::open(&actual_path).map_err(|_| Error::InvalidZonePath)?;
+                let buf = std::io::BufReader::new(file);
+                return Ok(Self::load(buf, zone_id.to_owned())?);
             }
         }
 
