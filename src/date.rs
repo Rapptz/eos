@@ -912,4 +912,29 @@ mod tests {
             date!(2008 - 12 - 29)
         );
     }
+
+    #[test]
+    fn test_iso_week_negative_year() {
+        // Regression test for negative ISO years. ISO year -2 has 53 weeks
+        // (31 December of year -2 is a Thursday), so `iso_week()` reports
+        // 1 January-adjacent dates as week 53 of ISO year -2. `IsoWeekDate::new`
+        // must accept that same week date, and reconstructing the Gregorian date
+        // must round-trip. Previously `end_of_year_weekday` used truncating `i16`
+        // division, which is wrong for negative years, so `iso_weeks_in_year(-2)`
+        // wrongly returned 52 and this valid date was rejected.
+        let date = Date::new(-2, 12, 28).unwrap();
+        let iso = date.iso_week();
+        assert_eq!(
+            iso,
+            IsoWeekDate {
+                year: -2,
+                week: 53,
+                weekday: Weekday::Monday
+            }
+        );
+        assert_eq!(IsoWeekDate::new(-2, 53, Weekday::Monday), Some(iso));
+        assert_eq!(Date::from(iso), date);
+        // The neighbouring ISO year -3 only has 52 weeks, so week 53 is invalid.
+        assert_eq!(IsoWeekDate::new(-3, 53, Weekday::Monday), None);
+    }
 }
